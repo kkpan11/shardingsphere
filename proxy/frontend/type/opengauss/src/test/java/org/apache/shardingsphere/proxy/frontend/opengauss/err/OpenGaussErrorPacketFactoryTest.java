@@ -29,8 +29,6 @@ import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 class OpenGaussErrorPacketFactoryTest {
     
@@ -44,7 +42,7 @@ class OpenGaussErrorPacketFactoryTest {
         assertThat(actualFields.get(OpenGaussErrorResponsePacket.FIELD_TYPE_SEVERITY), is("FATAL"));
         assertThat(actualFields.get(OpenGaussErrorResponsePacket.FIELD_TYPE_CODE), is("3D000"));
         assertThat(actualFields.get(OpenGaussErrorResponsePacket.FIELD_TYPE_MESSAGE), is("database \"test\" does not exist"));
-        assertThat(actualFields.get(OpenGaussErrorResponsePacket.FIELD_TYPE_ERRORCODE), is("-1"));
+        assertThat(actualFields.get(OpenGaussErrorResponsePacket.FIELD_TYPE_ERROR_CODE), is("-1"));
         assertThat(actualFields.get(OpenGaussErrorResponsePacket.FIELD_TYPE_DETAIL), is("detail"));
         assertThat(actualFields.get(OpenGaussErrorResponsePacket.FIELD_TYPE_HINT), is("hint"));
         assertThat(actualFields.get(OpenGaussErrorResponsePacket.FIELD_TYPE_POSITION), is("1"));
@@ -65,20 +63,19 @@ class OpenGaussErrorPacketFactoryTest {
         assertThat(actualFields.get(OpenGaussErrorResponsePacket.FIELD_TYPE_SEVERITY), is("ERROR"));
         assertThat(actualFields.get(OpenGaussErrorResponsePacket.FIELD_TYPE_CODE), is("3D000"));
         assertThat(actualFields.get(OpenGaussErrorResponsePacket.FIELD_TYPE_MESSAGE), is("database \"test\" does not exist"));
-        assertThat(actualFields.get(OpenGaussErrorResponsePacket.FIELD_TYPE_ERRORCODE), is("0"));
+        assertThat(actualFields.get(OpenGaussErrorResponsePacket.FIELD_TYPE_ERROR_CODE), is("0"));
     }
     
     @Test
     void assertNewInstanceWithUnknownException() {
-        Exception cause = mock(Exception.class);
-        when(cause.getLocalizedMessage()).thenReturn("LocalizedMessage");
+        Exception cause = new RuntimeException("No reason");
         OpenGaussErrorResponsePacket actual = OpenGaussErrorPacketFactory.newInstance(cause);
         Map<Character, String> actualFields = getFieldsInPacket(actual);
         assertThat(actualFields.size(), is(4));
         assertThat(actualFields.get(OpenGaussErrorResponsePacket.FIELD_TYPE_SEVERITY), is("ERROR"));
         assertThat(actualFields.get(OpenGaussErrorResponsePacket.FIELD_TYPE_CODE), is("58000"));
-        assertThat(actualFields.get(OpenGaussErrorResponsePacket.FIELD_TYPE_MESSAGE), is("LocalizedMessage"));
-        assertThat(actualFields.get(OpenGaussErrorResponsePacket.FIELD_TYPE_ERRORCODE), is("0"));
+        assertThat(actualFields.get(OpenGaussErrorResponsePacket.FIELD_TYPE_MESSAGE), is("Unknown exception." + System.lineSeparator() + "More details: java.lang.RuntimeException: No reason"));
+        assertThat(actualFields.get(OpenGaussErrorResponsePacket.FIELD_TYPE_ERROR_CODE), is("0"));
     }
     
     @SuppressWarnings("unchecked")

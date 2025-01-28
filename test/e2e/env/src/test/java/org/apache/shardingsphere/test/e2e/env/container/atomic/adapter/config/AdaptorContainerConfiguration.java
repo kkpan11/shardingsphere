@@ -20,6 +20,7 @@ package org.apache.shardingsphere.test.e2e.env.container.atomic.adapter.config;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -31,7 +32,11 @@ public final class AdaptorContainerConfiguration {
     
     private final String proxyDataSourceName;
     
+    private final List<String> portBindings;
+    
     private final Map<String, String> mountedResources;
     
     private final String adapterContainerImage;
+    
+    private final String containerCommand;
 }

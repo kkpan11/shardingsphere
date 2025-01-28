@@ -18,9 +18,7 @@
 package org.apache.shardingsphere.test.e2e.transaction.cases.savepoint;
 
 import org.apache.shardingsphere.test.e2e.transaction.cases.base.BaseTransactionTestCase;
-import org.apache.shardingsphere.test.e2e.transaction.engine.base.TransactionBaseE2EIT;
 
-import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Savepoint;
@@ -30,24 +28,32 @@ import java.sql.Savepoint;
  */
 public abstract class BaseSavePointTestCase extends BaseTransactionTestCase {
     
-    protected BaseSavePointTestCase(final TransactionBaseE2EIT baseTransactionITCase, final DataSource dataSource) {
-        super(baseTransactionITCase, dataSource);
+    protected BaseSavePointTestCase(final TransactionTestCaseParameter testCaseParam) {
+        super(testCaseParam);
     }
     
-    void assertRollback2Savepoint() throws SQLException {
+    void assertRollbackToSavepoint() throws SQLException {
         try (Connection connection = getDataSource().getConnection()) {
             connection.setAutoCommit(false);
             assertAccountRowCount(connection, 0);
             executeWithLog(connection, "insert into account(id, balance, transaction_id) values(1, 1, 1);");
-            final Savepoint savepoint = connection.setSavepoint("point1");
-            assertAccountRowCount(connection, 1);
-            executeWithLog(connection, "insert into account(id, balance, transaction_id) values(2, 2, 2);");
-            assertAccountRowCount(connection, 2);
+            Savepoint savepoint = connection.setSavepoint("point1");
+            executeSQLInSavepoint(connection);
             connection.rollback(savepoint);
+            assertAccountRowCount(connection, 1);
+            Savepoint savepointWithoutName = connection.setSavepoint();
+            executeSQLInSavepoint(connection);
+            connection.rollback(savepointWithoutName);
             assertAccountRowCount(connection, 1);
             connection.commit();
             assertAccountRowCount(connection, 1);
         }
+    }
+    
+    private void executeSQLInSavepoint(final Connection connection) throws SQLException {
+        assertAccountRowCount(connection, 1);
+        executeWithLog(connection, "insert into account(id, balance, transaction_id) values(2, 2, 2);");
+        assertAccountRowCount(connection, 2);
     }
     
     void assertReleaseSavepoint() throws SQLException {

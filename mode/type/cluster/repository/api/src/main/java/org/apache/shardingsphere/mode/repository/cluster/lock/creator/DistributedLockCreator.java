@@ -17,9 +17,9 @@
 
 package org.apache.shardingsphere.mode.repository.cluster.lock.creator;
 
-import org.apache.shardingsphere.infra.util.props.TypedProperties;
-import org.apache.shardingsphere.infra.util.spi.annotation.SingletonSPI;
-import org.apache.shardingsphere.infra.util.spi.type.typed.TypedSPI;
+import org.apache.shardingsphere.infra.props.TypedProperties;
+import org.apache.shardingsphere.infra.spi.annotation.SingletonSPI;
+import org.apache.shardingsphere.infra.spi.type.typed.TypedSPI;
 import org.apache.shardingsphere.mode.repository.cluster.lock.DistributedLock;
 
 /**
@@ -33,7 +33,7 @@ public interface DistributedLockCreator<C, P extends TypedProperties<?>> extends
     
     /**
      * Create distributed lock.
-     * 
+     *
      * @param lockKey lock key
      * @param client client
      * @param props props

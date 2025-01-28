@@ -24,7 +24,7 @@ import lombok.Setter;
 import org.apache.shardingsphere.db.protocol.postgresql.packet.PostgreSQLPacket;
 import org.apache.shardingsphere.db.protocol.postgresql.packet.command.query.PostgreSQLParameterDescriptionPacket;
 import org.apache.shardingsphere.db.protocol.postgresql.packet.command.query.extended.PostgreSQLColumnType;
-import org.apache.shardingsphere.infra.binder.statement.SQLStatementContext;
+import org.apache.shardingsphere.infra.binder.context.statement.SQLStatementContext;
 import org.apache.shardingsphere.infra.hint.HintValueContext;
 import org.apache.shardingsphere.proxy.backend.session.ServerPreparedStatement;
 
@@ -64,7 +64,7 @@ public final class PostgreSQLServerPreparedStatement implements ServerPreparedSt
     
     /**
      * Describe rows of the prepared statement.
-     * 
+     *
      * @return packet of row description
      */
     public Optional<PostgreSQLPacket> describeRows() {

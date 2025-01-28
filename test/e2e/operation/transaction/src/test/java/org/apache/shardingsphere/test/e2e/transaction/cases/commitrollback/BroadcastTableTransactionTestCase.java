@@ -19,23 +19,22 @@ package org.apache.shardingsphere.test.e2e.transaction.cases.commitrollback;
 
 import lombok.SneakyThrows;
 import org.apache.shardingsphere.test.e2e.transaction.cases.base.BaseTransactionTestCase;
-import org.apache.shardingsphere.test.e2e.transaction.engine.base.TransactionBaseE2EIT;
 import org.apache.shardingsphere.test.e2e.transaction.engine.base.TransactionContainerComposer;
+import org.apache.shardingsphere.test.e2e.transaction.engine.base.TransactionTestCase;
 
-import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
 
 /**
  * Broadcast table transaction integration test.
  */
-// TODO add @TransactionTestCase when migration of broadcast table data completed when adding storage nodes
+@TransactionTestCase
 public final class BroadcastTableTransactionTestCase extends BaseTransactionTestCase {
     
     private static final String T_ADDRESS = "t_address";
     
-    public BroadcastTableTransactionTestCase(final TransactionBaseE2EIT baseTransactionITCase, final DataSource dataSource) {
-        super(baseTransactionITCase, dataSource);
+    public BroadcastTableTransactionTestCase(final TransactionTestCaseParameter testCaseParam) {
+        super(testCaseParam);
     }
     
     @Override
@@ -82,7 +81,7 @@ public final class BroadcastTableTransactionTestCase extends BaseTransactionTest
             assertTableRowCount(connection, T_ADDRESS, 0);
             executeWithLog(connection, "INSERT INTO t_address (id, code, address) VALUES (1, '1', 'nanjing');");
             assertTableRowCount(connection, T_ADDRESS, 1);
-            connection.commit();
+            connection.rollback();
         }
     }
 }

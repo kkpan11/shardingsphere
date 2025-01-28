@@ -17,12 +17,12 @@
 
 package org.apache.shardingsphere.sharding.merge.ddl.fetch;
 
-import org.apache.shardingsphere.infra.binder.segment.select.orderby.OrderByItem;
-import org.apache.shardingsphere.infra.binder.statement.ddl.FetchStatementContext;
-import org.apache.shardingsphere.infra.binder.statement.dml.SelectStatementContext;
+import org.apache.shardingsphere.infra.binder.context.segment.select.orderby.OrderByItem;
+import org.apache.shardingsphere.infra.binder.context.statement.ddl.FetchStatementContext;
+import org.apache.shardingsphere.infra.binder.context.statement.dml.SelectStatementContext;
 import org.apache.shardingsphere.infra.session.connection.ConnectionContext;
 import org.apache.shardingsphere.infra.session.connection.cursor.FetchGroup;
-import org.apache.shardingsphere.infra.database.type.DatabaseType;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.executor.sql.execute.result.query.QueryResult;
 import org.apache.shardingsphere.infra.executor.sql.execute.result.query.impl.driver.jdbc.type.memory.JDBCMemoryQueryResult;
 import org.apache.shardingsphere.infra.executor.sql.execute.result.query.impl.driver.jdbc.type.stream.JDBCStreamQueryResult;
@@ -30,8 +30,8 @@ import org.apache.shardingsphere.infra.merge.result.impl.stream.StreamMergedResu
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereSchema;
 import org.apache.shardingsphere.sharding.exception.connection.CursorNameNotFoundException;
 import org.apache.shardingsphere.sharding.merge.dql.orderby.OrderByValue;
-import org.apache.shardingsphere.sql.parser.sql.common.enums.DirectionType;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.cursor.DirectionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.enums.DirectionType;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.cursor.DirectionSegment;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -60,7 +60,7 @@ public final class FetchStreamMergedResult extends StreamMergedResult {
     public FetchStreamMergedResult(final List<QueryResult> queryResults, final FetchStatementContext fetchStatementContext,
                                    final ShardingSphereSchema schema, final ConnectionContext connectionContext) throws SQLException {
         orderByValuesQueue = new PriorityQueue<>(queryResults.size());
-        directionType = fetchStatementContext.getSqlStatement().getDirection().flatMap(DirectionSegment::getDirectionType).orElse(DirectionType.NEXT);
+        directionType = fetchStatementContext.getSqlStatement().getDirection().map(DirectionSegment::getDirectionType).orElse(DirectionType.NEXT);
         fetchCount = fetchStatementContext.getSqlStatement().getDirection().flatMap(DirectionSegment::getCount).orElse(1L);
         SelectStatementContext selectStatementContext = fetchStatementContext.getCursorStatementContext().getSelectStatementContext();
         String cursorName = fetchStatementContext.getCursorName().map(optional -> optional.getIdentifier().getValue().toLowerCase()).orElseThrow(CursorNameNotFoundException::new);
@@ -92,19 +92,19 @@ public final class FetchStreamMergedResult extends StreamMergedResult {
             return false;
         }
         setCurrentQueryResult(orderByValuesQueue.peek().getQueryResult());
-        return DirectionType.isAllDirectionType(directionType) || fetchCount-- > 0;
+        return DirectionType.isAllDirectionType(directionType) || fetchCount-- > 0L;
     }
     
     private List<FetchOrderByValueGroup> getFetchOrderByValueGroups(final List<QueryResult> queryResults, final SelectStatementContext selectStatementContext,
                                                                     final ShardingSphereSchema schema, final String cursorName, final ConnectionContext connectionContext) throws SQLException {
-        long actualFetchCount = Math.max(fetchCount - connectionContext.getCursorContext().getMinGroupRowCounts().getOrDefault(cursorName, 0L), 0);
+        long actualFetchCount = Math.max(fetchCount - connectionContext.getCursorContext().getMinGroupRowCounts().getOrDefault(cursorName, 0L), 0L);
         List<FetchGroup> fetchGroups = connectionContext.getCursorContext().getOrderByValueGroups().computeIfAbsent(cursorName, key -> createFetchOrderByValueGroups(queryResults.size()));
         List<FetchOrderByValueGroup> result = new ArrayList<>(fetchGroups.size());
         for (FetchGroup each : fetchGroups) {
             result.add((FetchOrderByValueGroup) each);
         }
         result.forEach(each -> each.getOrderByValues().removeIf(this::isEmptyOrderByValue));
-        if (actualFetchCount <= 0 && !DirectionType.isAllDirectionType(directionType)) {
+        if (0L == actualFetchCount && !DirectionType.isAllDirectionType(directionType)) {
             return result;
         }
         if (connectionContext.getCursorContext().getExecutedAllDirections().containsKey(cursorName)) {
@@ -125,7 +125,7 @@ public final class FetchStreamMergedResult extends StreamMergedResult {
     }
     
     private List<FetchGroup> createFetchOrderByValueGroups(final int queryResultSize) {
-        List<FetchGroup> result = new ArrayList<>();
+        List<FetchGroup> result = new ArrayList<>(queryResultSize);
         for (int index = 0; index < queryResultSize; index++) {
             result.add(new FetchOrderByValueGroup());
         }
@@ -133,7 +133,7 @@ public final class FetchStreamMergedResult extends StreamMergedResult {
     }
     
     private boolean isEmptyOrderByValue(final OrderByValue orderByValue) {
-        return orderByValue.getQueryResult() instanceof JDBCMemoryQueryResult && 0 == ((JDBCMemoryQueryResult) orderByValue.getQueryResult()).getRowCount()
+        return orderByValue.getQueryResult() instanceof JDBCMemoryQueryResult && 0L == ((JDBCMemoryQueryResult) orderByValue.getQueryResult()).getRowCount()
                 && null == ((JDBCMemoryQueryResult) orderByValue.getQueryResult()).getCurrentRow();
     }
     
@@ -159,7 +159,7 @@ public final class FetchStreamMergedResult extends StreamMergedResult {
         for (FetchGroup each : fetchOrderByValueGroups) {
             rowCounts.add(getGroupRowCount((FetchOrderByValueGroup) each));
         }
-        long minResultSetRowCount = DirectionType.isAllDirectionType(directionType) ? 0 : Collections.min(rowCounts) - fetchCount;
+        long minResultSetRowCount = DirectionType.isAllDirectionType(directionType) ? 0L : Collections.min(rowCounts) - fetchCount;
         connectionContext.getCursorContext().getMinGroupRowCounts().put(cursorName, Math.max(minResultSetRowCount, 0L));
     }
     
@@ -173,7 +173,7 @@ public final class FetchStreamMergedResult extends StreamMergedResult {
     }
     
     private long getGroupRowCount(final FetchOrderByValueGroup fetchOrderByValueGroup) {
-        long result = 0;
+        long result = 0L;
         for (OrderByValue each : fetchOrderByValueGroup.getOrderByValues()) {
             if (each.getQueryResult() instanceof JDBCMemoryQueryResult) {
                 JDBCMemoryQueryResult queryResult = (JDBCMemoryQueryResult) each.getQueryResult();

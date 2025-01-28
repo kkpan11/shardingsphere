@@ -17,20 +17,19 @@
 
 package org.apache.shardingsphere.sharding.algorithm.sharding.inline;
 
-import groovy.lang.Closure;
 import groovy.lang.MissingMethodException;
-import groovy.util.Expando;
+import org.apache.shardingsphere.infra.algorithm.core.exception.AlgorithmInitializationException;
+import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.exception.generic.UnsupportedSQLOperationException;
 import org.apache.shardingsphere.infra.expr.core.InlineExpressionParserFactory;
-import org.apache.shardingsphere.infra.util.exception.ShardingSpherePreconditions;
-import org.apache.shardingsphere.infra.util.exception.external.sql.type.generic.UnsupportedSQLOperationException;
 import org.apache.shardingsphere.sharding.api.sharding.standard.PreciseShardingValue;
 import org.apache.shardingsphere.sharding.api.sharding.standard.RangeShardingValue;
 import org.apache.shardingsphere.sharding.api.sharding.standard.StandardShardingAlgorithm;
-import org.apache.shardingsphere.sharding.exception.algorithm.sharding.MismatchedInlineShardingAlgorithmExpressionAndColumnException;
-import org.apache.shardingsphere.sharding.exception.algorithm.sharding.ShardingAlgorithmInitializationException;
+import org.apache.shardingsphere.sharding.exception.algorithm.MismatchedInlineShardingAlgorithmExpressionAndColumnException;
 import org.apache.shardingsphere.sharding.exception.data.NullShardingValueException;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Optional;
 import java.util.Properties;
 
@@ -54,9 +53,9 @@ public final class InlineShardingAlgorithm implements StandardShardingAlgorithm<
     }
     
     private String getAlgorithmExpression(final Properties props) {
-        String expression = props.getProperty(ALGORITHM_EXPRESSION_KEY, "");
-        ShardingSpherePreconditions.checkState(!expression.isEmpty(), () -> new ShardingAlgorithmInitializationException(getType(), "Inline sharding algorithm expression cannot be null or empty"));
-        return InlineExpressionParserFactory.newInstance().handlePlaceHolder(expression.trim());
+        String expression = props.getProperty(ALGORITHM_EXPRESSION_KEY);
+        ShardingSpherePreconditions.checkNotEmpty(expression, () -> new AlgorithmInitializationException(this, "Inline sharding algorithm expression cannot be null or empty"));
+        return InlineExpressionParserFactory.newInstance(expression.trim()).handlePlaceHolder();
     }
     
     private boolean isAllowRangeQuery(final Properties props) {
@@ -68,9 +67,11 @@ public final class InlineShardingAlgorithm implements StandardShardingAlgorithm<
         ShardingSpherePreconditions.checkNotNull(shardingValue.getValue(), NullShardingValueException::new);
         String columnName = shardingValue.getColumnName();
         ShardingSpherePreconditions.checkState(algorithmExpression.contains(columnName), () -> new MismatchedInlineShardingAlgorithmExpressionAndColumnException(algorithmExpression, columnName));
-        Closure<?> closure = createClosure();
-        closure.setProperty(columnName, shardingValue.getValue());
-        return getTargetShardingNode(closure, columnName);
+        try {
+            return InlineExpressionParserFactory.newInstance(algorithmExpression).evaluateWithArgs(Collections.singletonMap(columnName, shardingValue.getValue()));
+        } catch (final MissingMethodException ignored) {
+            throw new MismatchedInlineShardingAlgorithmExpressionAndColumnException(algorithmExpression, columnName);
+        }
     }
     
     @Override
@@ -78,20 +79,6 @@ public final class InlineShardingAlgorithm implements StandardShardingAlgorithm<
         ShardingSpherePreconditions.checkState(allowRangeQuery,
                 () -> new UnsupportedSQLOperationException(String.format("Since the property of `%s` is false, inline sharding algorithm can not tackle with range query", ALLOW_RANGE_QUERY_KEY)));
         return availableTargetNames;
-    }
-    
-    private Closure<?> createClosure() {
-        Closure<?> result = InlineExpressionParserFactory.newInstance().evaluateClosure(algorithmExpression).rehydrate(new Expando(), null, null);
-        result.setResolveStrategy(Closure.DELEGATE_ONLY);
-        return result;
-    }
-    
-    private String getTargetShardingNode(final Closure<?> closure, final String columnName) {
-        try {
-            return closure.call().toString();
-        } catch (final MissingMethodException ignored) {
-            throw new MismatchedInlineShardingAlgorithmExpressionAndColumnException(algorithmExpression, columnName);
-        }
     }
     
     @Override

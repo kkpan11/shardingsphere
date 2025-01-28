@@ -21,7 +21,6 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import org.apache.shardingsphere.test.e2e.transaction.cases.base.BaseTransactionTestCase;
-import org.apache.shardingsphere.test.e2e.transaction.engine.base.TransactionBaseE2EIT;
 import org.apache.shardingsphere.test.e2e.transaction.engine.base.TransactionContainerComposer;
 import org.apache.shardingsphere.test.e2e.transaction.engine.base.TransactionTestCase;
 import org.testcontainers.shaded.org.awaitility.Awaitility;
@@ -44,8 +43,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 @TransactionTestCase
 public final class ClassicTransferTestCase extends BaseTransactionTestCase {
     
-    public ClassicTransferTestCase(final TransactionBaseE2EIT baseTransactionITCase, final DataSource dataSource) {
-        super(baseTransactionITCase, dataSource);
+    public ClassicTransferTestCase(final TransactionTestCaseParameter testCaseParam) {
+        super(testCaseParam);
     }
     
     @Override
@@ -76,7 +75,9 @@ public final class ClassicTransferTestCase extends BaseTransactionTestCase {
     
     private int getBalanceSum() throws SQLException {
         int result = 0;
-        try (Connection connection = getDataSource().getConnection(); Statement statement = connection.createStatement()) {
+        try (
+                Connection connection = getDataSource().getConnection();
+                Statement statement = connection.createStatement()) {
             connection.setAutoCommit(false);
             ResultSet resultSet = statement.executeQuery("select sum(balance) as a from account where transaction_id in (1, 2)");
             if (resultSet.next()) {

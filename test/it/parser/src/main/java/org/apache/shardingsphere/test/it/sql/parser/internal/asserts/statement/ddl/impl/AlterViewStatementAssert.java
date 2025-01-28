@@ -19,12 +19,15 @@ package org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.ddl.AlterViewStatement;
-import org.apache.shardingsphere.sql.parser.sql.dialect.handler.ddl.AlterViewStatementHandler;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.constraint.ConstraintDefinitionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.ddl.AlterViewStatement;
 import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.SQLCaseAssertContext;
+import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.segment.definition.ConstraintDefinitionAssert;
 import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.segment.table.TableAssert;
 import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.dml.impl.SelectStatementAssert;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.statement.ddl.AlterViewStatementTestCase;
+
+import java.util.Optional;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -39,7 +42,7 @@ public final class AlterViewStatementAssert {
     
     /**
      * Assert alter view statement is correct with expected parser result.
-     * 
+     *
      * @param assertContext assert context
      * @param actual actual alter view statement
      * @param expected expected alter view statement test case
@@ -48,6 +51,7 @@ public final class AlterViewStatementAssert {
         assertView(assertContext, actual, expected);
         assertViewDefinition(assertContext, actual, expected);
         assertSelect(assertContext, actual, expected);
+        assertConstraintDefinition(assertContext, actual, expected);
     }
     
     private static void assertView(final SQLCaseAssertContext assertContext, final AlterViewStatement actual, final AlterViewStatementTestCase expected) {
@@ -56,20 +60,30 @@ public final class AlterViewStatementAssert {
     
     private static void assertViewDefinition(final SQLCaseAssertContext assertContext, final AlterViewStatement actual, final AlterViewStatementTestCase expected) {
         if (null == expected.getViewDefinition()) {
-            assertFalse(AlterViewStatementHandler.getViewDefinition(actual).isPresent(), "actual view definition should not exist");
+            assertFalse(actual.getViewDefinition().isPresent(), "actual view definition should not exist");
         } else {
-            assertTrue(AlterViewStatementHandler.getViewDefinition(actual).isPresent(), "actual view definition should exist");
-            assertThat(assertContext.getText(String.format("`%s`'s view definition assertion error: ", actual.getClass().getSimpleName())), AlterViewStatementHandler.getViewDefinition(actual).get(),
+            assertTrue(actual.getViewDefinition().isPresent(), "actual view definition should exist");
+            assertThat(assertContext.getText(String.format("`%s`'s view definition assertion error: ", actual.getClass().getSimpleName())), actual.getViewDefinition().get(),
                     is(expected.getViewDefinition()));
         }
     }
     
     private static void assertSelect(final SQLCaseAssertContext assertContext, final AlterViewStatement actual, final AlterViewStatementTestCase expected) {
         if (null == expected.getSelectStatement()) {
-            assertFalse(AlterViewStatementHandler.getSelectStatement(actual).isPresent(), "actual select statement should not exist");
+            assertFalse(actual.getSelect().isPresent(), "actual select statement should not exist");
         } else {
-            assertTrue(AlterViewStatementHandler.getSelectStatement(actual).isPresent(), "actual select statement should exist");
-            SelectStatementAssert.assertIs(assertContext, AlterViewStatementHandler.getSelectStatement(actual).get(), expected.getSelectStatement());
+            assertTrue(actual.getSelect().isPresent(), "actual select statement should exist");
+            SelectStatementAssert.assertIs(assertContext, actual.getSelect().get(), expected.getSelectStatement());
+        }
+    }
+    
+    private static void assertConstraintDefinition(final SQLCaseAssertContext assertContext, final AlterViewStatement actual, final AlterViewStatementTestCase expected) {
+        Optional<ConstraintDefinitionSegment> constraintDefinition = actual.getConstraintDefinition();
+        if (null == expected.getConstraintDefinition()) {
+            assertFalse(constraintDefinition.isPresent(), "actual constraint definition should not exist");
+        } else {
+            assertTrue(constraintDefinition.isPresent(), "actual constraint definition should exist");
+            ConstraintDefinitionAssert.assertIs(assertContext, constraintDefinition.get(), expected.getConstraintDefinition());
         }
     }
 }

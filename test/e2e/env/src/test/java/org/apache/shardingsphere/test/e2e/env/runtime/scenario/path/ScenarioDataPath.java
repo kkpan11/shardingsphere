@@ -18,7 +18,7 @@
 package org.apache.shardingsphere.test.e2e.env.runtime.scenario.path;
 
 import lombok.RequiredArgsConstructor;
-import org.apache.shardingsphere.infra.database.type.DatabaseType;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
 
 import java.net.URL;
 import java.util.Optional;
@@ -47,7 +47,7 @@ public final class ScenarioDataPath {
     
     /**
      * Get databases file.
-     * 
+     *
      * @param type data type
      * @return databases file
      */

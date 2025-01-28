@@ -17,90 +17,65 @@
 
 package org.apache.shardingsphere.mode.metadata;
 
-import lombok.Getter;
-import org.apache.shardingsphere.infra.database.type.DatabaseType;
 import org.apache.shardingsphere.infra.metadata.ShardingSphereMetaData;
-import org.apache.shardingsphere.infra.metadata.statistics.ShardingSphereDatabaseData;
-import org.apache.shardingsphere.infra.metadata.statistics.ShardingSphereSchemaData;
 import org.apache.shardingsphere.infra.metadata.statistics.ShardingSphereStatistics;
-import org.apache.shardingsphere.infra.metadata.statistics.ShardingSphereTableData;
-import org.apache.shardingsphere.infra.metadata.statistics.builder.ShardingSphereStatisticsBuilder;
-import org.apache.shardingsphere.infra.rule.identifier.type.ResourceHeldRule;
-import org.apache.shardingsphere.infra.spi.DatabaseTypedSPILoader;
-import org.apache.shardingsphere.infra.util.spi.type.typed.TypedSPILoader;
-import org.apache.shardingsphere.metadata.persist.MetaDataBasedPersistService;
+import org.apache.shardingsphere.infra.metadata.statistics.builder.ShardingSphereStatisticsFactory;
+import org.apache.shardingsphere.mode.metadata.persist.MetaDataPersistService;
 
-import java.util.Map.Entry;
-import java.util.Optional;
+import javax.annotation.concurrent.ThreadSafe;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Meta data contexts.
  */
-@Getter
-public final class MetaDataContexts implements AutoCloseable {
+@ThreadSafe
+public final class MetaDataContexts {
     
-    private final MetaDataBasedPersistService persistService;
+    private final AtomicReference<ShardingSphereMetaData> metaData = new AtomicReference<>();
     
-    private final ShardingSphereMetaData metaData;
+    private final AtomicReference<ShardingSphereStatistics> statistics = new AtomicReference<>();
     
-    private final ShardingSphereStatistics statistics;
-    
-    public MetaDataContexts(final MetaDataBasedPersistService persistService, final ShardingSphereMetaData metaData) {
-        this.persistService = persistService;
-        this.metaData = metaData;
-        this.statistics = initStatistics(metaData);
+    public MetaDataContexts(final ShardingSphereMetaData metaData, final ShardingSphereStatistics statistics) {
+        this.metaData.set(metaData);
+        this.statistics.set(statistics);
     }
     
-    private ShardingSphereStatistics initStatistics(final ShardingSphereMetaData metaData) {
-        if (metaData.getDatabases().isEmpty()) {
-            return new ShardingSphereStatistics();
-        }
-        DatabaseType protocolType = metaData.getDatabases().values().iterator().next().getProtocolType();
-        if (null == protocolType) {
-            return new ShardingSphereStatistics();
-        }
-        // TODO can `protocolType instanceof SchemaSupportedDatabaseType ? "PostgreSQL" : protocolType.getType()` replace to trunk database type?
-        Optional<ShardingSphereStatisticsBuilder> statisticsBuilder = DatabaseTypedSPILoader.findService(ShardingSphereStatisticsBuilder.class, protocolType.getDefaultSchema().isPresent()
-                ? TypedSPILoader.getService(DatabaseType.class, "PostgreSQL")
-                : protocolType);
-        if (!statisticsBuilder.isPresent()) {
-            return new ShardingSphereStatistics();
-        }
-        ShardingSphereStatistics result = statisticsBuilder.get().build(metaData);
-        Optional<ShardingSphereStatistics> loadedStatistics = Optional.ofNullable(persistService.getShardingSphereDataPersistService())
-                .flatMap(shardingSphereDataPersistService -> shardingSphereDataPersistService.load(metaData));
-        loadedStatistics.ifPresent(optional -> useLoadedToReplaceInit(result, optional));
-        return result;
+    /**
+     * Get ShardingSphere meta data.
+     *
+     * @return got meta data
+     */
+    public ShardingSphereMetaData getMetaData() {
+        return metaData.get();
     }
     
-    private void useLoadedToReplaceInit(final ShardingSphereStatistics initStatistics, final ShardingSphereStatistics loadedStatistics) {
-        for (Entry<String, ShardingSphereDatabaseData> entry : initStatistics.getDatabaseData().entrySet()) {
-            if (loadedStatistics.getDatabaseData().containsKey(entry.getKey())) {
-                useLoadedToReplaceInitByDatabaseData(entry.getValue(), loadedStatistics.getDatabaseData().get(entry.getKey()));
-            }
-        }
+    /**
+     * Get ShardingSphere statistics.
+     *
+     * @return got statistics
+     */
+    public ShardingSphereStatistics getStatistics() {
+        return statistics.get();
     }
     
-    private void useLoadedToReplaceInitByDatabaseData(final ShardingSphereDatabaseData initDatabaseData, final ShardingSphereDatabaseData loadedDatabaseData) {
-        for (Entry<String, ShardingSphereSchemaData> entry : initDatabaseData.getSchemaData().entrySet()) {
-            if (loadedDatabaseData.getSchemaData().containsKey(entry.getKey())) {
-                useLoadedToReplaceInitBySchemaData(entry.getValue(), loadedDatabaseData.getSchemaData().get(entry.getKey()));
-            }
-        }
+    /**
+     * Update meta data contexts.
+     *
+     * @param newMetaDataContexts new meta data contexts
+     */
+    public void update(final MetaDataContexts newMetaDataContexts) {
+        this.metaData.set(newMetaDataContexts.getMetaData());
+        this.statistics.set(newMetaDataContexts.getStatistics());
     }
     
-    private void useLoadedToReplaceInitBySchemaData(final ShardingSphereSchemaData initSchemaData, final ShardingSphereSchemaData loadedSchemaData) {
-        for (Entry<String, ShardingSphereTableData> entry : initSchemaData.getTableData().entrySet()) {
-            if (loadedSchemaData.getTableData().containsKey(entry.getKey())) {
-                entry.setValue(loadedSchemaData.getTableData().get(entry.getKey()));
-            }
-        }
-    }
-    
-    @Override
-    public void close() {
-        persistService.getRepository().close();
-        metaData.getGlobalRuleMetaData().findRules(ResourceHeldRule.class).forEach(ResourceHeldRule::closeStaleResource);
-        metaData.getDatabases().values().forEach(each -> each.getRuleMetaData().findRules(ResourceHeldRule.class).forEach(ResourceHeldRule::closeStaleResource));
+    /**
+     * Update meta data contexts.
+     *
+     * @param metaData meta data
+     * @param metaDataPersistService meta data persist service
+     */
+    public void update(final ShardingSphereMetaData metaData, final MetaDataPersistService metaDataPersistService) {
+        this.metaData.set(metaData);
+        this.statistics.set(ShardingSphereStatisticsFactory.create(metaData, metaDataPersistService.getStatisticsPersistService().load(metaData)));
     }
 }

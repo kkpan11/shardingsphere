@@ -17,7 +17,7 @@
 
 package org.apache.shardingsphere.test.e2e.env.runtime.scenario.authority;
 
-import org.apache.shardingsphere.infra.database.type.DatabaseType;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -37,7 +37,7 @@ public final class AuthorityEnvironment {
      * Get init SQLs of this database type.
      *
      * @param databaseType database type
-     * @return init SQLs of this data base type
+     * @return init SQLs of this database type
      */
     public Collection<String> getInitSQLs(final DatabaseType databaseType) {
         Collection<String> result = new LinkedList<>();

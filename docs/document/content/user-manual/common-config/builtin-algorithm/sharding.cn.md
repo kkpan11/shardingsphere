@@ -73,7 +73,7 @@ Apache ShardingSphere 内置的标准分片算法实现类包括：
 
 #### 行表达式分片算法
 
-使用 Groovy 的表达式，提供对 SQL 语句中的 `=` 和 `IN` 的分片操作支持，只支持单分片键。
+使用 `InlineExpressionParser` SPI 的默认实现的 Groovy 的表达式，提供对 SQL 语句中的 `=` 和 `IN` 的分片操作支持，只支持单分片键。
 对于简单的分片算法，可以通过简单的配置使用，从而避免繁琐的 Java 代码开发，如: `t_user_$->{u_id % 8}` 表示 `t_user` 表根据 `u_id` 模 8，而分成 8 张表，表名称为 `t_user_0` 到 `t_user_7`。
 详情请参见[行表达式](/cn/dev-manual/sharding/#implementation-classes)。
 
@@ -96,68 +96,14 @@ Apache ShardingSphere 内置的标准分片算法实现类包括：
 
 可配置属性：
 
-| *属性名称*                       | *数据类型* | *说明*                                                                                                                                       | *默认值* |
-|------------------------------|--------|--------------------------------------------------------------------------------------------------------------------------------------------|-------|
-| datetime-pattern             | String | 分片键的时间戳格式，必须遵循 Java DateTimeFormatter 的格式。例如：yyyy-MM-dd HH:mm:ss，yyyy-MM-dd 或 HH:mm:ss 等。但不支持与 `java.time.chrono.JapaneseDate` 相关的 Gy-MM 等 |       |
-| datetime-lower               | String | 时间分片下界值，格式与 `datetime-pattern` 定义的时间戳格式一致                                                                                                  |       |
-| datetime-upper (?)           | String | 时间分片上界值，格式与 `datetime-pattern` 定义的时间戳格式一致                                                                                                  | 当前时间  |
-| sharding-suffix-pattern      | String | 分片数据源或真实表的后缀格式，必须遵循 Java DateTimeFormatter 的格式，必须和 `datetime-interval-unit` 保持一致。例如：yyyyMM                                                 |       |
-| datetime-interval-amount (?) | int    | 分片键时间间隔，超过该时间间隔将进入下一分片                                                                                                                     | 1     |
-| datetime-interval-unit (?)   | String | 分片键时间间隔单位，必须遵循 Java ChronoUnit 的枚举值。例如：MONTHS                                                                                              | DAYS  |
-
-#### 基于 CosId 的固定时间范围的分片算法
-
-基于 `me.ahoo.cosid:cosid-core` 的工具类实现的固定时间范围的分片算法。
-当分片键为 JSR-310 的所含类或与时间相关的类，将转换为`java.time.LocalDateTime`后再做下一步分片。
-参考 https://github.com/apache/shardingsphere/issues/14047 的讨论。
-
-类型：COSID_INTERVAL
-
-可配置属性：
-
-| *属性名称*                   | *数据类型* | *说明*                                                                                       | *默认值* |
-|--------------------------|--------|--------------------------------------------------------------------------------------------|-------|
-| zone-id                  | String | 时区，必须遵循 `java.time.ZoneId` 的所含值。 例如：Asia/Shanghai                                          |       |
-| logic-name-prefix        | String | 分片数据源或真实表的前缀格式                                                                             |       |
-| datetime-lower           | String | 时间分片下界值，格式与 `yyyy-MM-dd HH:mm:ss` 的时间戳格式一致                                                 |       |
-| datetime-upper           | String | 时间分片上界值，格式与 `yyyy-MM-dd HH:mm:ss` 的时间戳格式一致                                                 |       |
-| sharding-suffix-pattern  | String | 分片数据源或真实表的后缀格式，必须遵循 Java DateTimeFormatter 的格式，必须和 `datetime-interval-unit` 保持一致。例如：yyyyMM |       |
-| datetime-interval-unit   | String | 分片键时间间隔单位，必须遵循 Java ChronoUnit 的枚举值。例如：MONTHS                                              |       |
-| datetime-interval-amount | int    | 分片键时间间隔，超过该时间间隔将进入下一分片                                                                     |       |
-
-#### 基于 CosId 的雪花ID固定时间范围的分片算法
-
-基于 `me.ahoo.cosid:cosid-core` 的工具类实现的雪花ID固定时间范围的分片算法。
-当分片键为 JSR-310 的所含类或与时间相关的类，将转换为`java.time.LocalDateTime`后再做下一步分片。
-参考 https://github.com/apache/shardingsphere/issues/14047 的讨论。
-
-类型：COSID_INTERVAL_SNOWFLAKE
-
-可配置属性：
-
-| *属性名称*                   | *数据类型* | *说明*                                                                                       | *默认值* |
-|--------------------------|--------|--------------------------------------------------------------------------------------------|-------|
-| zone-id                  | String | 时区，必须遵循 `java.time.ZoneId` 的所含值。 例如：Asia/Shanghai                                          |       |
-| logic-name-prefix        | String | 分片数据源或真实表的前缀格式                                                                             |       |
-| datetime-lower           | String | 时间分片下界值，格式与 `yyyy-MM-dd HH:mm:ss` 的时间戳格式一致                                                 |       |
-| datetime-upper           | String | 时间分片上界值，格式与 `yyyy-MM-dd HH:mm:ss` 的时间戳格式一致                                                 |       |
-| sharding-suffix-pattern  | String | 分片数据源或真实表的后缀格式，必须遵循 Java DateTimeFormatter 的格式，必须和 `datetime-interval-unit` 保持一致。例如：yyyyMM |       |
-| datetime-interval-unit   | String | 分片键时间间隔单位，必须遵循 Java ChronoUnit 的枚举值。例如：MONTHS                                              |       |
-| datetime-interval-amount | int    | 分片键时间间隔，超过该时间间隔将进入下一分片                                                                     |       |
-
-#### 基于 CosId 的取模分片算法
-
-基于 `me.ahoo.cosid:cosid-core` 的工具类实现的取模分片算法。
-参考 https://github.com/apache/shardingsphere/issues/14047 的讨论。
-
-类型：COSID_MOD
-
-可配置属性：
-
-| *属性名称*            | *数据类型* | *说明*           |
-|-------------------|--------|----------------|
-| mod               | int    | 分片数量           |
-| logic-name-prefix | String | 分片数据源或真实表的前缀格式 |
+| *属性名称*                       | *数据类型* | *说明*                                                                                                                                          | *默认值* |
+|------------------------------|--------|-----------------------------------------------------------------------------------------------------------------------------------------------|-------|
+| datetime-pattern             | String | 分片键的时间戳格式，必须遵循 Java DateTimeFormatter 的格式。例如：yyyy-MM-dd HH:mm:ss，yyyy-MM-dd 或 HH:mm:ss 等。但不支持与 `java.time.chrono.JapaneseDate` 相关的 GGGGy-MM 等 |       |
+| datetime-lower               | String | 时间分片下界值，格式与 `datetime-pattern` 定义的时间戳格式一致                                                                                                     |       |
+| datetime-upper (?)           | String | 时间分片上界值，格式与 `datetime-pattern` 定义的时间戳格式一致                                                                                                     | 当前时间  |
+| sharding-suffix-pattern      | String | 分片数据源或真实表的后缀格式，必须遵循 Java DateTimeFormatter 的格式，必须和 `datetime-interval-unit` 保持一致。例如：yyyyMM                                                    |       |
+| datetime-interval-amount (?) | int    | 分片键时间间隔，超过该时间间隔将进入下一分片                                                                                                                        | 1     |
+| datetime-interval-unit (?)   | String | 分片键时间间隔单位，必须遵循 Java ChronoUnit 的枚举值。例如：MONTHS                                                                                                 | DAYS  |
 
 ### 复合分片算法
 

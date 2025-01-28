@@ -20,7 +20,7 @@ package org.apache.shardingsphere.test.e2e.transaction.env;
 import com.google.common.base.Strings;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.shardingsphere.infra.database.type.DatabaseType;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
 import org.apache.shardingsphere.test.e2e.env.container.atomic.constants.ProxyContainerConstants;
 import org.apache.shardingsphere.test.e2e.env.container.atomic.constants.StorageContainerConstants;
 import org.apache.shardingsphere.test.e2e.env.container.atomic.storage.impl.MySQLContainer;
@@ -48,6 +48,8 @@ public final class TransactionE2EEnvironment {
     
     private final TransactionE2EEnvTypeEnum itEnvType;
     
+    private final List<String> portBindings;
+    
     private final List<String> mysqlVersions;
     
     private final List<String> postgresqlVersions;
@@ -65,6 +67,7 @@ public final class TransactionE2EEnvironment {
     private TransactionE2EEnvironment() {
         props = loadProperties();
         itEnvType = TransactionE2EEnvTypeEnum.valueOf(props.getProperty("transaction.it.env.type", TransactionE2EEnvTypeEnum.NONE.name()).toUpperCase());
+        portBindings = splitProperty("transaction.it.proxy.port.bindings");
         mysqlVersions = splitProperty("transaction.it.docker.mysql.version");
         postgresqlVersions = splitProperty("transaction.it.docker.postgresql.version");
         openGaussVersions = splitProperty("transaction.it.docker.opengauss.version");
@@ -76,7 +79,7 @@ public final class TransactionE2EEnvironment {
     }
     
     private Map<String, TransactionTestCaseRegistry> initTransactionTestCaseRegistryMap() {
-        Map<String, TransactionTestCaseRegistry> result = new HashMap<>(TransactionTestCaseRegistry.values().length, 1);
+        Map<String, TransactionTestCaseRegistry> result = new HashMap<>(TransactionTestCaseRegistry.values().length, 1F);
         for (TransactionTestCaseRegistry each : TransactionTestCaseRegistry.values()) {
             result.put(each.getTestCaseClass().getName(), each);
         }
@@ -151,26 +154,6 @@ public final class TransactionE2EEnvironment {
         return itEnvType == TransactionE2EEnvTypeEnum.NATIVE
                 ? props.getOrDefault(String.format("transaction.it.native.%s.password", databaseType.getType().toLowerCase()), ProxyContainerConstants.PASSWORD).toString()
                 : StorageContainerConstants.PASSWORD;
-    }
-    
-    /**
-     * Get proxy password.
-     * 
-     * @return proxy password
-     */
-    public String getProxyPassword() {
-        // TODO this should extract into a constant
-        return props.getOrDefault("transaction.it.proxy.password", ProxyContainerConstants.PASSWORD).toString();
-    }
-    
-    /**
-     * Get proxy userName.
-     * 
-     * @return proxy userName
-     */
-    public String getProxyUserName() {
-        // TODO this should extract into a constant
-        return props.getOrDefault("transaction.it.proxy.username", ProxyContainerConstants.USERNAME).toString();
     }
     
     /**
