@@ -61,10 +61,6 @@
         <Bug code="DP" />
     </Match>
     <Match>
-        <Class name="org.apache.shardingsphere.transaction.xa.bitronix.manager.BitronixRecoveryResource" />
-        <Bug code="Se" />
-    </Match>
-    <Match>
         <Class name="org.apache.shardingsphere.sql.parser.opengauss.visitor.statement.impl.OpenGaussStatementSQLVisitor" />
         <Bug code="BC" />
     </Match>
@@ -99,7 +95,7 @@
         <Bug code="OBL" />
     </Match>
     <Match>
-        <Class name="org.apache.shardingsphere.data.pipeline.mysql.ingest.client.MySQLClient" />
+        <Class name="org.apache.shardingsphere.data.pipeline.mysql.ingest.client.MySQLBinlogClient" />
         <Bug code="IS" />
     </Match>
 </FindBugsFilter>

@@ -18,15 +18,13 @@
 package org.apache.shardingsphere.test.e2e.transaction.cases.truncate;
 
 import lombok.extern.slf4j.Slf4j;
-import org.apache.shardingsphere.dialect.exception.transaction.TableModifyInTransactionException;
+import org.apache.shardingsphere.infra.exception.dialect.exception.transaction.TableModifyInTransactionException;
 import org.apache.shardingsphere.test.e2e.transaction.cases.base.BaseTransactionTestCase;
-import org.apache.shardingsphere.test.e2e.transaction.engine.base.TransactionBaseE2EIT;
 import org.apache.shardingsphere.test.e2e.transaction.engine.base.TransactionContainerComposer;
 import org.apache.shardingsphere.test.e2e.transaction.engine.base.TransactionTestCase;
 import org.apache.shardingsphere.test.e2e.transaction.engine.constants.TransactionTestConstants;
 import org.apache.shardingsphere.transaction.api.TransactionType;
 
-import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
 
@@ -35,12 +33,12 @@ import static org.junit.jupiter.api.Assertions.fail;
 /**
  * MySQL truncate XA transaction integration test.
  */
-@TransactionTestCase(dbTypes = TransactionTestConstants.MYSQL, adapters = TransactionTestConstants.PROXY, transactionTypes = TransactionType.XA)
+@TransactionTestCase(dbTypes = TransactionTestConstants.MYSQL, transactionTypes = TransactionType.XA)
 @Slf4j
 public final class MySQLXATruncateTestCase extends BaseTransactionTestCase {
     
-    public MySQLXATruncateTestCase(final TransactionBaseE2EIT baseTransactionITCase, final DataSource dataSource) {
-        super(baseTransactionITCase, dataSource);
+    public MySQLXATruncateTestCase(final TransactionTestCaseParameter testCaseParam) {
+        super(testCaseParam);
     }
     
     @Override
@@ -62,12 +60,11 @@ public final class MySQLXATruncateTestCase extends BaseTransactionTestCase {
     }
     
     private void assertTruncateInMySQLXATransaction() throws SQLException {
-        // TODO This test case may cause bad effects to other test cases in JDBC adapter
         try (Connection connection = getDataSource().getConnection()) {
             connection.setAutoCommit(false);
             assertAccountRowCount(connection, 8);
             try {
-                connection.createStatement().execute("truncate account;");
+                connection.createStatement().execute("TRUNCATE account");
                 fail("Expect exception, but no exception report.");
             } catch (final TableModifyInTransactionException ex) {
                 log.info("Exception for expected in Proxy: {}", ex.getMessage());

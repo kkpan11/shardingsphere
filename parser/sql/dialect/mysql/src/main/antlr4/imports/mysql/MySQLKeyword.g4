@@ -115,6 +115,14 @@ AUTOEXTEND_SIZE
     : A U T O E X T E N D UL_ S I Z E
     ;
 
+AUTHENTICATION
+    : A U T H E N T I C A T I O N
+    ;
+
+AUTO
+    : A U T O
+    ;
+
 AUTO_INCREMENT
     : A U T O UL_ I N C R E M E N T
     ;
@@ -141,6 +149,10 @@ BACKUP
 
 BEFORE
     : B E F O R E
+    ;
+
+BERNOULLI
+    : B E R N O U L L I
     ;
 
 BEGIN
@@ -195,6 +207,10 @@ BUCKETS
     : B U C K E T S
     ;
 
+BULK
+    : B U L K
+    ;
+
 BY
     : B Y
     ;
@@ -241,6 +257,10 @@ CHANGED
 
 CHANNEL
     : C H A N N E L
+    ;
+
+CHALLENGE_RESPONSE
+    : C H A L L E N G E UL_ R E S P O N S E
     ;
 
 CHAR
@@ -787,6 +807,10 @@ FILTER
     : F I L T E R
     ;
 
+FINISH
+    : F I N I S H
+    ;
+
 FIRST
     : F I R S T
     ;
@@ -915,6 +939,10 @@ GROUPS
     : G R O U P S
     ;
 
+GTIDS
+     : G T I D S
+     ;
+
 GROUP_REPLICATION
     : G R O U P UL_ R E P L I C A T I O N
     ;
@@ -1019,6 +1047,10 @@ INDEXES
     : I N D E X E S
     ;
 
+INITIAL
+    : I N I T I A L
+    ;
+
 INFILE
     : I N F I L E
     ;
@@ -1081,6 +1113,10 @@ INT8
 
 INTEGER
     : I N T E G E R
+    ;
+
+INTERSECT
+    : I N T E R S E C T
     ;
 
 INTERVAL
@@ -1165,6 +1201,10 @@ KEY_BLOCK_SIZE
 
 KILL
     : K I L L
+    ;
+
+KEYRING
+    : K E Y R I N G
     ;
 
 LAG
@@ -1415,9 +1455,13 @@ MASTER_ZSTD_COMPRESSION_LEVEL
     : M A S T E R UL_ Z S T D UL_ C O M P R E S S I O N UL_ L E V E L
     ;
 
-MATCH
-    : M A T C H
+MANUAL
+    : M A N U A L
     ;
+
+MATCH
+     : M A T C H
+     ;
 
 MAXVALUE
     : M A X V A L U E
@@ -1783,6 +1827,10 @@ PARTIAL
     : P A R T I A L
     ;
 
+PARSE_TREE
+    : P A R S E UL_ T R E E
+    ;
+
 PARTITION
     : P A R T I T I O N
     ;
@@ -1909,6 +1957,10 @@ PROXY
 
 PURGE
     : P U R G E
+    ;
+
+QUALIFY
+    : Q U A L I F Y
     ;
 
 QUARTER
@@ -2131,6 +2183,10 @@ RETAIN
     : R E T A I N
     ;
 
+REGISTRATION
+    : R E G I S T R A T I O N
+    ;
+
 RETURN
     : R E T U R N
     ;
@@ -2209,6 +2265,10 @@ ROW_NUMBER
 
 RTREE
     : R T R E E
+    ;
+
+S3
+    : S '3'
     ;
 
 SAVEPOINT
@@ -2867,6 +2927,10 @@ USE
     : U S E
     ;
 
+URL
+    : U R L
+    ;
+
 USER
     : U S E R
     ;
@@ -3142,3 +3206,14 @@ ZONE
     : Z O N E
     ;
 
+TIMESTAMPDIFF
+    : T I M E S T A M P D I F F
+    ;
+
+AUTHENTICATION_FIDO
+    : A U T H E N T I C A T I O N UL_ F I D O
+    ;
+
+FACTOR
+    : F A C T O R
+    ;

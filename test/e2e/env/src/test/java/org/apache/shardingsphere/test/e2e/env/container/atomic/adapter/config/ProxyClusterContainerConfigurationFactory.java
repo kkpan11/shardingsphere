@@ -23,6 +23,7 @@ import org.apache.shardingsphere.test.e2e.env.container.atomic.util.AdapterConta
 import org.apache.shardingsphere.test.e2e.env.container.atomic.constants.ProxyContainerConstants;
 
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.Map;
 
 /**
@@ -37,10 +38,10 @@ public final class ProxyClusterContainerConfigurationFactory {
      * @return created instance
      */
     public static AdaptorContainerConfiguration newInstance() {
-        return new AdaptorContainerConfiguration("", getMountedResources(), AdapterContainerUtils.getAdapterContainerImage());
+        return new AdaptorContainerConfiguration("", new LinkedList<>(), getMountedResources(), AdapterContainerUtils.getAdapterContainerImage(), "");
     }
     
     private static Map<String, String> getMountedResources() {
-        return Collections.singletonMap("/env/log/logback.xml", ProxyContainerConstants.CONFIG_PATH_IN_CONTAINER + "logback.xml");
+        return Collections.singletonMap("env/log/logback.xml", ProxyContainerConstants.CONFIG_PATH_IN_CONTAINER + "logback.xml");
     }
 }

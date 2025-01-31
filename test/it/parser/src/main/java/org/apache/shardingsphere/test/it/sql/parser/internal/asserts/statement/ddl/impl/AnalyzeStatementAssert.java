@@ -19,11 +19,14 @@ package org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.oracle.ddl.OracleAnalyzeStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.ddl.AnalyzeStatement;
 import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.SQLCaseAssertContext;
 import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.segment.index.IndexAssert;
 import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.segment.table.TableAssert;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.statement.ddl.AnalyzeStatementTestCase;
+
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
  * Analyze statement assert.
@@ -33,25 +36,31 @@ public final class AnalyzeStatementAssert {
     
     /**
      * Assert analyze statement is correct with expected parser result.
-     * 
+     *
      * @param assertContext assert context
      * @param actual actual analyze statement
      * @param expected expected analyze statement test case
      */
-    public static void assertIs(final SQLCaseAssertContext assertContext, final OracleAnalyzeStatement actual, final AnalyzeStatementTestCase expected) {
+    public static void assertIs(final SQLCaseAssertContext assertContext, final AnalyzeStatement actual, final AnalyzeStatementTestCase expected) {
         assertTables(assertContext, actual, expected);
         assertIndex(assertContext, actual, expected);
     }
     
-    private static void assertTables(final SQLCaseAssertContext assertContext, final OracleAnalyzeStatement actual, final AnalyzeStatementTestCase expected) {
+    private static void assertTables(final SQLCaseAssertContext assertContext, final AnalyzeStatement actual, final AnalyzeStatementTestCase expected) {
         if (null != expected.getTable()) {
+            assertNotNull(actual.getTable(), assertContext.getText("Table should exist."));
             TableAssert.assertIs(assertContext, actual.getTable(), expected.getTable());
+        } else {
+            assertNull(actual.getTable(), assertContext.getText("Table should not exist."));
         }
     }
     
-    private static void assertIndex(final SQLCaseAssertContext assertContext, final OracleAnalyzeStatement actual, final AnalyzeStatementTestCase expected) {
+    private static void assertIndex(final SQLCaseAssertContext assertContext, final AnalyzeStatement actual, final AnalyzeStatementTestCase expected) {
         if (null != expected.getIndex()) {
+            assertNotNull(actual.getIndex(), assertContext.getText("Index should exist."));
             IndexAssert.assertIs(assertContext, actual.getIndex(), expected.getIndex());
+        } else {
+            assertNull(actual.getIndex(), assertContext.getText("Index should not exist."));
         }
     }
 }

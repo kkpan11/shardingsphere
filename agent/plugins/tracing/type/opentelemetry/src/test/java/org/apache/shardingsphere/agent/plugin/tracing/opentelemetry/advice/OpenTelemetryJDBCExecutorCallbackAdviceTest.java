@@ -33,14 +33,15 @@ import org.apache.shardingsphere.agent.plugin.tracing.core.RootSpanContext;
 import org.apache.shardingsphere.agent.plugin.tracing.core.constant.AttributeConstants;
 import org.apache.shardingsphere.agent.plugin.tracing.opentelemetry.constant.OpenTelemetryConstants;
 import org.apache.shardingsphere.agent.plugin.tracing.opentelemetry.fixture.JDBCExecutorCallbackFixture;
-import org.apache.shardingsphere.infra.database.metadata.DataSourceMetaData;
-import org.apache.shardingsphere.infra.database.type.dialect.MySQLDatabaseType;
+import org.apache.shardingsphere.infra.database.core.connector.ConnectionProperties;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.executor.sql.context.ExecutionUnit;
 import org.apache.shardingsphere.infra.executor.sql.context.SQLUnit;
 import org.apache.shardingsphere.infra.executor.sql.execute.engine.driver.jdbc.JDBCExecutionUnit;
 import org.apache.shardingsphere.infra.executor.sql.execute.engine.driver.jdbc.JDBCExecutorCallback;
-import org.apache.shardingsphere.infra.metadata.database.resource.ShardingSphereResourceMetaData;
-import org.apache.shardingsphere.sql.parser.sql.dialect.statement.mysql.dml.MySQLSelectStatement;
+import org.apache.shardingsphere.infra.metadata.database.resource.ResourceMetaData;
+import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
+import org.apache.shardingsphere.sql.parser.statement.mysql.dml.MySQLSelectStatement;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -56,6 +57,7 @@ import java.util.List;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -94,10 +96,10 @@ class OpenTelemetryJDBCExecutorCallbackAdviceTest {
         when(connection.getMetaData()).thenReturn(databaseMetaData);
         when(statement.getConnection()).thenReturn(connection);
         executionUnit = new JDBCExecutionUnit(new ExecutionUnit(DATA_SOURCE_NAME, new SQLUnit(SQL, Collections.emptyList())), null, statement);
-        ShardingSphereResourceMetaData resourceMetaData = mock(ShardingSphereResourceMetaData.class);
-        when(resourceMetaData.getStorageType(DATA_SOURCE_NAME)).thenReturn(new MySQLDatabaseType());
-        when(resourceMetaData.getDataSourceMetaData(DATA_SOURCE_NAME)).thenReturn(mock(DataSourceMetaData.class));
-        JDBCExecutorCallback jdbcExecutorCallback = new JDBCExecutorCallbackFixture(new MySQLDatabaseType(), resourceMetaData, new MySQLSelectStatement(), true);
+        ResourceMetaData resourceMetaData = mock(ResourceMetaData.class, RETURNS_DEEP_STUBS);
+        when(resourceMetaData.getStorageUnits().get(DATA_SOURCE_NAME).getStorageType()).thenReturn(TypedSPILoader.getService(DatabaseType.class, "MySQL"));
+        when(resourceMetaData.getStorageUnits().get(DATA_SOURCE_NAME).getConnectionProperties()).thenReturn(mock(ConnectionProperties.class));
+        JDBCExecutorCallback jdbcExecutorCallback = new JDBCExecutorCallbackFixture(TypedSPILoader.getService(DatabaseType.class, "MySQL"), resourceMetaData, new MySQLSelectStatement(), true);
         Plugins.getMemberAccessor().set(JDBCExecutorCallback.class.getDeclaredField("resourceMetaData"), jdbcExecutorCallback, resourceMetaData);
         targetObject = (TargetAdviceObject) jdbcExecutorCallback;
     }
@@ -123,7 +125,7 @@ class OpenTelemetryJDBCExecutorCallbackAdviceTest {
     void assertExceptionHandle() {
         OpenTelemetryJDBCExecutorCallbackAdvice advice = new OpenTelemetryJDBCExecutorCallbackAdvice();
         advice.beforeMethod(targetObject, null, new Object[]{executionUnit, false}, "OpenTelemetry");
-        advice.onThrowing(targetObject, null, new Object[]{executionUnit, false}, new IOException(), "OpenTelemetry");
+        advice.onThrowing(targetObject, null, new Object[]{executionUnit, false}, new IOException(""), "OpenTelemetry");
         List<SpanData> spanItems = testExporter.getFinishedSpanItems();
         assertCommonData(spanItems);
         assertThat(spanItems.iterator().next().getStatus().getStatusCode(), is(StatusCode.ERROR));

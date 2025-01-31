@@ -17,33 +17,47 @@
 
 package org.apache.shardingsphere.proxy.backend.opengauss.handler.admin;
 
-import org.apache.shardingsphere.infra.binder.statement.SQLStatementContext;
+import com.cedarsoftware.util.CaseInsensitiveSet;
+import org.apache.shardingsphere.infra.binder.context.statement.SQLStatementContext;
+import org.apache.shardingsphere.infra.binder.context.type.TableAvailable;
+import org.apache.shardingsphere.infra.metadata.database.schema.manager.SystemSchemaManager;
+import org.apache.shardingsphere.proxy.backend.handler.admin.executor.AbstractDatabaseMetaDataExecutor.DefaultDatabaseMetaDataExecutor;
 import org.apache.shardingsphere.proxy.backend.handler.admin.executor.DatabaseAdminExecutor;
 import org.apache.shardingsphere.proxy.backend.handler.admin.executor.DatabaseAdminExecutorCreator;
 import org.apache.shardingsphere.proxy.backend.postgresql.handler.admin.PostgreSQLAdminExecutorCreator;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.item.ExpressionProjectionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.item.ProjectionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.dml.SelectStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.item.ExpressionProjectionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.item.ProjectionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.SQLStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dal.ShowStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dml.SelectStatement;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
-import java.util.TreeSet;
 
 /**
  * Database admin executor creator for openGauss.
  */
 public final class OpenGaussAdminExecutorCreator implements DatabaseAdminExecutorCreator {
     
-    private static final Set<String> SYSTEM_CATALOG_QUERY_EXPRESSIONS = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+    private static final Collection<String> SYSTEM_CATALOG_QUERY_EXPRESSIONS = new CaseInsensitiveSet<>();
     
-    private static final Set<String> SYSTEM_CATALOG_TABLES = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+    private static final Collection<String> SYSTEM_CATALOG_TABLES = new CaseInsensitiveSet<>();
     
     static {
         SYSTEM_CATALOG_QUERY_EXPRESSIONS.add("VERSION()");
+        SYSTEM_CATALOG_QUERY_EXPRESSIONS.add("opengauss_version()");
+        SYSTEM_CATALOG_QUERY_EXPRESSIONS.add("gs_password_deadline()");
+        SYSTEM_CATALOG_QUERY_EXPRESSIONS.add("intervaltonum()");
         SYSTEM_CATALOG_QUERY_EXPRESSIONS.add("intervaltonum(gs_password_deadline())");
         SYSTEM_CATALOG_QUERY_EXPRESSIONS.add("gs_password_notifytime()");
+        SYSTEM_CATALOG_QUERY_EXPRESSIONS.add("pg_catalog.gs_password_deadline()");
+        SYSTEM_CATALOG_QUERY_EXPRESSIONS.add("pg_catalog.intervaltonum()");
+        SYSTEM_CATALOG_QUERY_EXPRESSIONS.add("pg_catalog.intervaltonum(pg_catalog.gs_password_deadline())");
+        SYSTEM_CATALOG_QUERY_EXPRESSIONS.add("pg_catalog.gs_password_notifytime()");
+        SYSTEM_CATALOG_TABLES.add("pg_class");
+        SYSTEM_CATALOG_TABLES.add("pg_namespace");
         SYSTEM_CATALOG_TABLES.add("pg_database");
         SYSTEM_CATALOG_TABLES.add("pg_tables");
         SYSTEM_CATALOG_TABLES.add("pg_roles");
@@ -53,21 +67,30 @@ public final class OpenGaussAdminExecutorCreator implements DatabaseAdminExecuto
     
     @Override
     public Optional<DatabaseAdminExecutor> create(final SQLStatementContext sqlStatementContext) {
-        return delegated.create(sqlStatementContext);
+        SQLStatement sqlStatement = sqlStatementContext.getSqlStatement();
+        if (sqlStatement instanceof ShowStatement) {
+            return Optional.of(new OpenGaussShowVariableExecutor((ShowStatement) sqlStatement));
+        }
+        return Optional.empty();
     }
     
     @Override
     public Optional<DatabaseAdminExecutor> create(final SQLStatementContext sqlStatementContext, final String sql, final String databaseName, final List<Object> parameters) {
-        if (isSystemCatalogQuery(sqlStatementContext)) {
+        if (isSQLFederationSystemCatalogQuery(sqlStatementContext) || isSQLFederationSystemCatalogQueryExpressions(sqlStatementContext)) {
             return Optional.of(new OpenGaussSystemCatalogAdminQueryExecutor(sqlStatementContext, sql, databaseName, parameters));
+        }
+        if (isPassThroughSystemCatalogQuery(sqlStatementContext)) {
+            return Optional.of(new DefaultDatabaseMetaDataExecutor(sql, parameters));
         }
         return delegated.create(sqlStatementContext, sql, databaseName, parameters);
     }
     
-    private boolean isSystemCatalogQuery(final SQLStatementContext sqlStatementContext) {
-        if (sqlStatementContext.getTablesContext().getTableNames().stream().anyMatch(SYSTEM_CATALOG_TABLES::contains)) {
-            return true;
-        }
+    private boolean isSQLFederationSystemCatalogQuery(final SQLStatementContext sqlStatementContext) {
+        Collection<String> tableNames = sqlStatementContext instanceof TableAvailable ? ((TableAvailable) sqlStatementContext).getTablesContext().getTableNames() : Collections.emptyList();
+        return !tableNames.isEmpty() && SYSTEM_CATALOG_TABLES.containsAll(tableNames);
+    }
+    
+    private boolean isSQLFederationSystemCatalogQueryExpressions(final SQLStatementContext sqlStatementContext) {
         if (!(sqlStatementContext.getSqlStatement() instanceof SelectStatement)) {
             return false;
         }
@@ -75,6 +98,12 @@ public final class OpenGaussAdminExecutorCreator implements DatabaseAdminExecuto
         Collection<ProjectionSegment> projections = selectStatement.getProjections().getProjections();
         return 1 == projections.size() && projections.iterator().next() instanceof ExpressionProjectionSegment
                 && SYSTEM_CATALOG_QUERY_EXPRESSIONS.contains(((ExpressionProjectionSegment) projections.iterator().next()).getText());
+    }
+    
+    private boolean isPassThroughSystemCatalogQuery(final SQLStatementContext sqlStatementContext) {
+        Collection<String> tableNames = sqlStatementContext instanceof TableAvailable ? ((TableAvailable) sqlStatementContext).getTablesContext().getTableNames() : Collections.emptyList();
+        return !tableNames.isEmpty() && (SystemSchemaManager.isSystemTable("opengauss", "information_schema", tableNames)
+                || SystemSchemaManager.isSystemTable("opengauss", "pg_catalog", tableNames));
     }
     
     @Override

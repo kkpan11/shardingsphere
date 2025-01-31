@@ -17,7 +17,7 @@
 
 package org.apache.shardingsphere.sharding.merge.dal.show;
 
-import org.apache.shardingsphere.infra.binder.statement.SQLStatementContext;
+import org.apache.shardingsphere.infra.binder.context.statement.SQLStatementContext;
 import org.apache.shardingsphere.infra.executor.sql.execute.result.query.QueryResult;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereSchema;
 import org.apache.shardingsphere.sharding.rule.ShardingRule;
@@ -39,19 +39,19 @@ import static org.mockito.Mockito.when;
 class ShowIndexMergedResultTest {
     
     @Mock
-    private ShardingRule shardingRule;
+    private ShardingRule rule;
     
     @Mock
     private ShardingSphereSchema schema;
     
     @Test
     void assertNextForEmptyQueryResult() throws SQLException {
-        assertFalse(new ShowIndexMergedResult(shardingRule, mock(SQLStatementContext.class), schema, Collections.emptyList()).next());
+        assertFalse(new ShowIndexMergedResult(rule, mock(SQLStatementContext.class), schema, Collections.emptyList()).next());
     }
     
     @Test
     void assertNextForTableRuleIsPresent() throws SQLException {
-        assertTrue(new ShowIndexMergedResult(shardingRule, mock(SQLStatementContext.class), schema, Collections.singletonList(mockQueryResult())).next());
+        assertTrue(new ShowIndexMergedResult(rule, mock(SQLStatementContext.class), schema, Collections.singletonList(mockQueryResult())).next());
     }
     
     private QueryResult mockQueryResult() throws SQLException {

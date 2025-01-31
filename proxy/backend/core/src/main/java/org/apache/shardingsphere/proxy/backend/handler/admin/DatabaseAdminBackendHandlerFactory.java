@@ -19,9 +19,9 @@ package org.apache.shardingsphere.proxy.backend.handler.admin;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import org.apache.shardingsphere.infra.binder.statement.SQLStatementContext;
-import org.apache.shardingsphere.infra.database.type.DatabaseType;
-import org.apache.shardingsphere.infra.spi.DatabaseTypedSPILoader;
+import org.apache.shardingsphere.infra.binder.context.statement.SQLStatementContext;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
+import org.apache.shardingsphere.infra.database.core.spi.DatabaseTypedSPILoader;
 import org.apache.shardingsphere.proxy.backend.handler.ProxyBackendHandler;
 import org.apache.shardingsphere.proxy.backend.handler.admin.executor.DatabaseAdminExecutor;
 import org.apache.shardingsphere.proxy.backend.handler.admin.executor.DatabaseAdminExecutorCreator;
@@ -70,7 +70,7 @@ public final class DatabaseAdminBackendHandlerFactory {
         if (!executorCreator.isPresent()) {
             return Optional.empty();
         }
-        Optional<DatabaseAdminExecutor> executor = executorCreator.get().create(sqlStatementContext, sql, connectionSession.getDatabaseName(), parameters);
+        Optional<DatabaseAdminExecutor> executor = executorCreator.get().create(sqlStatementContext, sql, connectionSession.getUsedDatabaseName(), parameters);
         return executor.map(optional -> createProxyBackendHandler(sqlStatementContext, connectionSession, optional));
     }
     

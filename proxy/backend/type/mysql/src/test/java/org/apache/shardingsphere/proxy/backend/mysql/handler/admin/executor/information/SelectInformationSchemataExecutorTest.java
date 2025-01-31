@@ -17,30 +17,36 @@
 
 package org.apache.shardingsphere.proxy.backend.mysql.handler.admin.executor.information;
 
-import org.apache.shardingsphere.authority.provider.database.model.privilege.DatabasePermittedPrivileges;
+import org.apache.shardingsphere.authority.provider.database.DatabasePermittedPrivileges;
 import org.apache.shardingsphere.authority.rule.AuthorityRule;
 import org.apache.shardingsphere.infra.config.props.ConfigurationProperties;
-import org.apache.shardingsphere.infra.database.type.dialect.MySQLDatabaseType;
+import org.apache.shardingsphere.infra.database.core.metadata.database.DialectDatabaseMetaData;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseTypeRegistry;
 import org.apache.shardingsphere.infra.metadata.ShardingSphereMetaData;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
-import org.apache.shardingsphere.infra.metadata.database.resource.ShardingSphereResourceMetaData;
-import org.apache.shardingsphere.infra.metadata.database.rule.ShardingSphereRuleMetaData;
+import org.apache.shardingsphere.infra.metadata.database.resource.ResourceMetaData;
+import org.apache.shardingsphere.infra.metadata.database.rule.RuleMetaData;
+import org.apache.shardingsphere.infra.metadata.statistics.ShardingSphereStatistics;
+import org.apache.shardingsphere.infra.metadata.statistics.builder.ShardingSphereStatisticsFactory;
 import org.apache.shardingsphere.infra.metadata.user.Grantee;
+import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 import org.apache.shardingsphere.mode.manager.ContextManager;
 import org.apache.shardingsphere.mode.metadata.MetaDataContexts;
-import org.apache.shardingsphere.metadata.persist.MetaDataPersistService;
 import org.apache.shardingsphere.parser.rule.SQLParserRule;
 import org.apache.shardingsphere.parser.rule.builder.DefaultSQLParserRuleConfigurationBuilder;
 import org.apache.shardingsphere.proxy.backend.context.ProxyContext;
 import org.apache.shardingsphere.proxy.backend.session.ConnectionSession;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.dml.SelectStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dml.SelectStatement;
 import org.apache.shardingsphere.test.fixture.jdbc.MockedDataSource;
 import org.apache.shardingsphere.test.mock.AutoMockExtension;
 import org.apache.shardingsphere.test.mock.StaticMockSettings;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Answers;
 import org.mockito.Mock;
+import org.mockito.MockedConstruction;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
@@ -64,6 +70,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(AutoMockExtension.class)
@@ -71,19 +78,22 @@ import static org.mockito.Mockito.when;
 @MockitoSettings(strictness = Strictness.LENIENT)
 class SelectInformationSchemataExecutorTest {
     
+    private final DatabaseType databaseType = TypedSPILoader.getService(DatabaseType.class, "MySQL");
+    
     private final Grantee grantee = new Grantee("root", "127.0.0.1");
     
     private final String sql = "SELECT SCHEMA_NAME, DEFAULT_COLLATION_NAME FROM information_schema.SCHEMATA";
     
     private SelectStatement statement;
     
-    @Mock
+    @Mock(answer = Answers.RETURNS_DEEP_STUBS)
     private ConnectionSession connectionSession;
     
     @BeforeEach
     void setUp() {
-        when(connectionSession.getGrantee()).thenReturn(grantee);
-        statement = (SelectStatement) new SQLParserRule(new DefaultSQLParserRuleConfigurationBuilder().build()).getSQLParserEngine("MySQL").parse(sql, false);
+        when(connectionSession.getConnectionContext().getGrantee()).thenReturn(grantee);
+        statement = (SelectStatement) new SQLParserRule(
+                new DefaultSQLParserRuleConfigurationBuilder().build()).getSQLParserEngine(databaseType).parse(sql, false);
     }
     
     @Test
@@ -102,18 +112,24 @@ class SelectInformationSchemataExecutorTest {
         Map<String, String> expectedResultSetMap = new HashMap<>(2, 1F);
         expectedResultSetMap.put("SCHEMA_NAME", "foo_ds");
         expectedResultSetMap.put("DEFAULT_COLLATION_NAME", "utf8mb4");
-        ShardingSphereDatabase database = createDatabase(expectedResultSetMap);
-        ContextManager contextManager = mockContextManager(database);
-        when(ProxyContext.getInstance().getContextManager()).thenReturn(contextManager);
-        when(ProxyContext.getInstance().getAllDatabaseNames()).thenReturn(Collections.singleton("auth_db"));
-        when(ProxyContext.getInstance().getDatabase("auth_db")).thenReturn(database);
-        SelectInformationSchemataExecutor executor = new SelectInformationSchemataExecutor(statement, sql, Collections.emptyList());
-        executor.execute(connectionSession);
-        assertThat(executor.getQueryResultMetaData().getColumnCount(), is(2));
-        assertTrue(executor.getMergedResult().next());
-        assertThat(executor.getMergedResult().getValue(1, String.class), is("auth_db"));
-        assertThat(executor.getMergedResult().getValue(2, String.class), is("utf8mb4"));
-        assertFalse(executor.getMergedResult().next());
+        try (MockedConstruction<DatabaseTypeRegistry> ignored = mockConstruction(DatabaseTypeRegistry.class, (mock, mockContext) -> {
+            DialectDatabaseMetaData dialectDatabaseMetaData = mock(DialectDatabaseMetaData.class);
+            when(dialectDatabaseMetaData.isInstanceConnectionAvailable()).thenReturn(true);
+            when(mock.getDialectDatabaseMetaData()).thenReturn(dialectDatabaseMetaData);
+        })) {
+            ShardingSphereDatabase database = createDatabase(expectedResultSetMap);
+            ContextManager contextManager = mockContextManager(database);
+            when(ProxyContext.getInstance().getContextManager()).thenReturn(contextManager);
+            when(ProxyContext.getInstance().getAllDatabaseNames()).thenReturn(Collections.singleton("auth_db"));
+            SelectInformationSchemataExecutor executor = new SelectInformationSchemataExecutor(statement, sql, Collections.emptyList());
+            executor.execute(connectionSession);
+            assertThat(executor.getQueryResultMetaData().getColumnCount(), is(2));
+            assertTrue(executor.getMergedResult().next());
+            assertThat(executor.getMergedResult().getValue(1, String.class), is("auth_db"));
+            assertThat(executor.getMergedResult().getValue(2, String.class), is("utf8mb4"));
+            assertFalse(executor.getMergedResult().next());
+            assertFalse(executor.getMergedResult().next());
+        }
     }
     
     @Test
@@ -144,28 +160,33 @@ class SelectInformationSchemataExecutorTest {
         AuthorityRule authorityRule = mock(AuthorityRule.class);
         when(authorityRule.findPrivileges(grantee)).thenReturn(Optional.of(new DatabasePermittedPrivileges(Collections.singleton("auth_db"))));
         ContextManager result = mock(ContextManager.class, RETURNS_DEEP_STUBS);
-        MetaDataContexts metaDataContexts = new MetaDataContexts(mock(MetaDataPersistService.class), new ShardingSphereMetaData(
-                Arrays.stream(databases).collect(Collectors.toMap(ShardingSphereDatabase::getName, each -> each, (key, value) -> value)),
-                mock(ShardingSphereResourceMetaData.class), new ShardingSphereRuleMetaData(Collections.singleton(authorityRule)), new ConfigurationProperties(new Properties())));
+        ShardingSphereMetaData metaData = new ShardingSphereMetaData(
+                Arrays.stream(databases).collect(Collectors.toList()), mock(ResourceMetaData.class), new RuleMetaData(Collections.singleton(authorityRule)),
+                new ConfigurationProperties(new Properties()));
+        MetaDataContexts metaDataContexts = new MetaDataContexts(metaData, ShardingSphereStatisticsFactory.create(metaData, new ShardingSphereStatistics()));
         when(result.getMetaDataContexts()).thenReturn(metaDataContexts);
+        for (ShardingSphereDatabase each : databases) {
+            when(result.getDatabase(each.getName())).thenReturn(each);
+        }
         return result;
     }
     
-    private ShardingSphereDatabase createDatabase(final String databaseName, final ShardingSphereResourceMetaData resourceMetaData) {
-        return new ShardingSphereDatabase(databaseName, new MySQLDatabaseType(), resourceMetaData, mock(ShardingSphereRuleMetaData.class), Collections.emptyMap());
+    private ShardingSphereDatabase createDatabase(final String databaseName, final ResourceMetaData resourceMetaData) {
+        return new ShardingSphereDatabase(databaseName, databaseType, resourceMetaData, mock(RuleMetaData.class), Collections.emptyList());
     }
     
     private ShardingSphereDatabase createDatabase(final String databaseName) {
-        return createDatabase(databaseName, new ShardingSphereResourceMetaData(databaseName, Collections.emptyMap()));
+        return createDatabase(databaseName, new ResourceMetaData(Collections.emptyMap()));
     }
     
     private ShardingSphereDatabase createDatabase(final Map<String, String> expectedResultSetMap) throws SQLException {
-        return createDatabase("auth_db", new ShardingSphereResourceMetaData("auth_db", Collections.singletonMap("foo_ds", new MockedDataSource(mockConnection(expectedResultSetMap)))));
+        return createDatabase("auth_db", new ResourceMetaData(Collections.singletonMap("foo_ds", new MockedDataSource(mockConnection(expectedResultSetMap)))));
     }
     
     private Connection mockConnection(final Map<String, String> expectedResultSetMap) throws SQLException {
         Connection result = mock(Connection.class, RETURNS_DEEP_STUBS);
         when(result.getMetaData().getURL()).thenReturn("jdbc:mysql://localhost:3306/foo_ds");
+        when(result.getCatalog()).thenReturn("foo_ds");
         ResultSet resultSet = mockResultSet(expectedResultSetMap);
         when(result.prepareStatement(any(String.class)).executeQuery()).thenReturn(resultSet);
         return result;

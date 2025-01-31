@@ -121,7 +121,7 @@ identifier
 uescape
     : UESCAPE STRING_
     ;
-    
+
 unreservedWord
     : ABORT
     | ABSOLUTE
@@ -143,6 +143,7 @@ unreservedWord
     | BEFORE
     | BEGIN
     | BY
+    | BYTEA
     | BOX
     | CACHE
     | CALL
@@ -328,6 +329,7 @@ unreservedWord
     | PROCEDURES
     | PROGRAM
     | PUBLICATION
+    | QUARTER
     | QUOTE
     | RANGE
     | READ
@@ -426,6 +428,7 @@ unreservedWord
     | VIEW
     | VIEWS
     | VOLATILE
+    | WEEK
     | WHITESPACE
     | WITHIN
     | WITHOUT
@@ -437,6 +440,19 @@ unreservedWord
     | YES
     | ZONE
     | JSON
+    | POSITION
+    | INET
+    | INT1
+    | INT2
+    | INT4
+    | INT16
+    | FLOAT4
+    | ELEM_CONTAINED_BY_RANGE
+    | INT8RANGE
+    | INT4RANGE
+    | NUMRANGE
+    | DATERANGE
+    | TSQUERY
     ;
 
 typeFuncNameKeyword
@@ -476,7 +492,7 @@ synonymName
 objectName
     : (owner DOT_)? identifier
     ;
-    
+
 tableName
     : (owner DOT_)? name
     ;
@@ -490,6 +506,10 @@ owner
     ;
 
 name
+    : identifier
+    ;
+
+modelName
     : identifier
     ;
 
@@ -533,6 +553,10 @@ comparisonOperator
     : EQ_ | GTE_ | GT_ | LTE_ | LT_ | NEQ_
     ;
 
+inetOperator
+    : SIGNED_LEFT_SHIFT_ | SIGNED_LEFT_SHIFT_E_ | SIGNED_RIGHT_SHIFT_ | SIGNED_RIGHT_SHIFT_E_
+    ;
+
 patternMatchingOperator
     : LIKE
     | TILDE_TILDE_
@@ -568,11 +592,17 @@ aExpr
     | aExpr MOD_ aExpr
     | aExpr CARET_ aExpr
     | aExpr AMPERSAND_ aExpr
+    | DN_ aExpr
+    | aExpr NOT_
+    | aExpr POUND_ aExpr
+    | TILDE_ aExpr
+    | CUBE_ROOT_ aExpr
     | aExpr VERTICAL_BAR_ aExpr
     | aExpr qualOp aExpr
     | qualOp aExpr
     | aExpr qualOp
     | aExpr comparisonOperator aExpr
+    | aExpr inetOperator aExpr
     | NOT aExpr
     | aExpr patternMatchingOperator aExpr ESCAPE aExpr
     | aExpr patternMatchingOperator aExpr
@@ -818,7 +848,7 @@ jsonOperator
     | JSONB_PATH_CONTAIN_ANY_VALUE_ # jsonbPathContainAnyValue
     | JSONB_PATH_PREDICATE_CHECK_ # jsonbPathPredicateCheck
     ;
-    
+
 geometricOperator
     : GEOMETRIC_LENGTH_
     | GEOMETRIC_DISTANCE_
@@ -924,13 +954,16 @@ typeList
     : typeName (COMMA_ typeName)*
     ;
 
+separatorName
+    : SEPARATOR STRING_
+    ;
+
 funcApplication
     : funcName LP_ RP_
-    | funcName LP_ funcArgList sortClause? RP_
+    | funcName LP_ DISTINCT? funcArgList sortClause? separatorName? RP_
     | funcName LP_ VARIADIC funcArgExpr sortClause? RP_
     | funcName LP_ funcArgList COMMA_ VARIADIC funcArgExpr sortClause? RP_
     | funcName LP_ ALL funcArgList sortClause? RP_
-    | funcName LP_ DISTINCT funcArgList sortClause? RP_
     | funcName LP_ ASTERISK_ RP_
     ;
 
@@ -1072,6 +1105,14 @@ functionExprCommonSubexpr
     | XMLPI LP_ NAME identifier COMMA_ aExpr RP_
     | XMLROOT LP_ aExpr COMMA_ xmlRootVersion xmlRootStandalone? RP_
     | XMLSERIALIZE LP_ documentOrContent aExpr AS simpleTypeName RP_
+    | PREDICT BY modelName LP_ FEATURES name (COMMA_ name)* RP_
+    | TS_REWRITE LP_ aExpr (TYPE_CAST_ TSQUERY)? (COMMA_ aExpr (TYPE_CAST_ TSQUERY)?)* RP_
+    | ELEM_CONTAINED_BY_RANGE LP_ aExpr COMMA_ dataType RP_
+    | (LOWER_INF | UPPER_INF) LP_ aExpr TYPE_CAST_ identifier RP_
+    | ABBREV LP_ (INET | CIDR) STRING_ RP_
+    | SET_MASKLEN LP_ STRING_ (TYPE_CAST_ CIDR)? COMMA_ numberLiterals RP_
+    | TEXT LP_ INET STRING_ RP_
+    | TRUNC LP_ MACADDR STRING_ RP_
     ;
 
 typeName
@@ -1111,7 +1152,9 @@ extractList
 
 extractArg
     : YEAR
+    | QUARTER
     | MONTH
+    | WEEK
     | DAY
     | HOUR
     | MINUTE
@@ -1936,11 +1979,11 @@ event
 typeNameList
     : typeName (COMMA_ typeName)*
     ;
-    
+
 ifNotExists
     : IF NOT EXISTS
     ;
-    
+
 ifExists
     : IF EXISTS
     ;

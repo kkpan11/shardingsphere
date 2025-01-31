@@ -31,14 +31,19 @@ public final class PropertiesBuilder {
     
     /**
      * Build properties.
-     * 
-     * @param properties to be built properties
+     *
+     * @param props to be built properties
      * @return built properties
      */
-    public static Properties build(final Property... properties) {
+    public static Properties build(final Property... props) {
         Properties result = new Properties();
-        for (Property each : properties) {
-            result.setProperty(each.key, each.value);
+        for (Property each : props) {
+            if (each.value instanceof String) {
+                result.setProperty(each.key, each.value.toString());
+            } else {
+                result.put(each.key, each.value);
+            }
+            
         }
         return result;
     }
@@ -51,6 +56,6 @@ public final class PropertiesBuilder {
         
         private final String key;
         
-        private final String value;
+        private final Object value;
     }
 }

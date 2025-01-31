@@ -18,10 +18,9 @@
 package org.apache.shardingsphere.infra.metadata.database.schema.builder;
 
 import org.apache.shardingsphere.infra.config.props.ConfigurationProperties;
-import org.apache.shardingsphere.infra.database.type.dialect.MySQLDatabaseType;
-import org.apache.shardingsphere.infra.database.type.dialect.OpenGaussDatabaseType;
-import org.apache.shardingsphere.infra.database.type.dialect.PostgreSQLDatabaseType;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereSchema;
+import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
@@ -35,45 +34,48 @@ class SystemSchemaBuilderTest {
     
     @Test
     void assertBuildForMySQL() {
+        DatabaseType databaseType = TypedSPILoader.getService(DatabaseType.class, "MySQL");
         ConfigurationProperties configProps = new ConfigurationProperties(new Properties());
-        Map<String, ShardingSphereSchema> actualInformationSchema = SystemSchemaBuilder.build("information_schema", new MySQLDatabaseType(), configProps);
+        Map<String, ShardingSphereSchema> actualInformationSchema = SystemSchemaBuilder.build("information_schema", databaseType, configProps);
         assertThat(actualInformationSchema.size(), is(1));
         assertTrue(actualInformationSchema.containsKey("information_schema"));
-        assertThat(actualInformationSchema.get("information_schema").getTables().size(), is(61));
-        Map<String, ShardingSphereSchema> actualMySQLSchema = SystemSchemaBuilder.build("mysql", new MySQLDatabaseType(), configProps);
+        assertThat(actualInformationSchema.get("information_schema").getAllTables().size(), is(95));
+        Map<String, ShardingSphereSchema> actualMySQLSchema = SystemSchemaBuilder.build("mysql", databaseType, configProps);
         assertThat(actualMySQLSchema.size(), is(1));
         assertTrue(actualMySQLSchema.containsKey("mysql"));
-        assertThat(actualMySQLSchema.get("mysql").getTables().size(), is(31));
-        Map<String, ShardingSphereSchema> actualPerformanceSchema = SystemSchemaBuilder.build("performance_schema", new MySQLDatabaseType(), configProps);
+        assertThat(actualMySQLSchema.get("mysql").getAllTables().size(), is(40));
+        Map<String, ShardingSphereSchema> actualPerformanceSchema = SystemSchemaBuilder.build("performance_schema", databaseType, configProps);
         assertThat(actualPerformanceSchema.size(), is(1));
         assertTrue(actualPerformanceSchema.containsKey("performance_schema"));
-        assertThat(actualPerformanceSchema.get("performance_schema").getTables().size(), is(87));
-        Map<String, ShardingSphereSchema> actualSysSchema = SystemSchemaBuilder.build("sys", new MySQLDatabaseType(), configProps);
+        assertThat(actualPerformanceSchema.get("performance_schema").getAllTables().size(), is(114));
+        Map<String, ShardingSphereSchema> actualSysSchema = SystemSchemaBuilder.build("sys", databaseType, configProps);
         assertThat(actualSysSchema.size(), is(1));
         assertTrue(actualSysSchema.containsKey("sys"));
-        assertThat(actualSysSchema.get("sys").getTables().size(), is(53));
+        assertThat(actualSysSchema.get("sys").getAllTables().size(), is(53));
     }
     
     @Test
     void assertBuildForPostgreSQL() {
-        Map<String, ShardingSphereSchema> actual = SystemSchemaBuilder.build("sharding_db", new PostgreSQLDatabaseType(), new ConfigurationProperties(new Properties()));
+        DatabaseType databaseType = TypedSPILoader.getService(DatabaseType.class, "PostgreSQL");
+        Map<String, ShardingSphereSchema> actual = SystemSchemaBuilder.build("sharding_db", databaseType, new ConfigurationProperties(new Properties()));
         assertThat(actual.size(), is(3));
         assertTrue(actual.containsKey("information_schema"));
         assertTrue(actual.containsKey("pg_catalog"));
         assertTrue(actual.containsKey("shardingsphere"));
-        assertThat(actual.get("information_schema").getTables().size(), is(69));
-        assertThat(actual.get("pg_catalog").getTables().size(), is(134));
-        assertThat(actual.get("shardingsphere").getTables().size(), is(2));
+        assertThat(actual.get("information_schema").getAllTables().size(), is(69));
+        assertThat(actual.get("pg_catalog").getAllTables().size(), is(134));
+        assertThat(actual.get("shardingsphere").getAllTables().size(), is(2));
     }
     
     @Test
     void assertBuildForOpenGaussSQL() {
-        Map<String, ShardingSphereSchema> actual = SystemSchemaBuilder.build("sharding_db", new OpenGaussDatabaseType(), new ConfigurationProperties(new Properties()));
+        DatabaseType databaseType = TypedSPILoader.getService(DatabaseType.class, "openGauss");
+        Map<String, ShardingSphereSchema> actual = SystemSchemaBuilder.build("sharding_db", databaseType, new ConfigurationProperties(new Properties()));
         assertThat(actual.size(), is(16));
         assertTrue(actual.containsKey("pg_catalog"));
         assertTrue(actual.containsKey("shardingsphere"));
-        assertThat(actual.get("information_schema").getTables().size(), is(66));
-        assertThat(actual.get("pg_catalog").getTables().size(), is(240));
-        assertThat(actual.get("shardingsphere").getTables().size(), is(2));
+        assertThat(actual.get("information_schema").getAllTables().size(), is(66));
+        assertThat(actual.get("pg_catalog").getAllTables().size(), is(240));
+        assertThat(actual.get("shardingsphere").getAllTables().size(), is(2));
     }
 }

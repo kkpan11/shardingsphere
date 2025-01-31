@@ -17,8 +17,8 @@
 
 package org.apache.shardingsphere.db.protocol.constant;
 
-import org.apache.shardingsphere.infra.spi.DatabaseTypedSPI;
-import org.apache.shardingsphere.infra.util.spi.annotation.SingletonSPI;
+import org.apache.shardingsphere.infra.database.core.spi.DatabaseTypedSPI;
+import org.apache.shardingsphere.infra.spi.annotation.SingletonSPI;
 
 /**
  * Database protocol default version provider.
@@ -28,7 +28,7 @@ public interface DatabaseProtocolDefaultVersionProvider extends DatabaseTypedSPI
     
     /**
      * Provide default database version.
-     * 
+     *
      * @return default database version
      */
     String provide();

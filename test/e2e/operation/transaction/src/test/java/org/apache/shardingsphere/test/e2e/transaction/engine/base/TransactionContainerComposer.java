@@ -18,11 +18,8 @@
 package org.apache.shardingsphere.test.e2e.transaction.engine.base;
 
 import lombok.Getter;
-import org.apache.shardingsphere.infra.database.type.DatabaseType;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
 import org.apache.shardingsphere.test.e2e.env.container.atomic.enums.AdapterType;
-import org.apache.shardingsphere.test.e2e.env.container.atomic.storage.DockerStorageContainer;
-import org.apache.shardingsphere.test.e2e.env.container.atomic.util.StorageContainerUtils;
-import org.apache.shardingsphere.test.e2e.env.runtime.DataSourceEnvironment;
 import org.apache.shardingsphere.test.e2e.transaction.env.TransactionE2EEnvironment;
 import org.apache.shardingsphere.test.e2e.transaction.env.enums.TransactionE2EEnvTypeEnum;
 import org.apache.shardingsphere.test.e2e.transaction.framework.container.compose.BaseContainerComposer;
@@ -31,7 +28,6 @@ import org.apache.shardingsphere.test.e2e.transaction.framework.container.compos
 import org.apache.shardingsphere.test.e2e.transaction.framework.param.TransactionTestParameter;
 
 import javax.sql.DataSource;
-import java.util.Map;
 
 /**
  * Transaction container composer.
@@ -45,7 +41,7 @@ public final class TransactionContainerComposer implements AutoCloseable {
     
     private final BaseContainerComposer containerComposer;
     
-    private final AutoDataSource dataSource;
+    private final DataSource dataSource;
     
     public TransactionContainerComposer(final TransactionTestParameter testParam) {
         databaseType = testParam.getDatabaseType();
@@ -54,7 +50,7 @@ public final class TransactionContainerComposer implements AutoCloseable {
     }
     
     private BaseContainerComposer initContainerComposer(final TransactionTestParameter testParam) {
-        BaseContainerComposer result = ENV.getItEnvType() == TransactionE2EEnvTypeEnum.DOCKER ? new DockerContainerComposer(testParam) : new NativeContainerComposer(testParam.getDatabaseType());
+        BaseContainerComposer result = ENV.getItEnvType() == TransactionE2EEnvTypeEnum.DOCKER ? new DockerContainerComposer(testParam) : new NativeContainerComposer();
         result.start();
         return result;
     }
@@ -63,22 +59,14 @@ public final class TransactionContainerComposer implements AutoCloseable {
         return AdapterType.PROXY.getValue().equalsIgnoreCase(testParam.getAdapter());
     }
     
-    private ProxyDataSource createProxyDataSource() {
-        return new ProxyDataSource(containerComposer, "sharding_db", ENV.getProxyUserName(), ENV.getProxyPassword());
-    }
-    
-    private JdbcDataSource createJdbcDataSource() {
+    private DataSource createProxyDataSource() {
         DockerContainerComposer dockerContainerComposer = (DockerContainerComposer) containerComposer;
-        DockerStorageContainer storageContainer = dockerContainerComposer.getStorageContainer();
-        Map<String, DataSource> actualDataSourceMap = storageContainer.getActualDataSourceMap();
-        actualDataSourceMap.put("ds_0", createDataSource(storageContainer, "transaction_it_0"));
-        actualDataSourceMap.put("ds_1", createDataSource(storageContainer, "transaction_it_1"));
-        return new JdbcDataSource(dockerContainerComposer);
+        return dockerContainerComposer.getProxyContainer().getTargetDataSource(null);
     }
     
-    private DataSource createDataSource(final DockerStorageContainer storageContainer, final String dataSourceName) {
-        return StorageContainerUtils.generateDataSource(DataSourceEnvironment.getURL(databaseType, storageContainer.getHost(), storageContainer.getMappedPort(), dataSourceName),
-                storageContainer.getUsername(), storageContainer.getPassword(), 50);
+    private DataSource createJdbcDataSource() {
+        DockerContainerComposer dockerContainerComposer = (DockerContainerComposer) containerComposer;
+        return dockerContainerComposer.getJdbcContainer().getTargetDataSource(null);
     }
     
     @Override

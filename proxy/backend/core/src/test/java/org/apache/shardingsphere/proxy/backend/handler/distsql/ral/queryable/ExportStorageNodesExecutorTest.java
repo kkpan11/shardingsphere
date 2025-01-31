@@ -20,16 +20,20 @@ package org.apache.shardingsphere.proxy.backend.handler.distsql.ral.queryable;
 import lombok.SneakyThrows;
 import org.apache.shardingsphere.authority.rule.AuthorityRule;
 import org.apache.shardingsphere.authority.rule.builder.DefaultAuthorityRuleConfigurationBuilder;
-import org.apache.shardingsphere.distsql.parser.statement.ral.queryable.ExportStorageNodesStatement;
-import org.apache.shardingsphere.infra.config.algorithm.AlgorithmConfiguration;
+import org.apache.shardingsphere.distsql.statement.ral.queryable.export.ExportStorageNodesStatement;
+import org.apache.shardingsphere.infra.algorithm.core.config.AlgorithmConfiguration;
 import org.apache.shardingsphere.infra.config.props.ConfigurationProperties;
 import org.apache.shardingsphere.infra.config.props.ConfigurationPropertyKey;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.merge.result.impl.local.LocalDataQueryResultRow;
 import org.apache.shardingsphere.infra.metadata.ShardingSphereMetaData;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
-import org.apache.shardingsphere.infra.metadata.database.resource.ShardingSphereResourceMetaData;
-import org.apache.shardingsphere.infra.metadata.database.rule.ShardingSphereRuleMetaData;
-import org.apache.shardingsphere.metadata.persist.MetaDataPersistService;
+import org.apache.shardingsphere.infra.metadata.database.resource.ResourceMetaData;
+import org.apache.shardingsphere.infra.metadata.database.resource.unit.StorageUnit;
+import org.apache.shardingsphere.infra.metadata.database.rule.RuleMetaData;
+import org.apache.shardingsphere.infra.metadata.statistics.ShardingSphereStatistics;
+import org.apache.shardingsphere.infra.metadata.statistics.builder.ShardingSphereStatisticsFactory;
+import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 import org.apache.shardingsphere.mode.manager.ContextManager;
 import org.apache.shardingsphere.mode.metadata.MetaDataContexts;
 import org.apache.shardingsphere.proxy.backend.context.ProxyContext;
@@ -43,21 +47,27 @@ import org.apache.shardingsphere.test.mock.AutoMockExtension;
 import org.apache.shardingsphere.test.mock.StaticMockSettings;
 import org.apache.shardingsphere.test.util.PropertiesBuilder;
 import org.apache.shardingsphere.test.util.PropertiesBuilder.Property;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Answers;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import javax.sql.DataSource;
-import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.IOException;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.stream.Collectors;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -67,19 +77,16 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(AutoMockExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 @StaticMockSettings(ProxyContext.class)
 class ExportStorageNodesExecutorTest {
     
-    private final ShardingSphereDatabase database = mock(ShardingSphereDatabase.class, RETURNS_DEEP_STUBS);
+    @Mock(answer = Answers.RETURNS_DEEP_STUBS)
+    private ShardingSphereDatabase database;
     
-    @Test
-    void assertGetColumns() {
-        Collection<String> columns = new ExportStorageNodesExecutor().getColumnNames();
-        assertThat(columns.size(), is(3));
-        Iterator<String> columnIterator = columns.iterator();
-        assertThat(columnIterator.next(), is("id"));
-        assertThat(columnIterator.next(), is("create_time"));
-        assertThat(columnIterator.next(), is("storage_nodes"));
+    @BeforeEach
+    void setUp() {
+        when(database.getProtocolType()).thenReturn(TypedSPILoader.getService(DatabaseType.class, "FIXTURE"));
     }
     
     @Test
@@ -88,7 +95,7 @@ class ExportStorageNodesExecutorTest {
         when(ProxyContext.getInstance().getContextManager()).thenReturn(contextManager);
         when(ProxyContext.getInstance().getAllDatabaseNames()).thenReturn(Collections.singleton("empty_metadata"));
         ExportStorageNodesStatement sqlStatement = new ExportStorageNodesStatement("foo", null);
-        assertThrows(IllegalArgumentException.class, () -> new ExportStorageNodesExecutor().getRows(contextManager.getMetaDataContexts().getMetaData(), sqlStatement));
+        assertThrows(IllegalArgumentException.class, () -> new ExportStorageNodesExecutor().getRows(sqlStatement, contextManager));
     }
     
     @Test
@@ -97,7 +104,7 @@ class ExportStorageNodesExecutorTest {
         when(ProxyContext.getInstance().getContextManager()).thenReturn(contextManager);
         when(ProxyContext.getInstance().getAllDatabaseNames()).thenReturn(Collections.singleton("empty_metadata"));
         ExportStorageNodesStatement sqlStatement = new ExportStorageNodesStatement(null, null);
-        Collection<LocalDataQueryResultRow> actual = new ExportStorageNodesExecutor().getRows(contextManager.getMetaDataContexts().getMetaData(), sqlStatement);
+        Collection<LocalDataQueryResultRow> actual = new ExportStorageNodesExecutor().getRows(sqlStatement, contextManager);
         assertThat(actual.size(), is(1));
         LocalDataQueryResultRow row = actual.iterator().next();
         assertThat(row.getCell(3), is("{\"storage_nodes\":{}}"));
@@ -105,8 +112,9 @@ class ExportStorageNodesExecutorTest {
     
     private ContextManager mockEmptyContextManager() {
         ContextManager result = mock(ContextManager.class, RETURNS_DEEP_STUBS);
-        MetaDataContexts metaDataContexts = new MetaDataContexts(mock(MetaDataPersistService.class), new ShardingSphereMetaData(new HashMap<>(),
-                new ShardingSphereResourceMetaData(Collections.emptyMap()), new ShardingSphereRuleMetaData(Collections.emptyList()), new ConfigurationProperties(new Properties())));
+        ShardingSphereMetaData metaData = new ShardingSphereMetaData(
+                Collections.emptyList(), new ResourceMetaData(Collections.emptyMap()), new RuleMetaData(Collections.emptyList()), new ConfigurationProperties(new Properties()));
+        MetaDataContexts metaDataContexts = new MetaDataContexts(metaData, new ShardingSphereStatistics());
         when(result.getMetaDataContexts()).thenReturn(metaDataContexts);
         return result;
     }
@@ -114,11 +122,12 @@ class ExportStorageNodesExecutorTest {
     @Test
     void assertExecute() {
         when(database.getName()).thenReturn("normal_db");
-        when(database.getResourceMetaData().getDataSources()).thenReturn(createDataSourceMap());
+        Map<String, StorageUnit> storageUnits = createStorageUnits();
+        when(database.getResourceMetaData().getStorageUnits()).thenReturn(storageUnits);
         when(database.getRuleMetaData().getConfigurations()).thenReturn(Collections.singleton(createShardingRuleConfiguration()));
         ContextManager contextManager = mockContextManager();
         when(ProxyContext.getInstance().getContextManager()).thenReturn(contextManager);
-        Collection<LocalDataQueryResultRow> actual = new ExportStorageNodesExecutor().getRows(contextManager.getMetaDataContexts().getMetaData(), new ExportStorageNodesStatement(null, null));
+        Collection<LocalDataQueryResultRow> actual = new ExportStorageNodesExecutor().getRows(new ExportStorageNodesStatement(null, null), contextManager);
         assertThat(actual.size(), is(1));
         LocalDataQueryResultRow row = actual.iterator().next();
         assertThat(row.getCell(3), is(loadExpectedRow()));
@@ -127,11 +136,12 @@ class ExportStorageNodesExecutorTest {
     @Test
     void assertExecuteWithDatabaseName() {
         when(database.getName()).thenReturn("normal_db");
-        when(database.getResourceMetaData().getDataSources()).thenReturn(createDataSourceMap());
+        Map<String, StorageUnit> storageUnits = createStorageUnits();
+        when(database.getResourceMetaData().getStorageUnits()).thenReturn(storageUnits);
         when(database.getRuleMetaData().getConfigurations()).thenReturn(Collections.singleton(createShardingRuleConfiguration()));
         ContextManager contextManager = mockContextManager();
         when(ProxyContext.getInstance().getContextManager()).thenReturn(contextManager);
-        Collection<LocalDataQueryResultRow> actual = new ExportStorageNodesExecutor().getRows(contextManager.getMetaDataContexts().getMetaData(), new ExportStorageNodesStatement("normal_db", null));
+        Collection<LocalDataQueryResultRow> actual = new ExportStorageNodesExecutor().getRows(new ExportStorageNodesStatement("normal_db", null), contextManager);
         assertThat(actual.size(), is(1));
         LocalDataQueryResultRow row = actual.iterator().next();
         assertThat(row.getCell(3), is(loadExpectedRow()));
@@ -139,18 +149,23 @@ class ExportStorageNodesExecutorTest {
     
     private ContextManager mockContextManager() {
         ContextManager result = mock(ContextManager.class, RETURNS_DEEP_STUBS);
-        MetaDataContexts metaDataContexts = new MetaDataContexts(mock(MetaDataPersistService.class), new ShardingSphereMetaData(Collections.singletonMap(database.getName(), database),
-                new ShardingSphereResourceMetaData(Collections.emptyMap()),
-                new ShardingSphereRuleMetaData(Collections.singleton(new AuthorityRule(new DefaultAuthorityRuleConfigurationBuilder().build(), Collections.emptyMap()))),
-                new ConfigurationProperties(PropertiesBuilder.build(new Property(ConfigurationPropertyKey.SQL_SHOW.getKey(), "true")))));
+        ShardingSphereMetaData metaData = new ShardingSphereMetaData(Collections.singleton(database),
+                new ResourceMetaData(Collections.emptyMap()),
+                new RuleMetaData(Collections.singleton(new AuthorityRule(new DefaultAuthorityRuleConfigurationBuilder().build()))),
+                new ConfigurationProperties(PropertiesBuilder.build(new Property(ConfigurationPropertyKey.SQL_SHOW.getKey(), "true"))));
+        MetaDataContexts metaDataContexts = new MetaDataContexts(metaData, ShardingSphereStatisticsFactory.create(metaData, new ShardingSphereStatistics()));
         when(result.getMetaDataContexts()).thenReturn(metaDataContexts);
         return result;
     }
     
-    private Map<String, DataSource> createDataSourceMap() {
-        Map<String, DataSource> result = new LinkedHashMap<>(2, 1F);
-        result.put("ds_0", createDataSource("demo_ds_0"));
-        result.put("ds_1", createDataSource("demo_ds_1"));
+    private Map<String, StorageUnit> createStorageUnits() {
+        StorageUnit storageUnit1 = mock(StorageUnit.class, RETURNS_DEEP_STUBS);
+        when(storageUnit1.getDataSource()).thenReturn(createDataSource("ds_0"));
+        StorageUnit storageUnit2 = mock(StorageUnit.class, RETURNS_DEEP_STUBS);
+        when(storageUnit2.getDataSource()).thenReturn(createDataSource("ds_2"));
+        Map<String, StorageUnit> result = new LinkedHashMap<>(2, 1F);
+        result.put("ds_0", storageUnit1);
+        result.put("ds_1", storageUnit2);
         return result;
     }
     
@@ -180,18 +195,9 @@ class ExportStorageNodesExecutorTest {
         return result;
     }
     
-    @SneakyThrows(IOException.class)
+    @SneakyThrows({IOException.class, URISyntaxException.class})
     private String loadExpectedRow() {
-        StringBuilder result = new StringBuilder();
-        String fileName = Objects.requireNonNull(ExportStorageNodesExecutorTest.class.getResource("/expected/export-storage-nodes.json")).getFile();
-        try (
-                FileReader fileReader = new FileReader(fileName);
-                BufferedReader reader = new BufferedReader(fileReader)) {
-            String line;
-            while (null != (line = reader.readLine())) {
-                result.append(line);
-            }
-        }
-        return result.toString();
+        URL url = Objects.requireNonNull(ConvertYamlConfigurationExecutorTest.class.getResource("/expected/export-storage-nodes.json"));
+        return Files.readAllLines(Paths.get(url.toURI())).stream().filter(each -> !each.startsWith("#") && !each.trim().isEmpty()).collect(Collectors.joining(System.lineSeparator()));
     }
 }

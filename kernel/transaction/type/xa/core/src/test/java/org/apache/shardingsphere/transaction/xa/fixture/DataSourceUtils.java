@@ -21,9 +21,9 @@ import com.atomikos.jdbc.AtomikosDataSourceBean;
 import com.zaxxer.hikari.HikariDataSource;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import org.apache.shardingsphere.infra.database.type.DatabaseType;
-import org.apache.shardingsphere.infra.spi.DatabaseTypedSPILoader;
-import org.apache.shardingsphere.infra.util.exception.external.sql.type.generic.UnsupportedSQLOperationException;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
+import org.apache.shardingsphere.infra.database.core.spi.DatabaseTypedSPILoader;
+import org.apache.shardingsphere.infra.exception.generic.UnsupportedSQLOperationException;
 import org.apache.shardingsphere.transaction.xa.jta.datasource.properties.XADataSourceDefinition;
 import org.apache.shardingsphere.transaction.xa.jta.datasource.swapper.DataSourceSwapper;
 
@@ -61,8 +61,8 @@ public final class DataSourceUtils {
         result.setPassword("root");
         result.setMaximumPoolSize(10);
         result.setMinimumIdle(2);
-        result.setConnectionTimeout(15 * 1000L);
-        result.setIdleTimeout(40 * 1000L);
+        result.setConnectionTimeout(15L * 1000L);
+        result.setIdleTimeout(40L * 1000L);
         return result;
     }
     
@@ -89,6 +89,8 @@ public final class DataSourceUtils {
                 return String.format("jdbc:sqlserver://localhost:1433;DatabaseName=%s", databaseName);
             case "H2":
                 return String.format("jdbc:h2:mem:%s;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=false;MODE=MYSQL", databaseName);
+            case "Firebird":
+                return String.format("jdbc:firebirdsql://localhost:3050/%s", databaseName);
             default:
                 throw new UnsupportedSQLOperationException(databaseType.getType());
         }

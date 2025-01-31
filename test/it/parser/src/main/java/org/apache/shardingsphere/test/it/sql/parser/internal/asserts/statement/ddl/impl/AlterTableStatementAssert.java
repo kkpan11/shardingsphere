@@ -19,18 +19,20 @@ package org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.column.ColumnDefinitionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.column.alter.AddColumnDefinitionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.column.alter.ChangeColumnDefinitionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.column.alter.DropColumnDefinitionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.column.alter.ModifyColumnDefinitionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.column.alter.RenameColumnSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.constraint.alter.AddConstraintDefinitionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.index.RenameIndexDefinitionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.table.ConvertTableDefinitionSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.column.ColumnSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.table.SimpleTableSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.ddl.AlterTableStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.column.ColumnDefinitionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.column.alter.AddColumnDefinitionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.column.alter.ChangeColumnDefinitionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.column.alter.DropColumnDefinitionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.column.alter.ModifyCollectionRetrievalSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.column.alter.ModifyColumnDefinitionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.column.alter.RenameColumnSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.constraint.alter.AddConstraintDefinitionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.constraint.alter.ModifyConstraintDefinitionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.index.RenameIndexDefinitionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.table.ConvertTableDefinitionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.column.ColumnSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.SimpleTableSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.ddl.AlterTableStatement;
 import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.SQLCaseAssertContext;
 import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.segment.SQLSegmentAssert;
 import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.segment.charset.CharsetAssert;
@@ -44,9 +46,10 @@ import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.segment.tab
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.segment.impl.definition.ExpectedAddColumnDefinition;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.segment.impl.definition.ExpectedChangeColumnDefinition;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.segment.impl.definition.ExpectedColumnDefinition;
+import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.segment.impl.definition.ExpectedConstraintDefinition;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.segment.impl.definition.ExpectedModifyColumnDefinition;
-import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.segment.impl.definition.ExpectedRenameIndexDefinition;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.segment.impl.definition.ExpectedRenameColumnDefinition;
+import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.segment.impl.definition.ExpectedRenameIndexDefinition;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.statement.ddl.AlterTableStatementTestCase;
 
 import java.util.Collection;
@@ -69,7 +72,7 @@ public final class AlterTableStatementAssert {
     
     /**
      * Assert alter table statement is correct with expected parser result.
-     * 
+     *
      * @param assertContext assert context
      * @param actual actual alter table statement
      * @param expected expected alter table statement test case
@@ -79,12 +82,14 @@ public final class AlterTableStatementAssert {
         assertRenameTable(assertContext, actual, expected);
         assertAddColumnDefinitions(assertContext, actual, expected);
         assertAddConstraintDefinitions(assertContext, actual, expected);
+        assertModifyConstraintDefinitions(assertContext, actual, expected);
         assertModifyColumnDefinitions(assertContext, actual, expected);
         assertChangeColumnDefinitions(assertContext, actual, expected);
         assertDropColumns(assertContext, actual, expected);
         assertRenameIndexDefinitions(assertContext, actual, expected);
         assertRenameColumnDefinitions(assertContext, actual, expected);
         assertConvertTable(assertContext, actual, expected);
+        assertModifyCollectionRetrievalDefinitions(assertContext, actual, expected);
     }
     
     private static void assertConvertTable(final SQLCaseAssertContext assertContext, final AlterTableStatement actual, final AlterTableStatementTestCase expected) {
@@ -145,6 +150,22 @@ public final class AlterTableStatementAssert {
         int count = 0;
         for (AddConstraintDefinitionSegment each : actual.getAddConstraintDefinitions()) {
             ConstraintDefinitionAssert.assertIs(assertContext, each.getConstraintDefinition(), expected.getAddConstraints().get(count));
+            count++;
+        }
+    }
+    
+    private static void assertModifyConstraintDefinitions(final SQLCaseAssertContext assertContext, final AlterTableStatement actual, final AlterTableStatementTestCase expected) {
+        assertThat(assertContext.getText("Modify constraint definitions size assertion error: "), actual.getModifyConstraintDefinitions().size(), is(expected.getModifyConstraints().size()));
+        int count = 0;
+        for (ModifyConstraintDefinitionSegment each : actual.getModifyConstraintDefinitions()) {
+            ExpectedConstraintDefinition expectedConstraintDefinition = expected.getModifyConstraints().get(count);
+            if (null == expectedConstraintDefinition.getConstraintName()) {
+                assertNull(each.getConstraintName(), "Actual modify constraint name should not exist.");
+            } else {
+                assertNotNull(each.getConstraintName(), "Actual modify constraint name should exist.");
+                assertThat(assertContext.getText("Actual modify constraint name assertion error."),
+                        each.getConstraintName().getIdentifier().getValue(), is(expectedConstraintDefinition.getConstraintName()));
+            }
             count++;
         }
     }
@@ -221,6 +242,21 @@ public final class AlterTableStatementAssert {
             ColumnAssert.assertIs(assertContext, each.getOldColumnName(), expectedRenameColumnDefinition.getOldColumnName());
             ColumnAssert.assertIs(assertContext, each.getColumnName(), expectedRenameColumnDefinition.getColumnName());
             count++;
+        }
+    }
+    
+    private static void assertModifyCollectionRetrievalDefinitions(final SQLCaseAssertContext assertContext, final AlterTableStatement actual, final AlterTableStatementTestCase expected) {
+        Optional<ModifyCollectionRetrievalSegment> modifyCollectionRetrieval = actual.getModifyCollectionRetrieval();
+        if (null == expected.getModifyCollectionRetrievalDefinition()) {
+            assertFalse(modifyCollectionRetrieval.isPresent(), assertContext.getText("Actual modify collection retrieval definitions should not exist."));
+        } else {
+            assertTrue(modifyCollectionRetrieval.isPresent(), assertContext.getText("Actual modify collection retrieval definitions should exist."));
+            if (null == expected.getModifyCollectionRetrievalDefinition().getTable()) {
+                assertNull(modifyCollectionRetrieval.get().getNestedTable(), "Actual nested table should not exist.");
+            } else {
+                assertNotNull(modifyCollectionRetrieval.get().getNestedTable(), "Actual nested table should exist.");
+                TableAssert.assertIs(assertContext, modifyCollectionRetrieval.get().getNestedTable(), expected.getModifyCollectionRetrievalDefinition().getTable());
+            }
         }
     }
 }

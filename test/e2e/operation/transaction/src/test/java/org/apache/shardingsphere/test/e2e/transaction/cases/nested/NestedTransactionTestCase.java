@@ -19,13 +19,12 @@ package org.apache.shardingsphere.test.e2e.transaction.cases.nested;
 
 import org.apache.shardingsphere.driver.jdbc.core.connection.ShardingSphereConnection;
 import org.apache.shardingsphere.test.e2e.transaction.cases.base.BaseTransactionTestCase;
-import org.apache.shardingsphere.test.e2e.transaction.engine.base.TransactionBaseE2EIT;
 import org.apache.shardingsphere.test.e2e.transaction.engine.base.TransactionContainerComposer;
 import org.apache.shardingsphere.test.e2e.transaction.engine.base.TransactionTestCase;
 import org.apache.shardingsphere.test.e2e.transaction.engine.constants.TransactionTestConstants;
 import org.apache.shardingsphere.transaction.api.TransactionType;
 
-import javax.sql.DataSource;
+import java.sql.Connection;
 import java.sql.SQLException;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -37,27 +36,106 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @TransactionTestCase(transactionTypes = TransactionType.LOCAL, adapters = TransactionTestConstants.JDBC)
 public final class NestedTransactionTestCase extends BaseTransactionTestCase {
     
-    public NestedTransactionTestCase(final TransactionBaseE2EIT baseTransactionITCase, final DataSource dataSource) {
-        super(baseTransactionITCase, dataSource);
+    public NestedTransactionTestCase(final TransactionTestCaseParameter testCaseParam) {
+        super(testCaseParam);
     }
     
     @Override
     protected void executeTest(final TransactionContainerComposer containerComposer) throws SQLException {
-        try (ShardingSphereConnection connection = (ShardingSphereConnection) getDataSource().getConnection()) {
-            assertFalse(connection.isHoldTransaction());
+        assertOuterCommitAndInnerRollback();
+        assertOuterRollbackAndInnerRollback();
+        assertOuterCommitAndInnerCommit();
+        assertOuterRollbackAndInnerCommit();
+    }
+    
+    private void assertOuterCommitAndInnerRollback() throws SQLException {
+        try (Connection connection = getDataSource().getConnection()) {
+            ShardingSphereConnection shardingSphereConnection = connection.unwrap(ShardingSphereConnection.class);
+            assertFalse(shardingSphereConnection.getDatabaseConnectionManager().getConnectionTransaction().isHoldTransaction(shardingSphereConnection.getAutoCommit()));
             connection.setAutoCommit(false);
-            assertTrue(connection.isHoldTransaction());
-            requiresNewTransaction();
-            assertTrue(connection.isHoldTransaction());
+            executeWithLog(connection, "INSERT INTO account (id, balance, transaction_id) VALUES (1, 1, 1), (2, 2, 2)");
+            assertTrue(shardingSphereConnection.getDatabaseConnectionManager().getConnectionTransaction().isHoldTransaction(shardingSphereConnection.getAutoCommit()));
+            requiresNewTransactionRollback();
+            executeWithLog(connection, "INSERT INTO account (id, balance, transaction_id) VALUES (7, 7, 7), (8, 8, 8)");
+            assertTrue(shardingSphereConnection.getDatabaseConnectionManager().getConnectionTransaction().isHoldTransaction(shardingSphereConnection.getAutoCommit()));
             connection.commit();
+            assertAccountBalances(connection, 1, 2, 3, 4, 7, 8);
+            connection.setAutoCommit(true);
+            executeWithLog(connection, "DELETE FROM ACCOUNT");
         }
     }
     
-    private void requiresNewTransaction() throws SQLException {
-        try (ShardingSphereConnection connection = (ShardingSphereConnection) getDataSource().getConnection()) {
-            assertFalse(connection.isHoldTransaction());
+    private void assertOuterRollbackAndInnerRollback() throws SQLException {
+        try (Connection connection = getDataSource().getConnection()) {
+            ShardingSphereConnection shardingSphereConnection = connection.unwrap(ShardingSphereConnection.class);
+            assertFalse(shardingSphereConnection.getDatabaseConnectionManager().getConnectionTransaction().isHoldTransaction(shardingSphereConnection.getAutoCommit()));
             connection.setAutoCommit(false);
-            assertTrue(connection.isHoldTransaction());
+            executeWithLog(connection, "INSERT INTO account (id, balance, transaction_id) VALUES (1, 1, 1), (2, 2, 2)");
+            assertTrue(shardingSphereConnection.getDatabaseConnectionManager().getConnectionTransaction().isHoldTransaction(shardingSphereConnection.getAutoCommit()));
+            requiresNewTransactionRollback();
+            executeWithLog(connection, "INSERT INTO account (id, balance, transaction_id) VALUES (7, 7, 7), (8, 8, 8)");
+            assertTrue(shardingSphereConnection.getDatabaseConnectionManager().getConnectionTransaction().isHoldTransaction(shardingSphereConnection.getAutoCommit()));
+            connection.rollback();
+            assertAccountBalances(connection, 3, 4);
+            connection.setAutoCommit(true);
+            executeWithLog(connection, "DELETE FROM ACCOUNT");
+        }
+    }
+    
+    private void assertOuterCommitAndInnerCommit() throws SQLException {
+        try (Connection connection = getDataSource().getConnection()) {
+            ShardingSphereConnection shardingSphereConnection = connection.unwrap(ShardingSphereConnection.class);
+            assertFalse(shardingSphereConnection.getDatabaseConnectionManager().getConnectionTransaction().isHoldTransaction(shardingSphereConnection.getAutoCommit()));
+            connection.setAutoCommit(false);
+            executeWithLog(connection, "INSERT INTO account (id, balance, transaction_id) VALUES (1, 1, 1), (2, 2, 2)");
+            assertTrue(shardingSphereConnection.getDatabaseConnectionManager().getConnectionTransaction().isHoldTransaction(shardingSphereConnection.getAutoCommit()));
+            requiresNewTransactionCommit();
+            executeWithLog(connection, "INSERT INTO account (id, balance, transaction_id) VALUES (7, 7, 7), (8, 8, 8)");
+            assertTrue(shardingSphereConnection.getDatabaseConnectionManager().getConnectionTransaction().isHoldTransaction(shardingSphereConnection.getAutoCommit()));
+            connection.commit();
+            assertAccountBalances(connection, 1, 2, 3, 4, 5, 6, 7, 8);
+            connection.setAutoCommit(true);
+            executeWithLog(connection, "DELETE FROM ACCOUNT");
+        }
+    }
+    
+    private void assertOuterRollbackAndInnerCommit() throws SQLException {
+        try (Connection connection = getDataSource().getConnection()) {
+            ShardingSphereConnection shardingSphereConnection = connection.unwrap(ShardingSphereConnection.class);
+            assertFalse(shardingSphereConnection.getDatabaseConnectionManager().getConnectionTransaction().isHoldTransaction(shardingSphereConnection.getAutoCommit()));
+            connection.setAutoCommit(false);
+            executeWithLog(connection, "INSERT INTO account (id, balance, transaction_id) VALUES (1, 1, 1), (2, 2, 2)");
+            assertTrue(shardingSphereConnection.getDatabaseConnectionManager().getConnectionTransaction().isHoldTransaction(shardingSphereConnection.getAutoCommit()));
+            requiresNewTransactionCommit();
+            executeWithLog(connection, "INSERT INTO account (id, balance, transaction_id) VALUES (7, 7, 7), (8, 8, 8)");
+            assertTrue(shardingSphereConnection.getDatabaseConnectionManager().getConnectionTransaction().isHoldTransaction(shardingSphereConnection.getAutoCommit()));
+            connection.rollback();
+            assertAccountBalances(connection, 3, 4, 5, 6);
+            connection.setAutoCommit(true);
+            executeWithLog(connection, "DELETE FROM ACCOUNT");
+        }
+    }
+    
+    private void requiresNewTransactionRollback() throws SQLException {
+        try (Connection connection = getDataSource().getConnection()) {
+            ShardingSphereConnection shardingSphereConnection = connection.unwrap(ShardingSphereConnection.class);
+            assertFalse(shardingSphereConnection.getDatabaseConnectionManager().getConnectionTransaction().isHoldTransaction(shardingSphereConnection.getAutoCommit()));
+            executeWithLog(connection, "INSERT INTO account (id, balance, transaction_id) VALUES (3, 3, 3), (4, 4, 4)");
+            connection.setAutoCommit(false);
+            executeWithLog(connection, "INSERT INTO account (id, balance, transaction_id) VALUES (5, 5, 5), (6, 6, 6)");
+            assertTrue(shardingSphereConnection.getDatabaseConnectionManager().getConnectionTransaction().isHoldTransaction(shardingSphereConnection.getAutoCommit()));
+            connection.rollback();
+        }
+    }
+    
+    private void requiresNewTransactionCommit() throws SQLException {
+        try (Connection connection = getDataSource().getConnection()) {
+            ShardingSphereConnection shardingSphereConnection = connection.unwrap(ShardingSphereConnection.class);
+            assertFalse(shardingSphereConnection.getDatabaseConnectionManager().getConnectionTransaction().isHoldTransaction(shardingSphereConnection.getAutoCommit()));
+            executeWithLog(connection, "INSERT INTO account (id, balance, transaction_id) VALUES (3, 3, 3), (4, 4, 4)");
+            connection.setAutoCommit(false);
+            executeWithLog(connection, "INSERT INTO account (id, balance, transaction_id) VALUES (5, 5, 5), (6, 6, 6)");
+            assertTrue(shardingSphereConnection.getDatabaseConnectionManager().getConnectionTransaction().isHoldTransaction(shardingSphereConnection.getAutoCommit()));
             connection.commit();
         }
     }

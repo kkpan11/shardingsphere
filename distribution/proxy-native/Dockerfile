@@ -14,26 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-FROM alpine AS prepare
-
-ARG APP_NAME
-ENV LOCAL_PATH /opt/shardingsphere-proxy-native
-
-ADD target/${APP_NAME}.tar.gz /opt
-RUN mv /opt/${APP_NAME} ${LOCAL_PATH}
-
-FROM oraclelinux:9-slim
-MAINTAINER ShardingSphere "dev@shardingsphere.apache.org"
-
-ARG NATIVE_IMAGE_NAME
-ENV LOCAL_PATH /opt/shardingsphere-proxy-native
-ENV JAVA_HOME "/opt/graalvm-ce-java17-22.3.1"
-ENV PATH "$JAVA_HOME/bin:$PATH"
-
-RUN microdnf install gzip -y && \
-    bash <(curl -sL https://get.graalvm.org/jdk) --to "/opt" -c espresso graalvm-ce-java17-22.3.1 && \
-    $JAVA_HOME/bin/gu remove native-image && \
-    microdnf clean all
-
-COPY --from=prepare ${LOCAL_PATH} ${LOCAL_PATH}
-ENTRYPOINT ${LOCAL_PATH}/${NATIVE_IMAGE_NAME} 3307 ${LOCAL_PATH}/conf "0.0.0.0" false
+FROM container-registry.oracle.com/os/oraclelinux:9-slim
+LABEL org.opencontainers.image.authors="ShardingSphere dev@shardingsphere.apache.org"
+ENV LOCAL_PATH=/opt/shardingsphere-proxy-native-bin
+ARG OUTPUT_DIRECTORY_NAME
+COPY target/${OUTPUT_DIRECTORY_NAME} ${LOCAL_PATH}
+ENTRYPOINT ["${LOCAL_PATH}/proxy-native", "3307", "${LOCAL_PATH}/conf", "0.0.0.0", "false"]

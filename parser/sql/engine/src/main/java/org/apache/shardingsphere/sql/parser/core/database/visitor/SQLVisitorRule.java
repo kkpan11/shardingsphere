@@ -21,7 +21,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.apache.shardingsphere.sql.parser.exception.SQLASTVisitorException;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.SQLStatementType;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.SQLStatementType;
 
 /**
  * SQL visitor rule.
@@ -46,8 +46,6 @@ public enum SQLVisitorRule {
     COPY("Copy", SQLStatementType.DML),
     
     HANDLER_STATEMENT("HandlerStatement", SQLStatementType.DML),
-    
-    LOCKTABLE("LockTable", SQLStatementType.DML),
     
     CREATE_TABLE("CreateTable", SQLStatementType.DDL),
     
@@ -80,6 +78,10 @@ public enum SQLVisitorRule {
     ALTER_PLUGGABLE_DATABASE("AlterPluggableDatabase", SQLStatementType.DDL),
     
     ALTER_OPERATOR("AlterOperator", SQLStatementType.DDL),
+    
+    ALTER_PROFILE("AlterProfile", SQLStatementType.DDL),
+    
+    ALTER_ROLLBACK_SEGMENT("AlterRollbackSegment", SQLStatementType.DDL),
     
     DROP_TABLE("DropTable", SQLStatementType.DDL),
     
@@ -467,9 +469,11 @@ public enum SQLVisitorRule {
     
     CALL("Call", SQLStatementType.DML),
     
+    IMPORT_STATEMENT("ImportStatement", SQLStatementType.DML),
+    
     LOAD_STATEMENT("LoadStatement", SQLStatementType.DML),
     
-    CHANGE_MASTER("ChangeMaster", SQLStatementType.RL),
+    CHANGE_MASTER("ChangeMasterTo", SQLStatementType.RL),
     
     CHANGE_REPLICATION_SOURCE_TO("ChangeReplicationSourceTo", SQLStatementType.RL),
     
@@ -519,6 +523,8 @@ public enum SQLVisitorRule {
     
     CREATE_CAST("CreateCast", SQLStatementType.DDL),
     
+    CREATE_CLUSTER("CreateCluster", SQLStatementType.DDL),
+    
     CREATE_TYPE("CreateType", SQLStatementType.DDL),
     
     DROP_CONVERSION("DropConversion", SQLStatementType.DDL),
@@ -565,6 +571,8 @@ public enum SQLVisitorRule {
     
     ALTER_OUTLINE("AlterOutline", SQLStatementType.DDL),
     
+    CREATE_OUTLINE("CreateOutline", SQLStatementType.DDL),
+    
     ALTER_ANALYTIC_VIEW("AlterAnalyticView", SQLStatementType.DDL),
     
     DROP_EDITION("DropEdition", SQLStatementType.DDL),
@@ -607,6 +615,8 @@ public enum SQLVisitorRule {
     
     DROP_RESTORE_POINT("DropRestorePoint", SQLStatementType.DDL),
     
+    DROP_TABLE_SPACE("DropTableSpace", SQLStatementType.DDL),
+    
     ALTER_LIBRARY("AlterLibrary", SQLStatementType.DDL),
     
     ALTER_MATERIALIZED_ZONEMAP("AlterMaterializedZonemap", SQLStatementType.DDL),
@@ -633,13 +643,13 @@ public enum SQLVisitorRule {
     
     FETCH("Fetch", SQLStatementType.DDL),
     
-    CHECKPOINT("Checkpoint", SQLStatementType.DML),
-    
     CLUSTER("Cluster", SQLStatementType.DDL),
     
     CREATE_ACCESS_METHOD("CreateAccessMethod", SQLStatementType.DDL),
     
     DO("DoStatement", SQLStatementType.DML),
+    
+    CHECKPOINT("Checkpoint", SQLStatementType.TCL),
     
     PREPARE_TRANSACTION("PrepareTransaction", SQLStatementType.TCL),
     
@@ -657,11 +667,15 @@ public enum SQLVisitorRule {
     
     CREATE_MATERIALIZED_VIEW("CreateMaterializedView", SQLStatementType.DDL),
     
+    CREATE_MATERIALIZED_VIEW_LOG("CreateMaterializedViewLog", SQLStatementType.DDL),
+    
     CREATE_OPERATOR("CreateOperator", SQLStatementType.DDL),
     
     CREATE_POLICY("CreatePolicy", SQLStatementType.DDL),
     
     DROP_INDEX_TYPE("DropIndexType", SQLStatementType.DDL),
+    
+    DROP_PROFILE("DropProfile", SQLStatementType.DDL),
     
     DROP_PLUGGABLE_DATABASE("DropPluggableDatabase", SQLStatementType.DDL),
     
@@ -669,11 +683,35 @@ public enum SQLVisitorRule {
     
     DROP_LIBRARY("DropLibrary", SQLStatementType.DDL),
     
+    DROP_CLUSTER("DropCluster", SQLStatementType.DDL),
+    
     DROP_MATERIALIZED_VIEW_LOG("DropMaterializedViewLog", SQLStatementType.DDL),
     
     DROP_MATERIALIZED_ZONEMAP("DropMaterializedZonemap", SQLStatementType.DDL),
     
-    EMPTY_STATEMENT("EmptyStatement", SQLStatementType.DAL);
+    DROP_CONTEXT("DropContext", SQLStatementType.DDL),
+    
+    SYSTEM_ACTION("SystemAction", SQLStatementType.DDL),
+    
+    EMPTY_STATEMENT("EmptyStatement", SQLStatementType.DAL),
+    
+    CREATE_JAVA("CreateJava", SQLStatementType.DDL),
+    
+    PLSQL_BLOCK("PlsqlBlock", SQLStatementType.DDL),
+    
+    CREATE_LIBRARY("CreateLibrary", SQLStatementType.DDL),
+    
+    SWITCH("Switch", SQLStatementType.DDL),
+    
+    CREATE_PROFILE("CreateProfile", SQLStatementType.DDL),
+    
+    UPDATE_STATISTICS("UpdateStatistics", SQLStatementType.DDL),
+    
+    SPOOL("Spool", SQLStatementType.DAL),
+    
+    START_REPLICA("StartReplica", SQLStatementType.RL),
+    
+    OPEN("Open", SQLStatementType.DDL);
     
     private final String name;
     
@@ -686,7 +724,7 @@ public enum SQLVisitorRule {
     
     /**
      * Value of visitor rule.
-     * 
+     *
      * @param parseTreeClass parse tree class
      * @return visitor rule
      * @throws SQLASTVisitorException SQL AST visitor exception

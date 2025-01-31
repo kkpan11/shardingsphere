@@ -1,6 +1,6 @@
 +++
 title = "Readwrite-splitting"
-weight = 2
+weight = 3
 +++
 
 ## Background
@@ -11,7 +11,7 @@ The read/write splitting configured in Java API form can be easily applied to va
 
 ### Entry
 
-Class name: org.apache.shardingsphere.readwritesplitting.api.ReadwriteSplittingRuleConfiguration
+Class name: org.apache.shardingsphere.readwritesplitting.config.ReadwriteSplittingRuleConfiguration
 
 Configurable Properties:
 
@@ -22,7 +22,7 @@ Configurable Properties:
 
 ### Primary-secondary Data Source Configuration
 
-Class name: org.apache.shardingsphere.readwritesplitting.api.rule.ReadwriteSplittingDataSourceRuleConfiguration
+Class name: org.apache.shardingsphere.readwritesplitting.config.rule.ReadwriteSplittingDataSourceGroupRuleConfiguration
 
 Configurable Properties:
 
@@ -35,7 +35,6 @@ Configurable Properties:
 | loadBalancerName (?)               | String                         | Load balance algorithm name of replica sources                                                                                                         | Round robin load balance algorithm |
 
 Please refer to [Built-in Load Balance Algorithm List](/en/user-manual/common-config/builtin-algorithm/load-balance) for details on algorithm types.
-Please refer to [Read-write splitting-Core features](/en/features/readwrite-splitting/) for more details about query consistent routing.
 
 ## Operating Procedures
 

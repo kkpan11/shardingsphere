@@ -19,7 +19,7 @@ package org.apache.shardingsphere.test.e2e.data.pipeline.framework.param;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import org.apache.shardingsphere.infra.database.type.DatabaseType;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
 import org.apache.shardingsphere.test.e2e.data.pipeline.env.PipelineE2EEnvironment;
 import org.apache.shardingsphere.test.e2e.data.pipeline.env.enums.PipelineEnvTypeEnum;
 
@@ -33,7 +33,7 @@ public final class PipelineE2ECondition {
     
     /**
      * Judge whether pipeline E2E is enabled.
-     * 
+     *
      * @param databaseTypes database types
      * @return enabled or not
      */

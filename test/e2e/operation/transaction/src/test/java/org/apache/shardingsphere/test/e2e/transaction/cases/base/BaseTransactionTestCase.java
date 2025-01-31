@@ -24,6 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.shardingsphere.test.e2e.transaction.engine.base.TransactionBaseE2EIT;
 import org.apache.shardingsphere.test.e2e.transaction.engine.base.TransactionContainerComposer;
 import org.apache.shardingsphere.test.e2e.transaction.engine.constants.TransactionTestConstants;
+import org.apache.shardingsphere.transaction.api.TransactionType;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -42,9 +43,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 @Slf4j
 public abstract class BaseTransactionTestCase {
     
-    private final TransactionBaseE2EIT baseTransactionITCase;
-    
-    private final DataSource dataSource;
+    private final TransactionTestCaseParameter testCaseParam;
     
     /**
      * Execute test cases.
@@ -119,16 +118,40 @@ public abstract class BaseTransactionTestCase {
     }
     
     protected void assertAccountBalances(final Connection connection, final int... expectedBalances) throws SQLException {
-        try (Statement statement = connection.createStatement(); ResultSet resultSet = statement.executeQuery("SELECT * FROM account")) {
+        try (Statement statement = connection.createStatement(); ResultSet resultSet = statement.executeQuery("SELECT * FROM account ORDER BY id")) {
+            int index = 0;
             while (resultSet.next()) {
-                int id = resultSet.getInt("id");
                 int actualBalance = resultSet.getInt("balance");
-                assertBalance(actualBalance, expectedBalances[id - 1]);
+                assertBalance(actualBalance, expectedBalances[index++]);
             }
+            assertThat(String.format("Balance size is %s, should be %s.", index, expectedBalances.length), index, is(expectedBalances.length));
         }
     }
     
     private void assertBalance(final int actual, final int expected) {
         assertThat(String.format("Balance is %s, should be %s.", actual, expected), actual, is(expected));
+    }
+    
+    protected TransactionBaseE2EIT getBaseTransactionITCase() {
+        return testCaseParam.getBaseTransactionITCase();
+    }
+    
+    protected DataSource getDataSource() {
+        return testCaseParam.getDataSource();
+    }
+    
+    protected TransactionType getTransactionType() {
+        return testCaseParam.getTransactionType();
+    }
+    
+    @Getter
+    @RequiredArgsConstructor
+    public static final class TransactionTestCaseParameter {
+        
+        private final TransactionBaseE2EIT baseTransactionITCase;
+        
+        private final DataSource dataSource;
+        
+        private final TransactionType transactionType;
     }
 }

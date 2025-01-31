@@ -23,9 +23,11 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
-import org.apache.shardingsphere.infra.database.type.DatabaseType;
-import org.apache.shardingsphere.infra.exception.InvalidDataNodesFormatException;
-import org.apache.shardingsphere.infra.util.exception.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.database.core.metadata.database.DialectDatabaseMetaData;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseTypeRegistry;
+import org.apache.shardingsphere.infra.exception.kernel.metadata.datanode.InvalidDataNodeFormatException;
+import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
 
 import java.util.List;
 
@@ -58,10 +60,10 @@ public final class DataNode {
         // TODO remove duplicated splitting?
         boolean isIncludeInstance = isActualDataNodesIncludedDataSourceInstance(dataNode);
         if (!isIncludeInstance && !isValidDataNode(dataNode, 2)) {
-            throw new InvalidDataNodesFormatException(dataNode);
+            throw new InvalidDataNodeFormatException(dataNode);
         }
         if (isIncludeInstance && !isValidDataNode(dataNode, 3)) {
-            throw new InvalidDataNodesFormatException(dataNode);
+            throw new InvalidDataNodeFormatException(dataNode);
         }
         List<String> segments = Splitter.on(DELIMITER).splitToList(dataNode);
         dataSourceName = isIncludeInstance ? segments.get(0) + DELIMITER + segments.get(1) : segments.get(0);
@@ -76,17 +78,21 @@ public final class DataNode {
      * @param dataNode string of data node. use {@code .} to split data source name and table name
      */
     public DataNode(final String databaseName, final DatabaseType databaseType, final String dataNode) {
-        ShardingSpherePreconditions.checkState(dataNode.contains(DELIMITER),
-                () -> new InvalidDataNodesFormatException(dataNode, String.format("Invalid format for data node `%s`", dataNode)));
-        boolean containsSchema = isValidDataNode(dataNode, 3);
-        List<String> segments = Splitter.on(DELIMITER).splitToList(dataNode);
+        ShardingSpherePreconditions.checkState(dataNode.contains(DELIMITER), () -> new InvalidDataNodeFormatException(dataNode));
+        boolean containsSchema = isSchemaAvailable(databaseType) && isValidDataNode(dataNode, 3);
+        List<String> segments = Splitter.on(DELIMITER).limit(containsSchema ? 3 : 2).splitToList(dataNode);
         dataSourceName = segments.get(0);
         schemaName = getSchemaName(databaseName, databaseType, containsSchema, segments);
         tableName = containsSchema ? segments.get(2).toLowerCase() : segments.get(1).toLowerCase();
     }
     
+    private boolean isSchemaAvailable(final DatabaseType databaseType) {
+        return new DatabaseTypeRegistry(databaseType).getDialectDatabaseMetaData().isSchemaAvailable();
+    }
+    
     private String getSchemaName(final String databaseName, final DatabaseType databaseType, final boolean containsSchema, final List<String> segments) {
-        if (databaseType.getDefaultSchema().isPresent()) {
+        DialectDatabaseMetaData dialectDatabaseMetaData = new DatabaseTypeRegistry(databaseType).getDialectDatabaseMetaData();
+        if (dialectDatabaseMetaData.getDefaultSchema().isPresent()) {
             return containsSchema ? segments.get(1) : ASTERISK;
         }
         return databaseName;
@@ -101,12 +107,12 @@ public final class DataNode {
     }
     
     /**
-     * Format data node as string.
+     * Format data node as string with schema.
      *
      * @return formatted data node
      */
     public String format() {
-        return dataSourceName + DELIMITER + tableName;
+        return null == schemaName ? String.join(DELIMITER, dataSourceName, tableName) : String.join(DELIMITER, dataSourceName, schemaName, tableName);
     }
     
     /**
@@ -116,7 +122,10 @@ public final class DataNode {
      * @return formatted data node
      */
     public String format(final DatabaseType databaseType) {
-        return databaseType.getDefaultSchema().isPresent() ? dataSourceName + DELIMITER + schemaName + DELIMITER + tableName : dataSourceName + DELIMITER + tableName;
+        DialectDatabaseMetaData dialectDatabaseMetaData = new DatabaseTypeRegistry(databaseType).getDialectDatabaseMetaData();
+        return dialectDatabaseMetaData.getDefaultSchema().isPresent() && null != schemaName
+                ? String.join(DELIMITER, dataSourceName, schemaName, tableName)
+                : String.join(DELIMITER, dataSourceName, tableName);
     }
     
     @Override
