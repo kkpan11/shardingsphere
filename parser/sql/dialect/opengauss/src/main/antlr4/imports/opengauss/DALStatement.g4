@@ -33,7 +33,7 @@ set
     | SCHEMA STRING_
     | NAMES encoding?
     | ROLE nonReservedWordOrSconst
-    | SESSION AUTHORIZATION nonReservedWordOrSconst
+    | SESSION AUTHORIZATION IDENTIFIER_ PASSWORD STRING_
     | SESSION AUTHORIZATION DEFAULT
     | XML OPTION documentOrContent)
     ;
@@ -127,7 +127,7 @@ valuesClause
 vacuum
     : VACUUM ((FULL? FREEZE? VERBOSE? ANALYZE?) | (LP_ vacAnalyzeOptionList RP_)) vacuumRelationList?
     ;
-    
+
 emptyStatement
     :
     ;

@@ -17,16 +17,16 @@
 
 package org.apache.shardingsphere.broadcast.rule.changed;
 
-import org.apache.shardingsphere.broadcast.api.config.BroadcastRuleConfiguration;
+import org.apache.shardingsphere.broadcast.config.BroadcastRuleConfiguration;
 import org.apache.shardingsphere.broadcast.metadata.nodepath.BroadcastRuleNodePathProvider;
 import org.apache.shardingsphere.broadcast.rule.BroadcastRule;
-import org.apache.shardingsphere.broadcast.yaml.config.YamlBroadcastRuleConfiguration;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
-import org.apache.shardingsphere.infra.rule.event.rule.alter.AlterRuleItemEvent;
-import org.apache.shardingsphere.infra.rule.event.rule.drop.DropRuleItemEvent;
 import org.apache.shardingsphere.infra.util.yaml.YamlEngine;
-import org.apache.shardingsphere.mode.spi.RuleItemConfigurationChangedProcessor;
+import org.apache.shardingsphere.mode.spi.rule.item.alter.AlterRuleItem;
+import org.apache.shardingsphere.mode.spi.rule.item.drop.DropRuleItem;
+import org.apache.shardingsphere.mode.spi.rule.RuleItemConfigurationChangedProcessor;
 
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 
 /**
@@ -34,9 +34,10 @@ import java.util.LinkedList;
  */
 public final class BroadcastTableChangedProcessor implements RuleItemConfigurationChangedProcessor<BroadcastRuleConfiguration, BroadcastRuleConfiguration> {
     
+    @SuppressWarnings("unchecked")
     @Override
-    public BroadcastRuleConfiguration swapRuleItemConfiguration(final AlterRuleItemEvent event, final String yamlContent) {
-        return new BroadcastRuleConfiguration(YamlEngine.unmarshal(yamlContent, YamlBroadcastRuleConfiguration.class).getTables());
+    public BroadcastRuleConfiguration swapRuleItemConfiguration(final AlterRuleItem alterRuleItem, final String yamlContent) {
+        return new BroadcastRuleConfiguration(YamlEngine.unmarshal(yamlContent, LinkedHashSet.class));
     }
     
     @Override
@@ -45,13 +46,13 @@ public final class BroadcastTableChangedProcessor implements RuleItemConfigurati
     }
     
     @Override
-    public void changeRuleItemConfiguration(final AlterRuleItemEvent event, final BroadcastRuleConfiguration currentRuleConfig, final BroadcastRuleConfiguration toBeChangedItemConfig) {
+    public void changeRuleItemConfiguration(final AlterRuleItem alterRuleItem, final BroadcastRuleConfiguration currentRuleConfig, final BroadcastRuleConfiguration toBeChangedItemConfig) {
         currentRuleConfig.getTables().clear();
         currentRuleConfig.getTables().addAll(toBeChangedItemConfig.getTables());
     }
     
     @Override
-    public void dropRuleItemConfiguration(final DropRuleItemEvent event, final BroadcastRuleConfiguration currentRuleConfig) {
+    public void dropRuleItemConfiguration(final DropRuleItem dropRuleItem, final BroadcastRuleConfiguration currentRuleConfig) {
         currentRuleConfig.getTables().clear();
     }
     

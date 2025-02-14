@@ -23,13 +23,17 @@ import lombok.RequiredArgsConstructor;
 /**
  * Meta data version.
  */
-@Getter
 @RequiredArgsConstructor
+@Getter
 public final class MetaDataVersion {
     
-    private final String key;
+    public static final int INIT_VERSION = 0;
     
-    private final String currentActiveVersion;
+    private final String path;
     
-    private final String nextActiveVersion;
+    private final Integer activeVersion;
+    
+    public MetaDataVersion(final String path) {
+        this(path, null);
+    }
 }

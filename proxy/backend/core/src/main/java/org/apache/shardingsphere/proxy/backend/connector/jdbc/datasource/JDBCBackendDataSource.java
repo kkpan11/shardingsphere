@@ -18,14 +18,14 @@
 package org.apache.shardingsphere.proxy.backend.connector.jdbc.datasource;
 
 import com.google.common.base.Preconditions;
-import org.apache.shardingsphere.infra.datasource.registry.GlobalDataSourceRegistry;
-import org.apache.shardingsphere.infra.exception.OverallConnectionNotEnoughException;
+import org.apache.shardingsphere.infra.database.core.GlobalDataSourceRegistry;
+import org.apache.shardingsphere.infra.exception.kernel.connection.OverallConnectionNotEnoughException;
 import org.apache.shardingsphere.infra.executor.sql.execute.engine.ConnectionMode;
-import org.apache.shardingsphere.proxy.backend.connector.BackendDataSource;
+import org.apache.shardingsphere.infra.executor.sql.prepare.driver.BackendDataSource;
 import org.apache.shardingsphere.proxy.backend.context.ProxyContext;
 import org.apache.shardingsphere.transaction.api.TransactionType;
 import org.apache.shardingsphere.transaction.rule.TransactionRule;
-import org.apache.shardingsphere.transaction.spi.ShardingSphereTransactionManager;
+import org.apache.shardingsphere.transaction.spi.ShardingSphereDistributedTransactionManager;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -39,16 +39,7 @@ import java.util.List;
  */
 public final class JDBCBackendDataSource implements BackendDataSource {
     
-    /**
-     * Get connections.
-     *
-     * @param databaseName database name
-     * @param dataSourceName data source name
-     * @param connectionSize size of connections to get
-     * @param connectionMode connection mode
-     * @return connections
-     * @throws SQLException SQL exception
-     */
+    @Override
     public List<Connection> getConnections(final String databaseName, final String dataSourceName, final int connectionSize, final ConnectionMode connectionMode) throws SQLException {
         return getConnections(databaseName, dataSourceName, connectionSize, connectionMode,
                 ProxyContext.getInstance().getContextManager().getMetaDataContexts().getMetaData().getGlobalRuleMetaData().getSingleRule(TransactionRule.class).getDefaultType());
@@ -59,20 +50,20 @@ public final class JDBCBackendDataSource implements BackendDataSource {
      *
      * @param databaseName database name
      * @param dataSourceName data source name
-     * @param connectionSize size of connections to be get
+     * @param connectionSize size of connections to be got
      * @param connectionMode connection mode
      * @param transactionType transaction type
      * @return connections
      * @throws SQLException SQL exception
      */
-    @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
     public List<Connection> getConnections(final String databaseName, final String dataSourceName,
                                            final int connectionSize, final ConnectionMode connectionMode, final TransactionType transactionType) throws SQLException {
-        DataSource dataSource = ProxyContext.getInstance().getContextManager().getMetaDataContexts().getMetaData().getDatabase(databaseName).getResourceMetaData().getDataSources().get(dataSourceName);
+        DataSource dataSource = ProxyContext.getInstance().getContextManager().getMetaDataContexts().getMetaData()
+                .getDatabase(databaseName).getResourceMetaData().getStorageUnits().get(dataSourceName).getDataSource();
         if (dataSourceName.contains(".")) {
             String dataSourceStr = dataSourceName.split("\\.")[0];
-            if (GlobalDataSourceRegistry.getInstance().getCachedDataSourceDataSources().containsKey(dataSourceStr)) {
-                dataSource = GlobalDataSourceRegistry.getInstance().getCachedDataSourceDataSources().get(dataSourceStr);
+            if (GlobalDataSourceRegistry.getInstance().getCachedDataSources().containsKey(dataSourceStr)) {
+                dataSource = GlobalDataSourceRegistry.getInstance().getCachedDataSources().get(dataSourceStr);
             }
         }
         Preconditions.checkNotNull(dataSource, "Can not get connection from datasource %s.", dataSourceName);
@@ -93,11 +84,11 @@ public final class JDBCBackendDataSource implements BackendDataSource {
         for (int i = 0; i < connectionSize; i++) {
             try {
                 result.add(createConnection(databaseName, dataSourceName, dataSource, transactionType));
-            } catch (final SQLException ignored) {
+            } catch (final SQLException ex) {
                 for (Connection each : result) {
                     each.close();
                 }
-                throw new OverallConnectionNotEnoughException(connectionSize, result.size());
+                throw new OverallConnectionNotEnoughException(connectionSize, result.size(), ex);
             }
         }
         return result;
@@ -105,8 +96,8 @@ public final class JDBCBackendDataSource implements BackendDataSource {
     
     private Connection createConnection(final String databaseName, final String dataSourceName, final DataSource dataSource, final TransactionType transactionType) throws SQLException {
         TransactionRule transactionRule = ProxyContext.getInstance().getContextManager().getMetaDataContexts().getMetaData().getGlobalRuleMetaData().getSingleRule(TransactionRule.class);
-        ShardingSphereTransactionManager transactionManager = transactionRule.getResource().getTransactionManager(transactionType);
-        Connection result = isInTransaction(transactionManager) ? transactionManager.getConnection(databaseName, dataSourceName) : dataSource.getConnection();
+        ShardingSphereDistributedTransactionManager distributedTransactionManager = transactionRule.getResource().getTransactionManager(transactionType);
+        Connection result = isInTransaction(distributedTransactionManager) ? distributedTransactionManager.getConnection(databaseName, dataSourceName) : dataSource.getConnection();
         if (dataSourceName.contains(".")) {
             String catalog = dataSourceName.split("\\.")[1];
             result.setCatalog(catalog);
@@ -114,7 +105,7 @@ public final class JDBCBackendDataSource implements BackendDataSource {
         return result;
     }
     
-    private boolean isInTransaction(final ShardingSphereTransactionManager transactionManager) {
-        return null != transactionManager && transactionManager.isInTransaction();
+    private boolean isInTransaction(final ShardingSphereDistributedTransactionManager distributedTransactionManager) {
+        return null != distributedTransactionManager && distributedTransactionManager.isInTransaction();
     }
 }

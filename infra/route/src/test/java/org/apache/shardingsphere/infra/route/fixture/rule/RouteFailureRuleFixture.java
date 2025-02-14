@@ -30,7 +30,7 @@ public final class RouteFailureRuleFixture implements ShardingSphereRule {
     }
     
     @Override
-    public String getType() {
-        return RouteFailureRuleFixture.class.getSimpleName();
+    public int getOrder() {
+        return 0;
     }
 }

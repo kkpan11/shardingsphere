@@ -21,13 +21,14 @@ import org.apache.shardingsphere.encrypt.constant.EncryptOrder;
 import org.apache.shardingsphere.encrypt.merge.dal.EncryptDALResultDecorator;
 import org.apache.shardingsphere.encrypt.merge.dql.EncryptDQLResultDecorator;
 import org.apache.shardingsphere.encrypt.rule.EncryptRule;
-import org.apache.shardingsphere.infra.binder.statement.SQLStatementContext;
-import org.apache.shardingsphere.infra.binder.statement.dml.SelectStatementContext;
+import org.apache.shardingsphere.infra.binder.context.statement.SQLStatementContext;
+import org.apache.shardingsphere.infra.binder.context.statement.dml.SelectStatementContext;
 import org.apache.shardingsphere.infra.config.props.ConfigurationProperties;
 import org.apache.shardingsphere.infra.merge.engine.decorator.ResultDecorator;
 import org.apache.shardingsphere.infra.merge.engine.decorator.ResultDecoratorEngine;
+import org.apache.shardingsphere.infra.metadata.ShardingSphereMetaData;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.dal.DALStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dal.DALStatement;
 
 import java.util.Optional;
 
@@ -37,13 +38,13 @@ import java.util.Optional;
 public final class EncryptResultDecoratorEngine implements ResultDecoratorEngine<EncryptRule> {
     
     @Override
-    public Optional<ResultDecorator<EncryptRule>> newInstance(final ShardingSphereDatabase database,
-                                                              final EncryptRule encryptRule, final ConfigurationProperties props, final SQLStatementContext sqlStatementContext) {
+    public Optional<ResultDecorator<EncryptRule>> newInstance(final ShardingSphereMetaData metaData,
+                                                              final ShardingSphereDatabase database, final ConfigurationProperties props, final SQLStatementContext sqlStatementContext) {
         if (sqlStatementContext instanceof SelectStatementContext) {
-            return Optional.of(new EncryptDQLResultDecorator(database, encryptRule, (SelectStatementContext) sqlStatementContext));
+            return Optional.of(new EncryptDQLResultDecorator(database, metaData, (SelectStatementContext) sqlStatementContext));
         }
         if (sqlStatementContext.getSqlStatement() instanceof DALStatement) {
-            return Optional.of(new EncryptDALResultDecorator());
+            return Optional.of(new EncryptDALResultDecorator(metaData.getGlobalRuleMetaData()));
         }
         return Optional.empty();
     }

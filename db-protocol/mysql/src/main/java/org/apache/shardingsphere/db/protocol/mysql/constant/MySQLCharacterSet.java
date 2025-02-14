@@ -18,8 +18,8 @@
 package org.apache.shardingsphere.db.protocol.mysql.constant;
 
 import lombok.Getter;
-import org.apache.shardingsphere.dialect.mysql.exception.UnknownCollationException;
-import org.apache.shardingsphere.infra.util.exception.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.exception.mysql.exception.UnknownCollationException;
+import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
 
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -101,6 +101,7 @@ public enum MySQLCharacterSet {
     UTF32_GENERAL_CI(60, () -> Charset.forName("utf32")),
     UTF32_BIN(61, () -> Charset.forName("utf32")),
     UTF16LE_BIN(62, () -> StandardCharsets.UTF_16LE),
+    BINARY(63, () -> Charset.forName("binary")),
     ARMSCII8_BIN(64, () -> Charset.forName("armscii8")),
     ASCII_BIN(65, () -> StandardCharsets.US_ASCII),
     CP1250_BIN(66, () -> Charset.forName("cp1250")),

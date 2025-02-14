@@ -108,10 +108,7 @@ selectWithParens
     ;
 
 selectNoParens
-    : selectClauseN
-    | selectClauseN sortClause
-    | selectClauseN sortClause? forLockingClause selectLimit?
-    | selectClauseN sortClause? selectLimit forLockingClause?
+    : selectClauseN sortClause? (forLockingClause selectLimit? | selectLimit forLockingClause?)?
     | withClause selectClauseN
     | withClause selectClauseN sortClause
     | withClause selectClauseN sortClause? forLockingClause selectLimit?
@@ -154,12 +151,11 @@ optTempTableName
     ;
 
 cteList
-    : commonTableExpr
-    | cteList COMMA_ commonTableExpr
+    : commonTableExpr (COMMA_ commonTableExpr)*
     ;
 
 commonTableExpr
-    :  name optNameList AS optMaterialized LP_ preparableStmt RP_
+    :  alias optNameList AS optMaterialized LP_ preparableStmt RP_
     ;
 
 optMaterialized
@@ -223,7 +219,7 @@ valuesClause
 
 limitClause
     : LIMIT selectLimitValue
-    | LIMIT selectOffsetValue COMMA_ selectLimitValue 
+    | LIMIT selectOffsetValue COMMA_ selectLimitValue
     | FETCH firstOrNext selectFetchValue? rowOrRows onlyOrWithTies
     ;
 
@@ -263,9 +259,7 @@ targetList
 
 targetEl
     : colId DOT_ASTERISK_
-    | aExpr AS identifier
-    | aExpr identifier
-    | aExpr
+    | aExpr AS? identifier?
     | ASTERISK_
     ;
 
@@ -396,7 +390,7 @@ innerJoinType
 outerJoinType
     : (FULL | LEFT | RIGHT) OUTER? JOIN
     ;
-    
+
 naturalJoinType
     : NATURAL INNER? JOIN
     | NATURAL (FULL | LEFT | RIGHT) OUTER? JOIN
@@ -438,25 +432,6 @@ dostmtOptList
 
 dostmtOptItem
     : STRING_ | LANGUAGE nonReservedWordOrSconst
-    ;
-
-lock
-    : LOCK TABLE? relationExprList (IN lockType MODE)? NOWAIT?
-    ;
-
-lockType
-    : ACCESS SHARE
-    | ROW SHARE
-    | ROW EXCLUSIVE
-    | SHARE UPDATE EXCLUSIVE
-    | SHARE
-    | SHARE ROW EXCLUSIVE
-    | EXCLUSIVE
-    | ACCESS EXCLUSIVE
-    ;
-
-checkpoint
-    : CHECKPOINT
     ;
 
 copy

@@ -19,16 +19,18 @@ package org.apache.shardingsphere.proxy.backend.mysql.handler.admin;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import org.apache.shardingsphere.infra.metadata.database.schema.manager.SystemSchemaManager;
 import org.apache.shardingsphere.proxy.backend.handler.admin.executor.AbstractDatabaseMetaDataExecutor.DefaultDatabaseMetaDataExecutor;
 import org.apache.shardingsphere.proxy.backend.handler.admin.executor.DatabaseAdminExecutor;
 import org.apache.shardingsphere.proxy.backend.mysql.handler.admin.executor.information.SelectInformationSchemataExecutor;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.table.SimpleTableSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.dml.SelectStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.SimpleTableSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dml.SelectStatement;
 
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashSet;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 
 /**
@@ -39,8 +41,6 @@ public final class MySQLInformationSchemaExecutorFactory {
     
     private static final String SCHEMATA_TABLE = "SCHEMATA";
     
-    private static final Collection<String> DEFAULT_EXECUTOR_TABLES = new HashSet<>(Arrays.asList("ENGINES", "FILES", "VIEWS", "TRIGGERS", "PARTITIONS"));
-    
     /**
      * Create executor.
      *
@@ -50,13 +50,26 @@ public final class MySQLInformationSchemaExecutorFactory {
      * @return executor
      */
     public static Optional<DatabaseAdminExecutor> newInstance(final SelectStatement sqlStatement, final String sql, final List<Object> parameters) {
-        String tableName = ((SimpleTableSegment) sqlStatement.getFrom()).getTableName().getIdentifier().getValue();
+        if (!sqlStatement.getFrom().isPresent() || !(sqlStatement.getFrom().get() instanceof SimpleTableSegment)) {
+            return Optional.empty();
+        }
+        String tableName = ((SimpleTableSegment) sqlStatement.getFrom().get()).getTableName().getIdentifier().getValue();
         if (SCHEMATA_TABLE.equalsIgnoreCase(tableName)) {
             return Optional.of(new SelectInformationSchemataExecutor(sqlStatement, sql, parameters));
         }
-        if (DEFAULT_EXECUTOR_TABLES.contains(tableName.toUpperCase())) {
+        Map<String, Collection<String>> selectedSchemaTables = Collections.singletonMap("information_schema", Collections.singletonList(tableName));
+        if (isSelectSystemTable(selectedSchemaTables)) {
             return Optional.of(new DefaultDatabaseMetaDataExecutor(sql, parameters));
         }
         return Optional.empty();
+    }
+    
+    private static boolean isSelectSystemTable(final Map<String, Collection<String>> selectedSchemaTableNames) {
+        for (Entry<String, Collection<String>> each : selectedSchemaTableNames.entrySet()) {
+            if (!SystemSchemaManager.isSystemTable("mysql", each.getKey(), each.getValue())) {
+                return false;
+            }
+        }
+        return true;
     }
 }

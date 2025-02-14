@@ -37,7 +37,8 @@
         REGISTER MIGRATION SOURCE STORAGE UNIT ds_0 (
         URL="${ds0}",
         USER="${user}",
-        PASSWORD="${password}"
+        PASSWORD="${password}",
+        PROPERTIES("maximumPoolSize"="50","idleTimeout"="30000")
         );
     </register-migration-source-storage-unit-template>
     
@@ -45,21 +46,24 @@
         REGISTER STORAGE UNIT ds_2 (
         URL="${ds2}",
         USER="${user}",
-        PASSWORD="${password}"
+        PASSWORD="${password}",
+        PROPERTIES("maximumPoolSize"="50","idleTimeout"="30000")
         ),ds_3 (
         URL="${ds3}",
         USER="${user}",
-        PASSWORD="${password}"
+        PASSWORD="${password}",
+        PROPERTIES("maximumPoolSize"="50","idleTimeout"="30000")
         ),ds_4 (
         URL="${ds4}",
         USER="${user}",
-        PASSWORD="${password}"
+        PASSWORD="${password}",
+        PROPERTIES("maximumPoolSize"="50","idleTimeout"="30000")
         )
     </register-migration-target-storage-unit-template>
     
     <create-target-order-table-encrypt-rule>
         CREATE ENCRYPT RULE t_order (
-        COLUMNS((NAME=status, CIPHER=status,ENCRYPT_ALGORITHM(TYPE(NAME='AES',PROPERTIES('aes-key-value'='123456abc'))))))
+        COLUMNS((NAME=status, CIPHER=status,ENCRYPT_ALGORITHM(TYPE(NAME='AES',PROPERTIES('aes-key-value'='123456abc', 'digest-algorithm-name'='SHA-1'))))))
     </create-target-order-table-encrypt-rule>
     
     <create-target-order-table-rule>

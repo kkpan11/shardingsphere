@@ -54,6 +54,8 @@ public final class ShardingSphereProxy {
     
     private final EventLoopGroup workerGroup;
     
+    private boolean isClosed;
+    
     public ShardingSphereProxy() {
         bossGroup = Epoll.isAvailable() ? new EpollEventLoopGroup(1) : new NioEventLoopGroup(1);
         workerGroup = getWorkerGroup();
@@ -68,7 +70,7 @@ public final class ShardingSphereProxy {
     /**
      * Start ShardingSphere-Proxy.
      *
-     * @param port      port
+     * @param port port
      * @param addresses addresses
      */
     @SneakyThrows(InterruptedException.class)
@@ -101,14 +103,22 @@ public final class ShardingSphereProxy {
         });
     }
     
-    private List<ChannelFuture> startInternal(final int port, final List<String> addresses) throws InterruptedException {
+    /**
+     * Start ShardingSphere-Proxy.
+     *
+     * @param port port
+     * @param addresses addresses
+     * @return ChannelFuture list
+     * @throws InterruptedException interrupted exception
+     */
+    public List<ChannelFuture> startInternal(final int port, final List<String> addresses) throws InterruptedException {
         ServerBootstrap bootstrap = new ServerBootstrap();
         initServerBootstrap(bootstrap);
-        List<ChannelFuture> futures = new ArrayList<>();
-        for (String address : addresses) {
-            futures.add(bootstrap.bind(address, port).sync());
+        List<ChannelFuture> result = new ArrayList<>(addresses.size());
+        for (String each : addresses) {
+            result.add(bootstrap.bind(each, port).sync());
         }
-        return futures;
+        return result;
     }
     
     private ChannelFuture startDomainSocket(final String socketPath) {
@@ -118,9 +128,9 @@ public final class ShardingSphereProxy {
     }
     
     private void accept(final List<ChannelFuture> futures) throws InterruptedException {
-        log.info("ShardingSphere-Proxy {} mode started successfully", ProxyContext.getInstance().getContextManager().getInstanceContext().getModeConfiguration().getType());
-        for (ChannelFuture future : futures) {
-            future.channel().closeFuture().sync();
+        log.info("ShardingSphere-Proxy {} mode started successfully", ProxyContext.getInstance().getContextManager().getComputeNodeInstanceContext().getModeConfiguration().getType());
+        for (ChannelFuture each : futures) {
+            each.channel().closeFuture().sync();
         }
     }
     
@@ -146,9 +156,17 @@ public final class ShardingSphereProxy {
                 .childHandler(new ServerHandlerInitializer(FrontDatabaseProtocolTypeFactory.getDatabaseType()));
     }
     
-    private void close() {
+    /**
+     * Close ShardingSphere-Proxy.
+     */
+    public synchronized void close() {
+        if (isClosed) {
+            return;
+        }
         bossGroup.shutdownGracefully();
         workerGroup.shutdownGracefully();
         BackendExecutorContext.getInstance().getExecutorEngine().close();
+        ProxyContext.getInstance().getContextManager().close();
+        isClosed = true;
     }
 }

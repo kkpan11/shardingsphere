@@ -26,8 +26,8 @@ import org.apache.shardingsphere.db.protocol.mysql.constant.MySQLConstants;
 import org.apache.shardingsphere.db.protocol.mysql.constant.MySQLStatusFlag;
 import org.apache.shardingsphere.db.protocol.mysql.packet.MySQLPacket;
 import org.apache.shardingsphere.db.protocol.mysql.payload.MySQLPacketPayload;
-import org.apache.shardingsphere.infra.database.type.DatabaseType;
-import org.apache.shardingsphere.infra.util.spi.type.typed.TypedSPILoader;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
+import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 
 /**
  * Handshake packet protocol for MySQL.
@@ -63,7 +63,7 @@ public final class MySQLHandshakePacket extends MySQLPacket {
         statusFlag = MySQLStatusFlag.SERVER_STATUS_AUTOCOMMIT;
         capabilityFlagsUpper = MySQLCapabilityFlag.calculateHandshakeCapabilityFlagsUpper();
         this.authPluginData = authPluginData;
-        authPluginName = MySQLAuthenticationMethod.NATIVE.getMethodName();
+        authPluginName = MySQLAuthenticationMethod.CACHING_SHA2_PASSWORD.getMethodName();
     }
     
     public MySQLHandshakePacket(final MySQLPacketPayload payload) {

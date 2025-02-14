@@ -17,12 +17,18 @@
 
 package org.apache.shardingsphere.data.pipeline.opengauss.sqlbuilder;
 
-import org.apache.shardingsphere.data.pipeline.api.ingest.record.Column;
-import org.apache.shardingsphere.data.pipeline.api.ingest.record.DataRecord;
-import org.apache.shardingsphere.data.pipeline.spi.sqlbuilder.DialectPipelineSQLBuilder;
-import org.apache.shardingsphere.data.pipeline.common.sqlbuilder.PipelineSQLSegmentBuilder;
+import org.apache.shardingsphere.data.pipeline.core.exception.job.CreateTableSQLGenerateException;
+import org.apache.shardingsphere.data.pipeline.core.ingest.record.DataRecord;
+import org.apache.shardingsphere.data.pipeline.core.sqlbuilder.segment.PipelineSQLSegmentBuilder;
+import org.apache.shardingsphere.data.pipeline.core.sqlbuilder.dialect.DialectPipelineSQLBuilder;
 
-import java.util.List;
+import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -33,39 +39,58 @@ public final class OpenGaussPipelineSQLBuilder implements DialectPipelineSQLBuil
     
     @Override
     public Optional<String> buildCreateSchemaSQL(final String schemaName) {
-        PipelineSQLSegmentBuilder sqlSegmentBuilder = new PipelineSQLSegmentBuilder(getType());
-        return Optional.of(String.format("CREATE SCHEMA %s", sqlSegmentBuilder.getEscapedIdentifier(schemaName)));
+        return Optional.of(String.format("CREATE SCHEMA %s", schemaName));
     }
     
     @Override
-    public Optional<String> buildInsertSQLOnDuplicateClause(final String schemaName, final DataRecord dataRecord) {
+    public Optional<String> buildInsertOnDuplicateClause(final DataRecord dataRecord) {
         StringBuilder result = new StringBuilder("ON DUPLICATE KEY UPDATE ");
         PipelineSQLSegmentBuilder sqlSegmentBuilder = new PipelineSQLSegmentBuilder(getType());
-        for (int i = 0; i < dataRecord.getColumnCount(); i++) {
-            Column column = dataRecord.getColumn(i);
-            if (column.isUniqueKey()) {
-                continue;
-            }
-            result.append(sqlSegmentBuilder.getEscapedIdentifier(column.getName())).append("=EXCLUDED.").append(sqlSegmentBuilder.getEscapedIdentifier(column.getName())).append(',');
-        }
-        result.setLength(result.length() - 1);
+        result.append(dataRecord.getColumns().stream()
+                .filter(each -> !each.isUniqueKey()).map(each -> sqlSegmentBuilder.getEscapedIdentifier(each.getName()) + "=EXCLUDED." + sqlSegmentBuilder.getEscapedIdentifier(each.getName()))
+                .collect(Collectors.joining(",")));
         return Optional.of(result.toString());
     }
     
     @Override
-    public List<Column> extractUpdatedColumns(final DataRecord dataRecord) {
-        return dataRecord.getColumns().stream().filter(each -> !(each.isUniqueKey())).collect(Collectors.toList());
+    public String buildCheckEmptyTableSQL(final String qualifiedTableName) {
+        return String.format("SELECT * FROM %s LIMIT 1", qualifiedTableName);
     }
     
     @Override
-    public String buildCheckEmptySQL(final String schemaName, final String tableName) {
-        return String.format("SELECT * FROM %s LIMIT 1", new PipelineSQLSegmentBuilder(getType()).getQualifiedTableName(schemaName, tableName));
+    public Optional<String> buildEstimatedCountSQL(final String catalogName, final String qualifiedTableName) {
+        return Optional.of(String.format("SELECT reltuples::integer FROM pg_class WHERE oid='%s'::regclass::oid;", qualifiedTableName));
     }
     
     @Override
-    public Optional<String> buildEstimatedCountSQL(final String schemaName, final String tableName) {
-        return Optional.of(String.format("SELECT reltuples::integer FROM pg_class WHERE oid='%s'::regclass::oid;",
-                new PipelineSQLSegmentBuilder(getType()).getQualifiedTableName(schemaName, tableName)));
+    public Collection<String> buildCreateTableSQLs(final DataSource dataSource, final String schemaName, final String tableName) throws SQLException {
+        try (
+                Connection connection = dataSource.getConnection();
+                Statement statement = connection.createStatement();
+                ResultSet resultSet = statement.executeQuery(String.format("SELECT * FROM pg_get_tabledef('%s.%s')", schemaName, tableName))) {
+            if (resultSet.next()) {
+                // TODO use ";" to split is not always correct if return value's comments contains ";"
+                Collection<String> defSQLs = Arrays.asList(resultSet.getString("pg_get_tabledef").split(";"));
+                return defSQLs.stream().map(sql -> {
+                    String targetPrefix = "ALTER TABLE " + tableName;
+                    if (sql.trim().startsWith(targetPrefix)) {
+                        return sql.replaceFirst(targetPrefix, "ALTER TABLE " + schemaName + "." + tableName);
+                    }
+                    return sql;
+                }).collect(Collectors.toList());
+            }
+        }
+        throw new CreateTableSQLGenerateException(tableName);
+    }
+    
+    @Override
+    public Optional<String> buildQueryCurrentPositionSQL() {
+        return Optional.of("SELECT * FROM pg_current_xlog_location()");
+    }
+    
+    @Override
+    public String wrapWithPageQuery(final String sql) {
+        return sql + " LIMIT ?";
     }
     
     @Override

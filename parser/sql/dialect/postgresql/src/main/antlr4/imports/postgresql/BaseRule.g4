@@ -122,7 +122,7 @@ identifier
 uescape
     : UESCAPE STRING_
     ;
-    
+
 unreservedWord
     : ABORT
     | ABSOLUTE
@@ -144,6 +144,7 @@ unreservedWord
     | BEFORE
     | BEGIN
     | BY
+    | BYTEA
     | BOX
     | CACHE
     | CALL
@@ -329,6 +330,7 @@ unreservedWord
     | PROCEDURES
     | PROGRAM
     | PUBLICATION
+    | QUARTER
     | QUOTE
     | RANGE
     | READ
@@ -427,6 +429,7 @@ unreservedWord
     | VIEW
     | VIEWS
     | VOLATILE
+    | WEEK
     | WHITESPACE
     | WITHIN
     | WITHOUT
@@ -440,6 +443,8 @@ unreservedWord
     | JSON
     | PARAM
     | TABLE
+    | CONSTRAINT
+    | COLLATION
     ;
 
 typeFuncNameKeyword
@@ -546,7 +551,7 @@ patternMatchingOperator
     ;
 
 cursorName
-    : name
+    : name | hostVariable
     ;
 
 aExpr
@@ -813,7 +818,7 @@ jsonOperator
     | JSONB_PATH_CONTAIN_ANY_VALUE_ # jsonbPathContainAnyValue
     | JSONB_PATH_PREDICATE_CHECK_ # jsonbPathPredicateCheck
     ;
-    
+
 geometricOperator
     : GEOMETRIC_LENGTH_
     | GEOMETRIC_DISTANCE_
@@ -1111,7 +1116,9 @@ extractList
 
 extractArg
     : YEAR
+    | QUARTER
     | MONTH
+    | WEEK
     | DAY
     | HOUR
     | MINUTE
@@ -1930,4 +1937,8 @@ ifExists
 
 booleanValue
     : TRUE | ON | FALSE | OFF | NUMBER_
+    ;
+
+hostVariable
+    : (COLON_)? identifier
     ;

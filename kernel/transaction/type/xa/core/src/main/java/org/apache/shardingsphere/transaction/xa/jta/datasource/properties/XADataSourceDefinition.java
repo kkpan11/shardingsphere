@@ -17,8 +17,8 @@
 
 package org.apache.shardingsphere.transaction.xa.jta.datasource.properties;
 
-import org.apache.shardingsphere.infra.spi.DatabaseTypedSPI;
-import org.apache.shardingsphere.infra.util.spi.annotation.SingletonSPI;
+import org.apache.shardingsphere.infra.database.core.spi.DatabaseTypedSPI;
+import org.apache.shardingsphere.infra.spi.annotation.SingletonSPI;
 
 import java.util.Collection;
 
@@ -30,7 +30,7 @@ public interface XADataSourceDefinition extends DatabaseTypedSPI {
     
     /**
      * Get XA driver class names.
-     * 
+     *
      * @return XA driver class names
      */
     Collection<String> getXADriverClassNames();

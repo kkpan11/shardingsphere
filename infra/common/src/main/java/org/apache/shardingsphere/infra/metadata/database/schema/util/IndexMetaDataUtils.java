@@ -20,13 +20,14 @@ package org.apache.shardingsphere.infra.metadata.database.schema.util;
 import com.google.common.base.Strings;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import org.apache.shardingsphere.infra.database.type.DatabaseType;
-import org.apache.shardingsphere.infra.database.type.DatabaseTypeEngine;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseTypeRegistry;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.infra.metadata.database.schema.QualifiedTable;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereSchema;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.ddl.index.IndexSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.dml.column.ColumnSegment;
+import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereTable;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.index.IndexSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.column.ColumnSegment;
 
 import java.util.Collection;
 import java.util.LinkedList;
@@ -44,7 +45,7 @@ public final class IndexMetaDataUtils {
     
     /**
      * Get logic index name.
-     * 
+     *
      * @param actualIndexName actual index name
      * @param actualTableName actual table name
      * @return logic index name
@@ -89,7 +90,7 @@ public final class IndexMetaDataUtils {
      */
     public static Collection<QualifiedTable> getTableNames(final ShardingSphereDatabase database, final DatabaseType protocolType, final Collection<IndexSegment> indexes) {
         Collection<QualifiedTable> result = new LinkedList<>();
-        String schemaName = DatabaseTypeEngine.getDefaultSchemaName(protocolType, database.getName());
+        String schemaName = new DatabaseTypeRegistry(protocolType).getDefaultSchemaName(database.getName());
         for (IndexSegment each : indexes) {
             String actualSchemaName = each.getOwner().map(optional -> optional.getIdentifier().getValue()).orElse(schemaName);
             findLogicTableNameFromMetaData(database.getSchema(actualSchemaName),
@@ -99,9 +100,9 @@ public final class IndexMetaDataUtils {
     }
     
     private static Optional<String> findLogicTableNameFromMetaData(final ShardingSphereSchema schema, final String logicIndexName) {
-        for (String each : schema.getAllTableNames()) {
-            if (schema.getTable(each).containsIndex(logicIndexName)) {
-                return Optional.of(each);
+        for (ShardingSphereTable each : schema.getAllTables()) {
+            if (each.containsIndex(logicIndexName)) {
+                return Optional.of(each.getName());
             }
         }
         return Optional.empty();

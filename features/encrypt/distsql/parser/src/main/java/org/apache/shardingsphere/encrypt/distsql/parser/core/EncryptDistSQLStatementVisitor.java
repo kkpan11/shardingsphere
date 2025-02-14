@@ -29,22 +29,25 @@ import org.apache.shardingsphere.distsql.parser.autogen.EncryptDistSQLStatementP
 import org.apache.shardingsphere.distsql.parser.autogen.EncryptDistSQLStatementParser.EncryptRuleDefinitionContext;
 import org.apache.shardingsphere.distsql.parser.autogen.EncryptDistSQLStatementParser.PropertiesDefinitionContext;
 import org.apache.shardingsphere.distsql.parser.autogen.EncryptDistSQLStatementParser.PropertyContext;
+import org.apache.shardingsphere.distsql.parser.autogen.EncryptDistSQLStatementParser.ShowEncryptAlgorithmPluginsContext;
 import org.apache.shardingsphere.distsql.parser.autogen.EncryptDistSQLStatementParser.ShowEncryptRulesContext;
 import org.apache.shardingsphere.distsql.parser.autogen.EncryptDistSQLStatementParser.TableNameContext;
-import org.apache.shardingsphere.distsql.parser.segment.AlgorithmSegment;
-import org.apache.shardingsphere.encrypt.distsql.parser.segment.EncryptColumnItemSegment;
-import org.apache.shardingsphere.encrypt.distsql.parser.segment.EncryptColumnSegment;
-import org.apache.shardingsphere.encrypt.distsql.parser.segment.EncryptRuleSegment;
-import org.apache.shardingsphere.encrypt.distsql.parser.statement.AlterEncryptRuleStatement;
-import org.apache.shardingsphere.encrypt.distsql.parser.statement.CountEncryptRuleStatement;
-import org.apache.shardingsphere.encrypt.distsql.parser.statement.CreateEncryptRuleStatement;
-import org.apache.shardingsphere.encrypt.distsql.parser.statement.DropEncryptRuleStatement;
-import org.apache.shardingsphere.encrypt.distsql.parser.statement.ShowEncryptRulesStatement;
+import org.apache.shardingsphere.distsql.segment.AlgorithmSegment;
+import org.apache.shardingsphere.distsql.statement.ral.queryable.show.ShowPluginsStatement;
+import org.apache.shardingsphere.distsql.statement.rql.rule.database.CountRuleStatement;
+import org.apache.shardingsphere.encrypt.distsql.segment.EncryptColumnItemSegment;
+import org.apache.shardingsphere.encrypt.distsql.segment.EncryptColumnSegment;
+import org.apache.shardingsphere.encrypt.distsql.segment.EncryptRuleSegment;
+import org.apache.shardingsphere.encrypt.distsql.statement.AlterEncryptRuleStatement;
+import org.apache.shardingsphere.encrypt.distsql.statement.CreateEncryptRuleStatement;
+import org.apache.shardingsphere.encrypt.distsql.statement.DropEncryptRuleStatement;
+import org.apache.shardingsphere.encrypt.distsql.statement.ShowEncryptRulesStatement;
+import org.apache.shardingsphere.infra.database.core.metadata.database.enums.QuoteCharacter;
 import org.apache.shardingsphere.sql.parser.api.ASTNode;
 import org.apache.shardingsphere.sql.parser.api.visitor.SQLVisitor;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.DatabaseSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.segment.generic.table.TableNameSegment;
-import org.apache.shardingsphere.sql.parser.sql.common.value.identifier.IdentifierValue;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.DatabaseSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.TableNameSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.value.identifier.IdentifierValue;
 
 import java.util.Properties;
 import java.util.stream.Collectors;
@@ -79,16 +82,20 @@ public final class EncryptDistSQLStatementVisitor extends EncryptDistSQLStatemen
     @Override
     public ASTNode visitEncryptRuleDefinition(final EncryptRuleDefinitionContext ctx) {
         return new EncryptRuleSegment(getIdentifierValue(ctx.tableName()),
-                ctx.encryptColumnDefinition().stream().map(each -> (EncryptColumnSegment) visit(each)).collect(Collectors.toList()));
+                ctx.encryptTableRuleDefinition().encryptColumnDefinition().stream().map(each -> (EncryptColumnSegment) visit(each)).collect(Collectors.toList()));
     }
     
     @Override
     public ASTNode visitEncryptColumnDefinition(final EncryptColumnDefinitionContext ctx) {
-        return new EncryptColumnSegment(getIdentifierValue(ctx.columnDefinition().columnName()),
-                new EncryptColumnItemSegment(getIdentifierValue(ctx.cipherColumnDefinition().cipherColumnName()), (AlgorithmSegment) visit(ctx.encryptAlgorithm().algorithmDefinition())),
-                null == ctx.assistedQueryColumnDefinition() ? null
-                        : new EncryptColumnItemSegment(getIdentifierValue(ctx.assistedQueryColumnDefinition().assistedQueryColumnName()), getAssistedEncryptor(ctx)),
-                null == ctx.likeQueryColumnDefinition() ? null : new EncryptColumnItemSegment(getIdentifierValue(ctx.likeQueryColumnDefinition().likeQueryColumnName()), getLikeEncryptor(ctx)));
+        EncryptColumnItemSegment cipher = new EncryptColumnItemSegment(
+                getIdentifierValue(ctx.cipherColumnDefinition().cipherColumnName()), (AlgorithmSegment) visit(ctx.encryptAlgorithm().algorithmDefinition()));
+        EncryptColumnItemSegment assistedQuery = null == ctx.assistedQueryColumnDefinition()
+                ? null
+                : new EncryptColumnItemSegment(getIdentifierValue(ctx.assistedQueryColumnDefinition().assistedQueryColumnName()), getAssistedEncryptor(ctx));
+        EncryptColumnItemSegment likeQuery = null == ctx.likeQueryColumnDefinition()
+                ? null
+                : new EncryptColumnItemSegment(getIdentifierValue(ctx.likeQueryColumnDefinition().likeQueryColumnName()), getLikeEncryptor(ctx));
+        return new EncryptColumnSegment(getIdentifierValue(ctx.columnDefinition().columnName()), cipher, assistedQuery, likeQuery);
     }
     
     private AlgorithmSegment getAssistedEncryptor(final EncryptColumnDefinitionContext ctx) {
@@ -114,7 +121,7 @@ public final class EncryptDistSQLStatementVisitor extends EncryptDistSQLStatemen
             return result;
         }
         for (PropertyContext each : ctx.properties().property()) {
-            result.setProperty(IdentifierValue.getQuotedContent(each.key.getText()), IdentifierValue.getQuotedContent(each.value.getText()));
+            result.setProperty(QuoteCharacter.unwrapAndTrimText(each.key.getText()), QuoteCharacter.unwrapAndTrimText(each.value.getText()));
         }
         return result;
     }
@@ -131,6 +138,11 @@ public final class EncryptDistSQLStatementVisitor extends EncryptDistSQLStatemen
     
     @Override
     public ASTNode visitCountEncryptRule(final CountEncryptRuleContext ctx) {
-        return new CountEncryptRuleStatement(null == ctx.databaseName() ? null : (DatabaseSegment) visit(ctx.databaseName()));
+        return new CountRuleStatement(null == ctx.databaseName() ? null : (DatabaseSegment) visit(ctx.databaseName()), "ENCRYPT");
+    }
+    
+    @Override
+    public ASTNode visitShowEncryptAlgorithmPlugins(final ShowEncryptAlgorithmPluginsContext ctx) {
+        return new ShowPluginsStatement("ENCRYPT_ALGORITHM");
     }
 }

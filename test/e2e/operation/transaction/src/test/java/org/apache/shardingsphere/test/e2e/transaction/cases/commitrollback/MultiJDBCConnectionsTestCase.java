@@ -18,13 +18,11 @@
 package org.apache.shardingsphere.test.e2e.transaction.cases.commitrollback;
 
 import org.apache.shardingsphere.test.e2e.transaction.cases.base.BaseTransactionTestCase;
-import org.apache.shardingsphere.test.e2e.transaction.engine.base.TransactionBaseE2EIT;
 import org.apache.shardingsphere.test.e2e.transaction.engine.base.TransactionContainerComposer;
 import org.apache.shardingsphere.test.e2e.transaction.engine.base.TransactionTestCase;
 import org.apache.shardingsphere.test.e2e.transaction.engine.constants.TransactionTestConstants;
 import org.apache.shardingsphere.transaction.api.TransactionType;
 
-import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -35,8 +33,8 @@ import java.sql.SQLException;
 @TransactionTestCase(dbTypes = TransactionTestConstants.MYSQL, transactionTypes = TransactionType.XA)
 public final class MultiJDBCConnectionsTestCase extends BaseTransactionTestCase {
     
-    public MultiJDBCConnectionsTestCase(final TransactionBaseE2EIT baseTransactionITCase, final DataSource dataSource) {
-        super(baseTransactionITCase, dataSource);
+    public MultiJDBCConnectionsTestCase(final TransactionTestCaseParameter testCaseParam) {
+        super(testCaseParam);
     }
     
     @Override
@@ -44,8 +42,8 @@ public final class MultiJDBCConnectionsTestCase extends BaseTransactionTestCase 
         try (Connection connection = getDataSource().getConnection()) {
             PreparedStatement statement = connection.prepareStatement("insert into account(id, balance, transaction_id) values(?, ?, ?)");
             connection.setAutoCommit(false);
-            statement.setLong(1, 1);
-            statement.setFloat(2, 1);
+            statement.setLong(1, 1L);
+            statement.setFloat(2, 1F);
             statement.setInt(3, 1);
             statement.execute();
             try (Connection connection2 = getDataSource().getConnection()) {

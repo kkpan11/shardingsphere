@@ -20,10 +20,10 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.apache.shardingsphere</groupId>
-        <artifactId>shardingsphere-it</artifactId>
-        <version>5.4.1-SNAPSHOT</version>
+        <artifactId>shardingsphere-test-it</artifactId>
+        <version>5.5.3-SNAPSHOT</version>
     </parent>
-    <artifactId>shardingsphere-it-pipeline</artifactId>
+    <artifactId>shardingsphere-test-it-pipeline</artifactId>
     <name>${project.artifactId}</name>
     
     <dependencies>
@@ -44,22 +44,17 @@
         </dependency>
         <dependency>
             <groupId>org.apache.shardingsphere</groupId>
-            <artifactId>shardingsphere-data-pipeline-h2</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.shardingsphere</groupId>
             <artifactId>shardingsphere-data-pipeline-scenario-migration</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.shardingsphere</groupId>
-            <artifactId>shardingsphere-data-pipeline-scenario-consistencycheck</artifactId>
+            <artifactId>shardingsphere-data-pipeline-scenario-consistency-check</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.shardingsphere</groupId>
-            <artifactId>shardingsphere-jdbc-core</artifactId>
+            <artifactId>shardingsphere-jdbc</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -81,13 +76,7 @@
         </dependency>
         <dependency>
             <groupId>org.apache.shardingsphere</groupId>
-            <artifactId>shardingsphere-test-fixture-infra</artifactId>
-            <version>${project.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.shardingsphere</groupId>
-            <artifactId>shardingsphere-test-fixture-jdbc</artifactId>
+            <artifactId>shardingsphere-test-fixture-database</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>

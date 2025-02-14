@@ -24,7 +24,7 @@ import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSp
 import org.apache.shardingsphere.infra.rule.ShardingSphereRule;
 import org.apache.shardingsphere.infra.util.yaml.YamlEngine;
 import org.apache.shardingsphere.infra.yaml.config.pojo.YamlRootConfiguration;
-import org.apache.shardingsphere.sql.parser.sql.common.statement.SQLStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.SQLStatement;
 import org.apache.shardingsphere.test.it.rewrite.engine.SQLRewriterIT;
 import org.apache.shardingsphere.test.it.rewrite.engine.SQLRewriterITSettings;
 import org.apache.shardingsphere.test.it.rewrite.engine.parameter.SQLRewriteEngineTestParameters;
@@ -41,9 +41,6 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Objects;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 @SQLRewriterITSettings("scenario/mix/case")
 class MixSQLRewriterIT extends SQLRewriterIT {
     
@@ -54,26 +51,25 @@ class MixSQLRewriterIT extends SQLRewriterIT {
     }
     
     @Override
-    protected Map<String, ShardingSphereSchema> mockSchemas(final String schemaName) {
-        ShardingSphereSchema result = mock(ShardingSphereSchema.class);
-        when(result.getAllTableNames()).thenReturn(Arrays.asList("t_account", "t_account_bak", "t_account_detail"));
-        ShardingSphereTable accountTable = mock(ShardingSphereTable.class);
-        when(accountTable.getColumnValues()).thenReturn(createColumns());
-        when(accountTable.getIndexValues()).thenReturn(Collections.singletonList(new ShardingSphereIndex("index_name")));
-        when(result.containsTable("t_account")).thenReturn(true);
-        when(result.containsTable("t_account_bak")).thenReturn(true);
-        when(result.containsTable("t_account_detail")).thenReturn(true);
-        ShardingSphereTable accountBakTable = mock(ShardingSphereTable.class);
-        when(accountBakTable.getColumnValues()).thenReturn(createColumns());
-        when(result.containsTable("t_account_bak")).thenReturn(true);
-        when(result.getTable("t_account")).thenReturn(accountTable);
-        when(result.getTable("t_account_bak")).thenReturn(accountBakTable);
-        when(result.getTable("t_account_detail")).thenReturn(mock(ShardingSphereTable.class));
-        when(result.getAllColumnNames("t_account")).thenReturn(Arrays.asList("account_id", "password", "amount", "status"));
-        when(result.getAllColumnNames("t_account_bak")).thenReturn(Arrays.asList("account_id", "password", "amount", "status"));
-        when(result.getVisibleColumnNames("t_account")).thenReturn(Arrays.asList("account_id", "password", "amount"));
-        when(result.getVisibleColumnNames("t_account_bak")).thenReturn(Arrays.asList("account_id", "password", "amount"));
-        return Collections.singletonMap(schemaName, result);
+    protected Collection<ShardingSphereSchema> mockSchemas(final String schemaName) {
+        Collection<ShardingSphereTable> tables = new LinkedList<>();
+        tables.add(new ShardingSphereTable("t_account", Arrays.asList(
+                new ShardingSphereColumn("account_id", Types.INTEGER, true, true, false, true, false, false),
+                new ShardingSphereColumn("password", Types.VARCHAR, false, false, false, true, false, false),
+                new ShardingSphereColumn("amount", Types.DECIMAL, false, false, false, true, false, false),
+                new ShardingSphereColumn("status", Types.TINYINT, false, false, false, false, false, false)),
+                Collections.singletonList(new ShardingSphereIndex("index_name", Collections.emptyList(), false)), Collections.emptyList()));
+        tables.add(new ShardingSphereTable("t_account_bak", Arrays.asList(
+                new ShardingSphereColumn("account_id", Types.INTEGER, true, true, false, true, false, false),
+                new ShardingSphereColumn("password", Types.VARCHAR, false, false, false, true, false, false),
+                new ShardingSphereColumn("amount", Types.DECIMAL, false, false, false, true, false, false),
+                new ShardingSphereColumn("status", Types.TINYINT, false, false, false, false, false, false)), Collections.emptyList(), Collections.emptyList()));
+        tables.add(new ShardingSphereTable("t_account_detail", Arrays.asList(
+                new ShardingSphereColumn("account_id", Types.INTEGER, false, false, false, true, false, false),
+                new ShardingSphereColumn("password", Types.VARCHAR, false, false, false, true, false, false),
+                new ShardingSphereColumn("amount", Types.DECIMAL, false, false, false, true, false, false),
+                new ShardingSphereColumn("status", Types.TINYINT, false, false, false, false, false, false)), Collections.emptyList(), Collections.emptyList()));
+        return Collections.singleton(new ShardingSphereSchema(schemaName, tables, Collections.emptyList()));
     }
     
     @Override
@@ -82,14 +78,5 @@ class MixSQLRewriterIT extends SQLRewriterIT {
     
     @Override
     protected void mockDataSource(final Map<String, DataSource> dataSources) {
-    }
-    
-    private Collection<ShardingSphereColumn> createColumns() {
-        Collection<ShardingSphereColumn> result = new LinkedList<>();
-        result.add(new ShardingSphereColumn("account_id", Types.INTEGER, true, true, false, true, false));
-        result.add(mock(ShardingSphereColumn.class));
-        result.add(mock(ShardingSphereColumn.class));
-        result.add(mock(ShardingSphereColumn.class));
-        return result;
     }
 }
