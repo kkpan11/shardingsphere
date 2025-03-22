@@ -23,7 +23,7 @@ import org.apache.shardingsphere.distsql.statement.ral.updatable.LockClusterStat
 import org.apache.shardingsphere.infra.algorithm.core.exception.MissingRequiredAlgorithmException;
 import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
 import org.apache.shardingsphere.infra.exception.core.external.sql.identifier.SQLExceptionIdentifier;
-import org.apache.shardingsphere.infra.lock.LockContext;
+import org.apache.shardingsphere.mode.lock.LockContext;
 import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 import org.apache.shardingsphere.mode.state.ShardingSphereState;
 import org.apache.shardingsphere.mode.lock.exception.LockedClusterException;
@@ -41,7 +41,7 @@ public final class LockClusterExecutor implements DistSQLUpdateExecutor<LockClus
     public void executeUpdate(final LockClusterStatement sqlStatement, final ContextManager contextManager) {
         checkState(contextManager);
         checkAlgorithm(sqlStatement);
-        LockContext lockContext = contextManager.getComputeNodeInstanceContext().getLockContext();
+        LockContext lockContext = contextManager.getLockContext();
         GlobalLockDefinition lockDefinition = new GlobalLockDefinition(new ClusterLock());
         long timeoutMillis = sqlStatement.getTimeoutMillis().orElse(3000L);
         if (lockContext.tryLock(lockDefinition, timeoutMillis)) {
