@@ -15,38 +15,19 @@
  * limitations under the License.
  */
 
-package org.apache.shardingsphere.infra.database.core.metadata.database.metadata.option.scehma;
+package org.apache.shardingsphere.infra.database.core.metadata.database.metadata.option.connection;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.util.Optional;
-
 /**
- * Default schema option.
+ * Dialect connection option.
  */
 @RequiredArgsConstructor
-public final class DefaultSchemaOption implements DialectSchemaOption {
+@Getter
+public final class DialectConnectionOption {
     
-    @Getter
-    private final boolean isSchemaAvailable;
+    private final boolean isInstanceConnectionAvailable;
     
-    private final String defaultSchema;
-    
-    @Override
-    @SuppressWarnings("ReturnOfNull")
-    public String getSchema(final Connection connection) {
-        try {
-            return connection.getSchema();
-        } catch (final SQLException ignored) {
-            return null;
-        }
-    }
-    
-    @Override
-    public Optional<String> getDefaultSchema() {
-        return Optional.ofNullable(defaultSchema);
-    }
+    private final boolean isSupportThreeTierStorageStructure;
 }

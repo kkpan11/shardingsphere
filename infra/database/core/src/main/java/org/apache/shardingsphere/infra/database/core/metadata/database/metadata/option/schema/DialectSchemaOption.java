@@ -15,35 +15,35 @@
  * limitations under the License.
  */
 
-package org.apache.shardingsphere.infra.database.oracle.metadata.database.option;
-
-import org.apache.shardingsphere.infra.database.core.metadata.database.metadata.option.schema.DialectSchemaOption;
+package org.apache.shardingsphere.infra.database.core.metadata.database.metadata.option.schema;
 
 import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.Optional;
 
 /**
- * Schema option for Oracle.
+ * Dialect schema option.
  */
-public final class OracleSchemaOption implements DialectSchemaOption {
+public interface DialectSchemaOption {
     
-    @Override
-    public boolean isSchemaAvailable() {
-        return true;
-    }
+    /**
+     * Is schema feature available.
+     *
+     * @return true or false
+     */
+    boolean isSchemaAvailable();
     
-    @Override
-    public String getSchema(final Connection connection) {
-        try {
-            return Optional.ofNullable(connection.getMetaData().getUserName()).map(String::toUpperCase).orElse(null);
-        } catch (final SQLException ignored) {
-            return null;
-        }
-    }
+    /**
+     * Get schema.
+     *
+     * @param connection connection
+     * @return schema
+     */
+    String getSchema(Connection connection);
     
-    @Override
-    public Optional<String> getDefaultSchema() {
-        return Optional.empty();
-    }
+    /**
+     * Get default schema name.
+     *
+     * @return default schema name
+     */
+    Optional<String> getDefaultSchema();
 }

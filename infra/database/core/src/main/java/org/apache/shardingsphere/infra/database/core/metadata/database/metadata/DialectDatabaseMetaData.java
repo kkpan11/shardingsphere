@@ -19,11 +19,14 @@ package org.apache.shardingsphere.infra.database.core.metadata.database.metadata
 
 import org.apache.shardingsphere.infra.database.core.metadata.database.enums.NullsOrderType;
 import org.apache.shardingsphere.infra.database.core.metadata.database.enums.QuoteCharacter;
+import org.apache.shardingsphere.infra.database.core.metadata.database.metadata.option.column.DialectColumnOption;
+import org.apache.shardingsphere.infra.database.core.metadata.database.metadata.option.connection.DialectConnectionOption;
 import org.apache.shardingsphere.infra.database.core.metadata.database.metadata.option.datatype.DefaultDataTypeOption;
 import org.apache.shardingsphere.infra.database.core.metadata.database.metadata.option.datatype.DialectDataTypeOption;
 import org.apache.shardingsphere.infra.database.core.metadata.database.metadata.option.join.DialectJoinOrderOption;
-import org.apache.shardingsphere.infra.database.core.metadata.database.metadata.option.scehma.DefaultSchemaOption;
-import org.apache.shardingsphere.infra.database.core.metadata.database.metadata.option.scehma.DialectSchemaOption;
+import org.apache.shardingsphere.infra.database.core.metadata.database.metadata.option.schema.DefaultSchemaOption;
+import org.apache.shardingsphere.infra.database.core.metadata.database.metadata.option.schema.DialectSchemaOption;
+import org.apache.shardingsphere.infra.database.core.metadata.database.metadata.option.table.TableNamePatternType;
 import org.apache.shardingsphere.infra.database.core.metadata.database.metadata.option.transaction.DialectTransactionOption;
 import org.apache.shardingsphere.infra.database.core.spi.DatabaseTypedSPI;
 import org.apache.shardingsphere.infra.spi.annotation.SingletonSPI;
@@ -68,31 +71,30 @@ public interface DialectDatabaseMetaData extends DatabaseTypedSPI {
     }
     
     /**
-     * Format table name pattern.
+     * Get column option.
      *
-     * @param tableNamePattern table name pattern
-     * @return formatted table name pattern
+     * @return column option
      */
-    default String formatTableNamePattern(final String tableNamePattern) {
-        return tableNamePattern;
+    default DialectColumnOption getColumnOption() {
+        return new DialectColumnOption(true);
     }
     
     /**
-     * Is instance connection available.
+     * Get table name pattern type.
      *
-     * @return available or not
+     * @return table name pattern type
      */
-    default boolean isInstanceConnectionAvailable() {
-        return false;
+    default TableNamePatternType getTableNamePatternType() {
+        return TableNamePatternType.KEEP_ORIGIN;
     }
     
     /**
-     * Is support three tier storage structure.
+     * Get connection option.
      *
-     * @return support or not
+     * @return connection option
      */
-    default boolean isSupportThreeTierStorageStructure() {
-        return false;
+    default DialectConnectionOption getConnectionOption() {
+        return new DialectConnectionOption(false, false);
     }
     
     /**

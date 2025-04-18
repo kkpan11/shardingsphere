@@ -15,19 +15,17 @@
  * limitations under the License.
  */
 
-package org.apache.shardingsphere.infra.algorithm.core.exception;
+package org.apache.shardingsphere.infra.database.core.metadata.database.metadata.option.column;
 
-import org.apache.shardingsphere.infra.algorithm.core.ShardingSphereAlgorithm;
-import org.apache.shardingsphere.infra.exception.core.external.sql.sqlstate.XOpenSQLState;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 
 /**
- * Algorithm initialization exception.
+ * Dialect column option.
  */
-public final class AlgorithmInitializationException extends AlgorithmDefinitionException {
+@RequiredArgsConstructor
+@Getter
+public final class DialectColumnOption {
     
-    private static final long serialVersionUID = -7634670846091616790L;
-    
-    public AlgorithmInitializationException(final ShardingSphereAlgorithm algorithm, final String reason, final Object... args) {
-        super(XOpenSQLState.CHECK_OPTION_VIOLATION, 0, "Algorithm '%s' initialization failed, reason is: %s.", algorithm.getClass().getSimpleName(), String.format(reason, args));
-    }
+    private final boolean isColumnNameEqualsLabelInColumnProjection;
 }
