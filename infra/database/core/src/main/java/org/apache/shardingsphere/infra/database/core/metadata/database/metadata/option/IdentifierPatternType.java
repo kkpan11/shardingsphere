@@ -15,19 +15,12 @@
  * limitations under the License.
  */
 
-package org.apache.shardingsphere.infra.database.core.metadata.database.metadata.option.join;
-
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
+package org.apache.shardingsphere.infra.database.core.metadata.database.metadata.option;
 
 /**
- * Dialect join order option.
+ * Identifier pattern type.
  */
-@RequiredArgsConstructor
-@Getter
-public final class DialectJoinOrderOption {
+public enum IdentifierPatternType {
     
-    private final boolean isUsingColumnsByProjectionOrder;
-    
-    private final boolean isRightColumnsByFirstOrder;
+    UPPER_CASE, LOWER_CASE, KEEP_ORIGIN
 }

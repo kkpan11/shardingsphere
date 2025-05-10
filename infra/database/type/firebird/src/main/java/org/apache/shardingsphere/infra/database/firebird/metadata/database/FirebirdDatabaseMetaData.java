@@ -20,7 +20,7 @@ package org.apache.shardingsphere.infra.database.firebird.metadata.database;
 import org.apache.shardingsphere.infra.database.core.metadata.database.enums.NullsOrderType;
 import org.apache.shardingsphere.infra.database.core.metadata.database.enums.QuoteCharacter;
 import org.apache.shardingsphere.infra.database.core.metadata.database.metadata.DialectDatabaseMetaData;
-import org.apache.shardingsphere.infra.database.core.metadata.database.metadata.option.table.TableNamePatternType;
+import org.apache.shardingsphere.infra.database.core.metadata.database.metadata.option.IdentifierPatternType;
 import org.apache.shardingsphere.infra.database.core.metadata.database.metadata.option.transaction.DialectTransactionOption;
 
 /**
@@ -34,13 +34,13 @@ public final class FirebirdDatabaseMetaData implements DialectDatabaseMetaData {
     }
     
     @Override
-    public NullsOrderType getDefaultNullsOrderType() {
-        return NullsOrderType.LOW;
+    public IdentifierPatternType getIdentifierPatternType() {
+        return IdentifierPatternType.UPPER_CASE;
     }
     
     @Override
-    public TableNamePatternType getTableNamePatternType() {
-        return TableNamePatternType.UPPER_CASE;
+    public NullsOrderType getDefaultNullsOrderType() {
+        return NullsOrderType.LOW;
     }
     
     @Override
