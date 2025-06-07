@@ -33,13 +33,23 @@ import java.util.Optional;
 /**
  * Delete statement.
  */
+@Getter
 @Setter
-public abstract class DeleteStatement extends AbstractSQLStatement implements DMLStatement {
+public class DeleteStatement extends AbstractSQLStatement implements DMLStatement {
     
-    @Getter
     private TableSegment table;
     
     private WhereSegment where;
+    
+    private OrderBySegment orderBy;
+    
+    private LimitSegment limit;
+    
+    private WithSegment withSegment;
+    
+    private ReturningSegment returningSegment;
+    
+    private OutputSegment outputSegment;
     
     /**
      * Get where.
@@ -56,7 +66,7 @@ public abstract class DeleteStatement extends AbstractSQLStatement implements DM
      * @return order by
      */
     public Optional<OrderBySegment> getOrderBy() {
-        return Optional.empty();
+        return Optional.ofNullable(orderBy);
     }
     
     /**
@@ -65,16 +75,7 @@ public abstract class DeleteStatement extends AbstractSQLStatement implements DM
      * @return limit
      */
     public Optional<LimitSegment> getLimit() {
-        return Optional.empty();
-    }
-    
-    /**
-     * Get output segment.
-     *
-     * @return output segment
-     */
-    public Optional<OutputSegment> getOutputSegment() {
-        return Optional.empty();
+        return Optional.ofNullable(limit);
     }
     
     /**
@@ -83,39 +84,7 @@ public abstract class DeleteStatement extends AbstractSQLStatement implements DM
      * @return with segment
      */
     public Optional<WithSegment> getWithSegment() {
-        return Optional.empty();
-    }
-    
-    /**
-     * Set order by segment.
-     *
-     * @param orderBySegment order by segment
-     */
-    public void setOrderBy(final OrderBySegment orderBySegment) {
-    }
-    
-    /**
-     * Set limit segment.
-     *
-     * @param limitSegment limit segment
-     */
-    public void setLimit(final LimitSegment limitSegment) {
-    }
-    
-    /**
-     * Set output segment.
-     *
-     * @param outputSegment output segment
-     */
-    public void setOutputSegment(final OutputSegment outputSegment) {
-    }
-    
-    /**
-     * Set with segment.
-     *
-     * @param withSegment with segment
-     */
-    public void setWithSegment(final WithSegment withSegment) {
+        return Optional.ofNullable(withSegment);
     }
     
     /**
@@ -124,6 +93,15 @@ public abstract class DeleteStatement extends AbstractSQLStatement implements DM
      * @return returning segment
      */
     public Optional<ReturningSegment> getReturningSegment() {
-        return Optional.empty();
+        return Optional.ofNullable(returningSegment);
+    }
+    
+    /**
+     * Get output segment.
+     *
+     * @return output segment
+     */
+    public Optional<OutputSegment> getOutputSegment() {
+        return Optional.ofNullable(outputSegment);
     }
 }

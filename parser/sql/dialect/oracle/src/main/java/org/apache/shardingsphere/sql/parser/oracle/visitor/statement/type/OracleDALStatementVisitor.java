@@ -27,8 +27,8 @@ import org.apache.shardingsphere.sql.parser.autogen.OracleStatementParser.SpoolC
 import org.apache.shardingsphere.sql.parser.oracle.visitor.statement.OracleStatementVisitor;
 import org.apache.shardingsphere.sql.parser.statement.core.statement.SQLStatement;
 import org.apache.shardingsphere.sql.parser.statement.oracle.dal.OracleAlterResourceCostStatement;
-import org.apache.shardingsphere.sql.parser.statement.oracle.dal.OracleExplainStatement;
-import org.apache.shardingsphere.sql.parser.statement.oracle.dal.OracleShowStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dal.ExplainStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dal.ShowStatement;
 import org.apache.shardingsphere.sql.parser.statement.oracle.dal.OracleSpoolStatement;
 
 /**
@@ -43,7 +43,7 @@ public final class OracleDALStatementVisitor extends OracleStatementVisitor impl
     
     @Override
     public ASTNode visitExplain(final ExplainContext ctx) {
-        OracleExplainStatement result = new OracleExplainStatement();
+        ExplainStatement result = new ExplainStatement();
         OracleDMLStatementVisitor visitor = new OracleDMLStatementVisitor();
         getGlobalParameterMarkerSegments().addAll(visitor.getGlobalParameterMarkerSegments());
         getStatementParameterMarkerSegments().addAll(visitor.getStatementParameterMarkerSegments());
@@ -63,15 +63,11 @@ public final class OracleDALStatementVisitor extends OracleStatementVisitor impl
     
     @Override
     public ASTNode visitShow(final ShowContext ctx) {
-        return new OracleShowStatement();
+        return new ShowStatement(null);
     }
     
     @Override
     public ASTNode visitSpool(final SpoolContext ctx) {
-        OracleSpoolStatement result = new OracleSpoolStatement();
-        if (null != ctx.spoolFileName()) {
-            result.setFileName(ctx.spoolFileName().getText());
-        }
-        return result;
+        return new OracleSpoolStatement(null == ctx.spoolFileName() ? null : ctx.spoolFileName().getText());
     }
 }

@@ -18,20 +18,17 @@
 package org.apache.shardingsphere.sql.parser.statement.sqlserver.ddl;
 
 import lombok.Getter;
-import lombok.Setter;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.column.ColumnSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.statement.ddl.CreateTableStatement;
-import org.apache.shardingsphere.sql.parser.statement.sqlserver.SQLServerStatement;
 
 import java.util.LinkedList;
 import java.util.List;
 
 /**
- * SQLServer create table statement.
+ * Create table statement for SQLServer.
  */
 @Getter
-@Setter
-public final class SQLServerCreateTableStatement extends CreateTableStatement implements SQLServerStatement {
+public final class SQLServerCreateTableStatement extends CreateTableStatement {
     
     private final List<ColumnSegment> columns = new LinkedList<>();
 }

@@ -52,6 +52,9 @@
                                     <parameter>
                                         <column name="VARIABLE_VALUE" start-index="122" stop-index="135" />
                                     </parameter>
+                                    <parameter start-index="138" stop-index="145">
+                                        <data-type value="UNSIGNED" start-index="138" stop-index="145"/>
+                                    </parameter>
                                 </function>
                             </left>
                             <operator>&gt;</operator>
@@ -1604,14 +1607,12 @@
                     </left>
                     <operator>+</operator>
                     <right>
-                        <function function-name="INTERVAL" text="INTERVAL" start-index="47" stop-index="54" >
-                            <parameter>
+                        <interval-expression value="interval" start-index="47" stop-index="54" >
+                            <value>
                                 <literal-expression value="1" start-index="56" stop-index="56" />
-                            </parameter>
-                            <parameter>
-                                <literal-expression value="SECOND" start-index="58" stop-index="63" />
-                            </parameter>
-                        </function>
+                            </value>
+                            <interval-unit>SECOND</interval-unit>
+                        </interval-expression>
                     </right>
                 </binary-operation-expression>
             </expr>
@@ -1635,14 +1636,12 @@
                     </left>
                     <operator>-</operator>
                     <right>
-                        <function function-name="INTERVAL" text="INTERVAL" start-index="47" stop-index="54" >
-                            <parameter>
-                                <literal-expression value="1" start-index="56" stop-index="56" />
-                            </parameter>
-                            <parameter>
-                                <literal-expression value="SECOND" start-index="58" stop-index="63" />
-                            </parameter>
-                        </function>
+                        <interval-expression value="interval" start-index="47" stop-index="54" >
+                            <value start-index="56" stop-index="56">
+                                <literal-expression value="1" start-index="56" stop-index="56"/>
+                            </value>
+                            <interval-unit>SECOND</interval-unit>
+                        </interval-expression>
                     </right>
                 </binary-operation-expression>
             </expr>
@@ -1854,9 +1853,14 @@
         </projections>
         <where start-index="22" stop-index="50">
             <expr>
-                <column name="order_id" start-index="35" stop-index="50">
-                    <owner name="t_order" start-index="35" stop-index="41" />
-                </column>
+                <unary-operation-expression text="BINARY t_order.order_id" start-index="28" stop-index="50">
+                    <operator>BINARY</operator>
+                    <expr>
+                        <column name="order_id" start-index="35" stop-index="50">
+                            <owner name="t_order" start-index="35" stop-index="41" />
+                        </column>
+                    </expr>
+                </unary-operation-expression>
             </expr>
         </where>
     </select>
@@ -1878,8 +1882,13 @@
                     </left>
                     <operator>=</operator>
                     <right>
-                        <parameter-marker-expression parameter-index="0" start-index="54" stop-index="54" />
-                        <literal-expression value="1" start-index="54" stop-index="54" />
+                        <unary-operation-expression text="BINARY ?" start-index="47" stop-index="54">
+                            <operator>BINARY</operator>
+                            <expr>
+                                <parameter-marker-expression parameter-index="0" start-index="54" stop-index="54" />
+                                <literal-expression value="1" start-index="54" stop-index="54" />
+                            </expr>
+                        </unary-operation-expression>
                     </right>
                 </binary-operation-expression>
             </expr>

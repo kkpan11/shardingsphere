@@ -22,6 +22,7 @@ import lombok.Setter;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.ReturningSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.assignment.SetAssignmentSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.hint.OptionHintSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.hint.WithTableHintSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.order.OrderBySegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.pagination.limit.LimitSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.predicate.WhereSegment;
@@ -37,13 +38,31 @@ import java.util.Optional;
  */
 @Getter
 @Setter
-public abstract class UpdateStatement extends AbstractSQLStatement implements DMLStatement {
+public class UpdateStatement extends AbstractSQLStatement implements DMLStatement {
     
     private TableSegment table;
     
     private SetAssignmentSegment setAssignment;
     
     private WhereSegment where;
+    
+    private OrderBySegment orderBy;
+    
+    private LimitSegment limit;
+    
+    private TableSegment from;
+    
+    private WhereSegment deleteWhere;
+    
+    private WithSegment withSegment;
+    
+    private ReturningSegment returningSegment;
+    
+    private WithTableHintSegment withTableHintSegment;
+    
+    private OptionHintSegment optionHintSegment;
+    
+    private OutputSegment outputSegment;
     
     /**
      * Get where.
@@ -69,7 +88,7 @@ public abstract class UpdateStatement extends AbstractSQLStatement implements DM
      * @return order by segment
      */
     public Optional<OrderBySegment> getOrderBy() {
-        return Optional.empty();
+        return Optional.ofNullable(orderBy);
     }
     
     /**
@@ -78,7 +97,7 @@ public abstract class UpdateStatement extends AbstractSQLStatement implements DM
      * @return limit segment
      */
     public Optional<LimitSegment> getLimit() {
-        return Optional.empty();
+        return Optional.ofNullable(limit);
     }
     
     /**
@@ -87,16 +106,7 @@ public abstract class UpdateStatement extends AbstractSQLStatement implements DM
      * @return with segment
      */
     public Optional<WithSegment> getWithSegment() {
-        return Optional.empty();
-    }
-    
-    /**
-     * Get delete where segment.
-     *
-     * @return delete where segment
-     */
-    public Optional<WhereSegment> getDeleteWhere() {
-        return Optional.empty();
+        return Optional.ofNullable(withSegment);
     }
     
     /**
@@ -105,39 +115,7 @@ public abstract class UpdateStatement extends AbstractSQLStatement implements DM
      * @return option hint segment
      */
     public Optional<OptionHintSegment> getOptionHintSegment() {
-        return Optional.empty();
-    }
-    
-    /**
-     * Set order by segment.
-     *
-     * @param orderBySegment order by segment
-     */
-    public void setOrderBy(final OrderBySegment orderBySegment) {
-    }
-    
-    /**
-     * Set limit segment.
-     *
-     * @param limitSegment limit segment
-     */
-    public void setLimit(final LimitSegment limitSegment) {
-    }
-    
-    /**
-     * Set with segment.
-     *
-     * @param withSegment with segment
-     */
-    public void setWithSegment(final WithSegment withSegment) {
-    }
-    
-    /**
-     * Set delete where segment.
-     *
-     * @param deleteWhereSegment delete where segment
-     */
-    public void setDeleteWhere(final WhereSegment deleteWhereSegment) {
+        return Optional.ofNullable(optionHintSegment);
     }
     
     /**
@@ -146,15 +124,7 @@ public abstract class UpdateStatement extends AbstractSQLStatement implements DM
      * @return output segment
      */
     public Optional<OutputSegment> getOutputSegment() {
-        return Optional.empty();
-    }
-    
-    /**
-     * Set output segment.
-     *
-     * @param outputSegment output segment
-     */
-    public void setOutputSegment(final OutputSegment outputSegment) {
+        return Optional.ofNullable(outputSegment);
     }
     
     /**
@@ -163,15 +133,16 @@ public abstract class UpdateStatement extends AbstractSQLStatement implements DM
      * @return from segment
      */
     public Optional<TableSegment> getFrom() {
-        return Optional.empty();
+        return Optional.ofNullable(from);
     }
     
     /**
-     * Set from segment.
+     * Get delete where segment.
      *
-     * @param from from segment
+     * @return delete where segment
      */
-    public void setFrom(final TableSegment from) {
+    public Optional<WhereSegment> getDeleteWhere() {
+        return Optional.ofNullable(deleteWhere);
     }
     
     /**
@@ -180,14 +151,15 @@ public abstract class UpdateStatement extends AbstractSQLStatement implements DM
      * @return returning segment
      */
     public Optional<ReturningSegment> getReturningSegment() {
-        return Optional.empty();
+        return Optional.ofNullable(returningSegment);
     }
     
     /**
-     * Set returning segment of update statement.
+     * Get with table hint segment.
      *
-     * @param returningSegment returning segment
+     * @return with table hint segment.
      */
-    public void setReturningSegment(final ReturningSegment returningSegment) {
+    public Optional<WithTableHintSegment> getWithTableHintSegment() {
+        return Optional.ofNullable(withTableHintSegment);
     }
 }
