@@ -17,17 +17,19 @@
 
 package org.apache.shardingsphere.sharding.checker.sql.dml;
 
-import org.apache.shardingsphere.infra.binder.context.statement.dml.LoadXMLStatementContext;
+import org.apache.shardingsphere.infra.binder.context.statement.TableAvailableSQLStatementContext;
 import org.apache.shardingsphere.sharding.exception.syntax.UnsupportedShardingOperationException;
 import org.apache.shardingsphere.sharding.rule.ShardingRule;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.SimpleTableSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.TableNameSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.dml.LoadXMLStatement;
 import org.apache.shardingsphere.sql.parser.statement.core.value.identifier.IdentifierValue;
-import org.apache.shardingsphere.sql.parser.statement.mysql.dml.MySQLLoadXMLStatement;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -42,16 +44,19 @@ class ShardingLoadXmlSupportedCheckerTest {
     
     @Test
     void assertCheckWithSingleTable() {
-        MySQLLoadXMLStatement sqlStatement = new MySQLLoadXMLStatement();
-        sqlStatement.setTableSegment(new SimpleTableSegment(new TableNameSegment(0, 0, new IdentifierValue("t_order"))));
-        assertDoesNotThrow(() -> new ShardingLoadXmlSupportedChecker().check(rule, mock(), mock(), new LoadXMLStatementContext(sqlStatement)));
+        LoadXMLStatement sqlStatement = mock(LoadXMLStatement.class);
+        SimpleTableSegment table = new SimpleTableSegment(new TableNameSegment(0, 0, new IdentifierValue("foo_tbl")));
+        when(sqlStatement.getTable()).thenReturn(table);
+        assertDoesNotThrow(() -> new ShardingLoadXmlSupportedChecker().check(rule, mock(), mock(), new TableAvailableSQLStatementContext(mock(), sqlStatement, Collections.singleton(table))));
     }
     
     @Test
     void assertCheckWithShardingTable() {
-        MySQLLoadXMLStatement sqlStatement = new MySQLLoadXMLStatement();
-        sqlStatement.setTableSegment(new SimpleTableSegment(new TableNameSegment(0, 0, new IdentifierValue("t_order"))));
-        when(rule.isShardingTable("t_order")).thenReturn(true);
-        assertThrows(UnsupportedShardingOperationException.class, () -> new ShardingLoadXmlSupportedChecker().check(rule, mock(), mock(), new LoadXMLStatementContext(sqlStatement)));
+        LoadXMLStatement sqlStatement = mock(LoadXMLStatement.class);
+        SimpleTableSegment table = new SimpleTableSegment(new TableNameSegment(0, 0, new IdentifierValue("foo_tbl")));
+        when(sqlStatement.getTable()).thenReturn(table);
+        when(rule.isShardingTable("foo_tbl")).thenReturn(true);
+        assertThrows(UnsupportedShardingOperationException.class,
+                () -> new ShardingLoadXmlSupportedChecker().check(rule, mock(), mock(), new TableAvailableSQLStatementContext(mock(), sqlStatement, Collections.singleton(table))));
     }
 }

@@ -32,7 +32,7 @@ import java.util.Optional;
  */
 @Getter
 @Setter
-public abstract class CommentStatement extends AbstractSQLStatement implements DDLStatement {
+public class CommentStatement extends AbstractSQLStatement implements DDLStatement {
     
     private SimpleTableSegment table;
     
@@ -40,12 +40,14 @@ public abstract class CommentStatement extends AbstractSQLStatement implements D
     
     private IdentifierValue comment;
     
+    private IndexTypeSegment indexType;
+    
     /**
      * Get index type.
      *
      * @return index type
      */
     public Optional<IndexTypeSegment> getIndexType() {
-        return Optional.empty();
+        return Optional.ofNullable(indexType);
     }
 }

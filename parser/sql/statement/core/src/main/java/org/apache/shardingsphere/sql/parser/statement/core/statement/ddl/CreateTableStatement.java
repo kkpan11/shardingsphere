@@ -28,7 +28,6 @@ import org.apache.shardingsphere.sql.parser.statement.core.statement.AbstractSQL
 import org.apache.shardingsphere.sql.parser.statement.core.statement.dml.SelectStatement;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
@@ -38,15 +37,23 @@ import java.util.Optional;
  */
 @Getter
 @Setter
-public abstract class CreateTableStatement extends AbstractSQLStatement implements DDLStatement {
+public final class CreateTableStatement extends AbstractSQLStatement implements DDLStatement {
     
     private SimpleTableSegment table;
     
     private SelectStatement selectStatement;
     
+    private boolean ifNotExists;
+    
+    private SimpleTableSegment likeTable;
+    
+    private CreateTableOptionSegment createTableOption;
+    
     private final Collection<ColumnDefinitionSegment> columnDefinitions = new LinkedList<>();
     
     private final Collection<ConstraintDefinitionSegment> constraintDefinitions = new LinkedList<>();
+    
+    private final List<ColumnSegment> columns = new LinkedList<>();
     
     /**
      * Get select statement.
@@ -58,46 +65,12 @@ public abstract class CreateTableStatement extends AbstractSQLStatement implemen
     }
     
     /**
-     * Judge whether contains if not exists or not.
-     *
-     * @return whether contains if not exists or not
-     */
-    public boolean isIfNotExists() {
-        return false;
-    }
-    
-    /**
-     * Set if not exists.
-     *
-     * @param ifNotExists if not exists
-     */
-    public void setIfNotExists(final boolean ifNotExists) {
-    }
-    
-    /**
-     * Get list of columns.
-     *
-     * @return list of columns
-     */
-    public List<ColumnSegment> getColumns() {
-        return Collections.emptyList();
-    }
-    
-    /**
      * Get like table.
      *
      * @return like table
      */
     public Optional<SimpleTableSegment> getLikeTable() {
-        return Optional.empty();
-    }
-    
-    /**
-     * Set like table.
-     *
-     * @param likeTable like table
-     */
-    public void setLikeTable(final SimpleTableSegment likeTable) {
+        return Optional.ofNullable(likeTable);
     }
     
     /**
@@ -106,14 +79,6 @@ public abstract class CreateTableStatement extends AbstractSQLStatement implemen
      * @return create table option
      */
     public Optional<CreateTableOptionSegment> getCreateTableOption() {
-        return Optional.empty();
-    }
-    
-    /**
-     * Set create table option.
-     *
-     * @param createTableOption create table option
-     */
-    public void setCreateTableOption(final CreateTableOptionSegment createTableOption) {
+        return Optional.ofNullable(createTableOption);
     }
 }

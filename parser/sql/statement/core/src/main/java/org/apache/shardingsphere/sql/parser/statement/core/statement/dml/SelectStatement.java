@@ -21,6 +21,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.apache.shardingsphere.sql.parser.statement.core.enums.SubqueryType;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.combine.CombineSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.hint.WithTableHintSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.item.ProjectionsSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.order.GroupBySegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.order.OrderBySegment;
@@ -41,7 +42,7 @@ import java.util.Optional;
  */
 @Getter
 @Setter
-public abstract class SelectStatement extends AbstractSQLStatement implements DMLStatement {
+public final class SelectStatement extends AbstractSQLStatement implements DMLStatement {
     
     private ProjectionsSegment projections;
     
@@ -57,9 +58,21 @@ public abstract class SelectStatement extends AbstractSQLStatement implements DM
     
     private CombineSegment combine;
     
-    private WithSegment withSegment;
+    private WithSegment with;
     
     private SubqueryType subqueryType;
+    
+    private LimitSegment limit;
+    
+    private LockSegment lock;
+    
+    private WindowSegment window;
+    
+    private TableSegment into;
+    
+    private ModelSegment model;
+    
+    private WithTableHintSegment withTableHint;
     
     /**
      * Get from.
@@ -107,21 +120,21 @@ public abstract class SelectStatement extends AbstractSQLStatement implements DM
     }
     
     /**
-     * Get combine segment.
+     * Get combine.
      *
-     * @return combine segment
+     * @return combine
      */
     public Optional<CombineSegment> getCombine() {
         return Optional.ofNullable(combine);
     }
     
     /**
-     * Get with segment.
+     * Get with.
      *
-     * @return with segment.
+     * @return with.
      */
-    public Optional<WithSegment> getWithSegment() {
-        return Optional.ofNullable(withSegment);
+    public Optional<WithSegment> getWith() {
+        return Optional.ofNullable(with);
     }
     
     /**
@@ -134,87 +147,56 @@ public abstract class SelectStatement extends AbstractSQLStatement implements DM
     }
     
     /**
-     * Get limit segment.
+     * Get limit.
      *
-     * @return limit segment
+     * @return limit
      */
     public Optional<LimitSegment> getLimit() {
-        return Optional.empty();
+        return Optional.ofNullable(limit);
     }
     
     /**
-     * Set limit segment.
+     * Get lock.
      *
-     * @param  limitSegment limit segment
-     */
-    public void setLimit(final LimitSegment limitSegment) {
-    }
-    
-    /**
-     * Get lock segment.
-     *
-     * @return lock segment
+     * @return lock
      */
     public Optional<LockSegment> getLock() {
-        return Optional.empty();
+        return Optional.ofNullable(lock);
     }
     
     /**
-     * Set lock segment.
+     * Get window.
      *
-     * @param lockSegment lock segment
-     */
-    public void setLock(final LockSegment lockSegment) {
-    }
-    
-    /**
-     * Get window segment.
-     *
-     * @return window segment
+     * @return window
      */
     public Optional<WindowSegment> getWindow() {
-        return Optional.empty();
+        return Optional.ofNullable(window);
     }
     
     /**
-     * Set window segment.
+     * Get into.
      *
-     * @param windowSegment window segment
+     * @return into table
      */
-    public void setWindow(final WindowSegment windowSegment) {
+    public Optional<TableSegment> getInto() {
+        return Optional.ofNullable(into);
     }
     
     /**
-     * Get model segment.
+     * Get model.
      *
-     * @return model segment
+     * @return model
      */
-    public Optional<ModelSegment> getModelSegment() {
-        return Optional.empty();
+    public Optional<ModelSegment> getModel() {
+        return Optional.ofNullable(model);
     }
     
     /**
-     * Set model segment.
+     * Get with table hint.
      *
-     * @param modelSegment model segment
+     * @return with table hint.
      */
-    public void setModelSegment(final ModelSegment modelSegment) {
-    }
-    
-    /**
-     * Get into segment.
-     *
-     * @return into table segment
-     */
-    public Optional<TableSegment> getIntoSegment() {
-        return Optional.empty();
-    }
-    
-    /**
-     * Set into segment.
-     *
-     * @param intoSegment table into segment
-     */
-    public void setIntoSegment(final TableSegment intoSegment) {
+    public Optional<WithTableHintSegment> getWithTableHint() {
+        return Optional.ofNullable(withTableHint);
     }
 }

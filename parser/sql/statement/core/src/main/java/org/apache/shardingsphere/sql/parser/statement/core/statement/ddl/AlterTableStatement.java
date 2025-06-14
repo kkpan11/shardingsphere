@@ -31,7 +31,9 @@ import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.constrain
 import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.constraint.alter.ValidateConstraintDefinitionSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.index.DropIndexDefinitionSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.index.RenameIndexDefinitionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.table.AlgorithmTypeSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.table.ConvertTableDefinitionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.table.LockTableSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.SimpleTableSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.statement.AbstractSQLStatement;
 
@@ -44,13 +46,19 @@ import java.util.Optional;
  */
 @Getter
 @Setter
-public abstract class AlterTableStatement extends AbstractSQLStatement implements DDLStatement {
+public final class AlterTableStatement extends AbstractSQLStatement implements DDLStatement {
     
     private SimpleTableSegment table;
     
     private SimpleTableSegment renameTable;
     
     private ConvertTableDefinitionSegment convertTableDefinition;
+    
+    private ModifyCollectionRetrievalSegment modifyCollectionRetrieval;
+    
+    private AlgorithmTypeSegment algorithmSegment;
+    
+    private LockTableSegment lockTableSegment;
     
     private final Collection<AddColumnDefinitionSegment> addColumnDefinitions = new LinkedList<>();
     
@@ -93,19 +101,29 @@ public abstract class AlterTableStatement extends AbstractSQLStatement implement
     }
     
     /**
-     * Set modify collection retrieval.
-     *
-     * @param modifyCollectionRetrieval modify collection retrieval
-     */
-    public void setModifyCollectionRetrieval(final ModifyCollectionRetrievalSegment modifyCollectionRetrieval) {
-    }
-    
-    /**
      * Get modify collection retrieval.
      *
      * @return modify collection retrieval
      */
     public Optional<ModifyCollectionRetrievalSegment> getModifyCollectionRetrieval() {
-        return Optional.empty();
+        return Optional.ofNullable(modifyCollectionRetrieval);
+    }
+    
+    /**
+     * Get algorithm segment.
+     *
+     * @return algorithm segment
+     */
+    public Optional<AlgorithmTypeSegment> getGetAlgorithmSegment() {
+        return Optional.ofNullable(algorithmSegment);
+    }
+    
+    /**
+     * Get lock table Segment.
+     *
+     * @return lock table segment
+     */
+    public Optional<LockTableSegment> getLockTableSegment() {
+        return Optional.ofNullable(lockTableSegment);
     }
 }

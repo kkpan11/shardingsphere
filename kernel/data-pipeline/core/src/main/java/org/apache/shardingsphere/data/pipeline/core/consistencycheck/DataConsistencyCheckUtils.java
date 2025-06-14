@@ -23,7 +23,7 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 
-import javax.annotation.Nullable;
+import org.jspecify.annotations.Nullable;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
@@ -194,9 +194,6 @@ public final class DataConsistencyCheckUtils {
      * @return first unique key value
      */
     public static Object getFirstUniqueKeyValue(final Map<String, Object> rawRecord, final @Nullable String uniqueKey) {
-        if (rawRecord.isEmpty() || null == uniqueKey) {
-            return null;
-        }
-        return rawRecord.get(uniqueKey);
+        return rawRecord.isEmpty() || null == uniqueKey ? null : rawRecord.get(uniqueKey);
     }
 }
