@@ -17,7 +17,9 @@
 
 package org.apache.shardingsphere.encrypt.rewrite.token.generator.predicate;
 
+import org.apache.shardingsphere.database.connector.core.metadata.identifier.IdentifierCasePolicyFactory;
 import org.apache.shardingsphere.encrypt.rewrite.token.generator.fixture.EncryptGeneratorFixtureBuilder;
+import org.apache.shardingsphere.infra.metadata.identifier.DatabaseIdentifierContext;
 import org.apache.shardingsphere.infra.rewrite.sql.token.common.pojo.SQLToken;
 import org.apache.shardingsphere.infra.rewrite.sql.token.common.pojo.generic.SubstitutableColumnNameToken;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,8 +27,8 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Collection;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class EncryptPredicateColumnTokenGeneratorTest {
@@ -35,7 +37,8 @@ class EncryptPredicateColumnTokenGeneratorTest {
     
     @BeforeEach
     void setup() {
-        generator = new EncryptPredicateColumnTokenGenerator(EncryptGeneratorFixtureBuilder.createEncryptRule());
+        generator = new EncryptPredicateColumnTokenGenerator(
+                EncryptGeneratorFixtureBuilder.createEncryptRule(), new DatabaseIdentifierContext(IdentifierCasePolicyFactory.newCasePreservingInsensitivePolicySet()));
     }
     
     @Test
@@ -47,6 +50,6 @@ class EncryptPredicateColumnTokenGeneratorTest {
     void assertGenerateSQLTokenFromGenerateNewSQLToken() {
         Collection<SQLToken> substitutableColumnNameTokens = generator.generateSQLTokens(EncryptGeneratorFixtureBuilder.createUpdateStatementContext());
         assertThat(substitutableColumnNameTokens.size(), is(1));
-        assertThat(((SubstitutableColumnNameToken) substitutableColumnNameTokens.iterator().next()).toString(null), is("pwd_ASSISTED"));
+        assertThat(((SubstitutableColumnNameToken) substitutableColumnNameTokens.iterator().next()).toString(null), is("pwd_A"));
     }
 }

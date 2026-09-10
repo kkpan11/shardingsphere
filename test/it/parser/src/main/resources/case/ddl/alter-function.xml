@@ -24,4 +24,11 @@
     <alter-function sql-case-id="alter_function_set" />
     <alter-function sql-case-id="alter_function_depend_on" />
     <alter-function sql-case-id="alter_function_compile" />
+    <alter-function sql-case-id="alter_function_doris" />
+    <alter-function sql-case-id="alter_function_mysql" />
+    <alter-function sql-case-id="alter_function_with_owner_visitor_oracle">
+        <function-name name="foo_func" start-index="15" stop-index="33">
+            <owner name="foo_schema" start-index="15" stop-index="24" />
+        </function-name>
+    </alter-function>
 </sql-parser-test-cases>

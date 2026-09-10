@@ -28,8 +28,14 @@ import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.Type
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.complex.CommonExpressionSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.simple.LiteralExpressionSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.simple.ParameterMarkerExpressionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.subquery.SubqueryExpressionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.subquery.SubquerySegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.item.ProjectionsSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.predicate.AndPredicate;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.predicate.WhereSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.type.dml.DeleteStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.type.dml.SelectStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.type.dml.UpdateStatement;
 import org.apache.shardingsphere.sql.parser.statement.core.value.identifier.IdentifierValue;
 import org.junit.jupiter.api.Test;
 
@@ -39,8 +45,8 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 class ExpressionExtractorTest {
     
@@ -94,20 +100,96 @@ class ExpressionExtractorTest {
     void assertExtractAndPredicatesOrAndCondition() {
         ColumnSegment statusColumn = new ColumnSegment(0, 0, new IdentifierValue("status"));
         ParameterMarkerExpressionSegment statusParameterExpression = new ParameterMarkerExpressionSegment(0, 0, 0);
-        ExpressionSegment leftExpression = new BinaryOperationExpression(0, 0, statusColumn, statusParameterExpression, "=", "status=?");
-        ColumnSegment countColumn = new ColumnSegment(0, 0, new IdentifierValue("count"));
-        ParameterMarkerExpressionSegment countParameterExpression = new ParameterMarkerExpressionSegment(0, 0, 1);
-        ExpressionSegment subLeftExpression = new BinaryOperationExpression(0, 0, statusColumn, statusParameterExpression, "=", "status=?");
-        ExpressionSegment subRightExpression = new BinaryOperationExpression(0, 0, countColumn, countParameterExpression, "=", "count=?");
-        BinaryOperationExpression rightExpression = new BinaryOperationExpression(0, 0, subLeftExpression, subRightExpression, "AND", "status=? AND count=?");
-        BinaryOperationExpression expression = new BinaryOperationExpression(0, 0, leftExpression, rightExpression, "OR", "status=? OR status=? AND count=?");
-        Collection<AndPredicate> actual = ExpressionExtractor.extractAndPredicates(expression);
+        Collection<AndPredicate> actual = ExpressionExtractor.extractAndPredicates(createBinaryOperationExpression(statusColumn, statusParameterExpression));
         assertThat(actual.size(), is(2));
         Iterator<AndPredicate> iterator = actual.iterator();
         AndPredicate andPredicate1 = iterator.next();
         AndPredicate andPredicate2 = iterator.next();
         assertThat(andPredicate1.getPredicates().size(), is(1));
         assertThat(andPredicate2.getPredicates().size(), is(2));
+    }
+    
+    private BinaryOperationExpression createBinaryOperationExpression(final ColumnSegment statusColumn, final ParameterMarkerExpressionSegment statusParameterExpression) {
+        ExpressionSegment leftExpression = new BinaryOperationExpression(0, 0, statusColumn, statusParameterExpression, "=", "status=?");
+        ColumnSegment countColumn = new ColumnSegment(0, 0, new IdentifierValue("count"));
+        BinaryOperationExpression rightExpression = createBinaryOperationExpression(statusColumn, statusParameterExpression, countColumn);
+        return new BinaryOperationExpression(0, 0, leftExpression, rightExpression, "OR", "status=? OR status=? AND count=?");
+    }
+    
+    private BinaryOperationExpression createBinaryOperationExpression(final ColumnSegment statusColumn,
+                                                                      final ParameterMarkerExpressionSegment statusParameterExpression, final ColumnSegment countColumn) {
+        ParameterMarkerExpressionSegment countParameterExpression = new ParameterMarkerExpressionSegment(0, 0, 1);
+        ExpressionSegment subLeftExpression = new BinaryOperationExpression(0, 0, statusColumn, statusParameterExpression, "=", "status=?");
+        ExpressionSegment subRightExpression = new BinaryOperationExpression(0, 0, countColumn, countParameterExpression, "=", "count=?");
+        return new BinaryOperationExpression(0, 0, subLeftExpression, subRightExpression, "AND", "status=? AND count=?");
+    }
+    
+    @Test
+    void assertExtractAllExpressionsWithAndOperation() {
+        BinaryOperationExpression expression1 =
+                new BinaryOperationExpression(0, 0, new ColumnSegment(0, 0, new IdentifierValue("order_id")), new LiteralExpressionSegment(10, 11, "1"), "=", "order_id=1");
+        BinaryOperationExpression expression2 = new BinaryOperationExpression(0, 0, new ColumnSegment(0, 0, new IdentifierValue("status")), new LiteralExpressionSegment(22, 23, "2"), "=", "status=2");
+        BinaryOperationExpression andExpression = new BinaryOperationExpression(0, 0, expression1, expression2, "AND", "order_id=1 AND status=2");
+        Collection<ExpressionSegment> actual = ExpressionExtractor.extractAllExpressions(andExpression);
+        assertThat(actual.size(), is(2));
+        Iterator<ExpressionSegment> iterator = actual.iterator();
+        assertThat(iterator.next(), is(expression1));
+        assertThat(iterator.next(), is(expression2));
+    }
+    
+    @Test
+    void assertExtractAllExpressionsWithOrOperation() {
+        BinaryOperationExpression expression1 = new BinaryOperationExpression(0, 0, new ColumnSegment(0, 0, new IdentifierValue("age")),
+                new LiteralExpressionSegment(8, 9, "5"), ">", "age>5");
+        BinaryOperationExpression expression2 = new BinaryOperationExpression(0, 0, new ColumnSegment(0, 0, new IdentifierValue("score")),
+                new LiteralExpressionSegment(19, 21, "10"), "<", "score<10");
+        BinaryOperationExpression orExpression = new BinaryOperationExpression(0, 0, expression1, expression2, "OR", "age>5 OR score<10");
+        Collection<ExpressionSegment> actual = ExpressionExtractor.extractAllExpressions(orExpression);
+        assertThat(actual.size(), is(2));
+        Iterator<ExpressionSegment> iterator = actual.iterator();
+        assertThat(iterator.next(), is(expression1));
+        assertThat(iterator.next(), is(expression2));
+    }
+    
+    @Test
+    void assertExtractAllExpressionsWithNestedOperations() {
+        BinaryOperationExpression expression1 = new BinaryOperationExpression(0, 0, new ColumnSegment(0, 0, new IdentifierValue("A")),
+                new LiteralExpressionSegment(0, 0, "1"), "=", "A=1");
+        BinaryOperationExpression expression2 = new BinaryOperationExpression(0, 0, new ColumnSegment(0, 0, new IdentifierValue("B")),
+                new LiteralExpressionSegment(0, 0, "2"), "=", "B=2");
+        BinaryOperationExpression andExpression = new BinaryOperationExpression(0, 0, expression1, expression2, "AND", "A=1 AND B=2");
+        BinaryOperationExpression expression3 = new BinaryOperationExpression(0, 0, new ColumnSegment(0, 0, new IdentifierValue("C")),
+                new LiteralExpressionSegment(0, 0, "3"), "=", "C=3");
+        BinaryOperationExpression fullExpression = new BinaryOperationExpression(0, 0, andExpression, expression3, "OR", "A=1 AND B=2 OR C=3");
+        Collection<ExpressionSegment> actual = ExpressionExtractor.extractAllExpressions(fullExpression);
+        assertThat(actual.size(), is(3));
+        Iterator<ExpressionSegment> iterator = actual.iterator();
+        assertThat(iterator.next(), is(expression1));
+        assertThat(iterator.next(), is(expression2));
+        assertThat(iterator.next(), is(expression3));
+    }
+    
+    @Test
+    void assertExtractAllExpressionsWithComplexNestedExpressions() {
+        BinaryOperationExpression expression1 = new BinaryOperationExpression(0, 0, new ColumnSegment(21, 22, new IdentifierValue("A")),
+                new LiteralExpressionSegment(0, 0, "1"), "=", "A=1");
+        BinaryOperationExpression expression2 = new BinaryOperationExpression(0, 0, new ColumnSegment(14, 15, new IdentifierValue("B")),
+                new LiteralExpressionSegment(0, 0, "2"), "=", "B=2");
+        BinaryOperationExpression expression3 = new BinaryOperationExpression(0, 0, new ColumnSegment(7, 8, new IdentifierValue("C")),
+                new LiteralExpressionSegment(0, 0, "3"), "=", "C=3");
+        BinaryOperationExpression expression4 = new BinaryOperationExpression(0, 0,
+                new ColumnSegment(0, 0, new IdentifierValue("D")),
+                new LiteralExpressionSegment(0, 0, "4"), "=", "D=4");
+        BinaryOperationExpression orExpression = new BinaryOperationExpression(0, 0, expression2, expression3, "OR", "B=2 OR C=3");
+        BinaryOperationExpression innerAndExpression = new BinaryOperationExpression(0, 0, expression1, orExpression, "AND", "A=1 AND (B=2 OR C=3)");
+        BinaryOperationExpression topLevelExpression = new BinaryOperationExpression(0, 0, innerAndExpression, expression4, "AND", "(A=1 AND (B=2 OR C=3)) AND D=4");
+        Collection<ExpressionSegment> actual = ExpressionExtractor.extractAllExpressions(topLevelExpression);
+        assertThat(actual.size(), is(4));
+        Iterator<ExpressionSegment> iterator = actual.iterator();
+        assertThat(iterator.next(), is(expression1));
+        assertThat(iterator.next(), is(expression2));
+        assertThat(iterator.next(), is(expression3));
+        assertThat(iterator.next(), is(expression4));
     }
     
     @Test
@@ -144,6 +226,17 @@ class ExpressionExtractorTest {
     }
     
     @Test
+    void assertGetParameterMarkerExpressionsFromInExpressionWithSubquery() {
+        ParameterMarkerExpressionSegment expected = new ParameterMarkerExpressionSegment(0, 0, 0, ParameterMarkerType.QUESTION);
+        SelectStatement selectStatement = SelectStatement.builder().projections(new ProjectionsSegment(0, 0)).build();
+        SubqueryExpressionSegment right = new SubqueryExpressionSegment(new SubquerySegment(0, 0, selectStatement, "(SELECT 1)"));
+        Collection<ExpressionSegment> inExpressions = Collections.singleton(new InExpression(0, 0, expected, right, false));
+        List<ParameterMarkerExpressionSegment> actual = ExpressionExtractor.getParameterMarkerExpressions(inExpressions);
+        assertThat(actual.size(), is(1));
+        assertThat(actual.get(0), is(expected));
+    }
+    
+    @Test
     void assertExtractJoinConditions() {
         Collection<BinaryOperationExpression> actual = new LinkedList<>();
         BinaryOperationExpression binaryExpression =
@@ -151,5 +244,30 @@ class ExpressionExtractorTest {
         ExpressionExtractor.extractJoinConditions(actual, Collections.singleton(new WhereSegment(0, 0, binaryExpression)));
         assertThat(actual.size(), is(1));
         assertThat(actual.iterator().next(), is(binaryExpression));
+    }
+    
+    @Test
+    void assertGetNestedSubqueryCompareExpressionsFromUpdateStatement() {
+        ExpressionSegment expectedExpression = createSubqueryCompareExpression(">");
+        UpdateStatement updateStatement = UpdateStatement.builder().where(new WhereSegment(0, 0, expectedExpression)).build();
+        Collection<ExpressionSegment> actual = ExpressionExtractor.getNestedSubqueryCompareExpressions(updateStatement);
+        assertThat(actual.size(), is(1));
+        assertThat(actual.iterator().next(), is(expectedExpression));
+    }
+    
+    @Test
+    void assertGetNestedSubqueryCompareExpressionsFromDeleteStatement() {
+        ExpressionSegment expectedExpression = createSubqueryCompareExpression("=");
+        DeleteStatement deleteStatement = DeleteStatement.builder().where(new WhereSegment(0, 0, expectedExpression)).build();
+        Collection<ExpressionSegment> actual = ExpressionExtractor.getNestedSubqueryCompareExpressions(deleteStatement);
+        assertThat(actual.size(), is(1));
+        assertThat(actual.iterator().next(), is(expectedExpression));
+    }
+    
+    private ExpressionSegment createSubqueryCompareExpression(final String operator) {
+        ColumnSegment left = new ColumnSegment(0, 7, new IdentifierValue("order_id"));
+        SelectStatement selectStatement = SelectStatement.builder().projections(new ProjectionsSegment(0, 0)).build();
+        SubqueryExpressionSegment right = new SubqueryExpressionSegment(new SubquerySegment(10, 20, selectStatement, ""));
+        return new BinaryOperationExpression(0, 20, left, right, operator, "");
     }
 }

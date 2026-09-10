@@ -17,19 +17,14 @@ the possible Maven dependencies are as follows,
 <dependencies>
     <dependency>
         <groupId>org.apache.shardingsphere</groupId>
-        <artifactId>shardingsphere-jdbc</artifactId>
-        <version>${shardingsphere.version}</version>
-    </dependency>
-    <dependency>
-        <groupId>org.apache.shardingsphere</groupId>
-        <artifactId>shardingsphere-parser-sql-clickhouse</artifactId>
+        <artifactId>shardingsphere-jdbc-dialect-clickhouse</artifactId>
         <version>${shardingsphere.version}</version>
     </dependency>
     <dependency>
         <groupId>com.clickhouse</groupId>
         <artifactId>clickhouse-jdbc</artifactId>
-        <classifier>http</classifier>
-        <version>0.6.3</version>
+        <classifier>all</classifier>
+        <version>0.9.8</version>
     </dependency>
 </dependencies>
 ```
@@ -43,19 +38,21 @@ Write a Docker Compose file to start ClickHouse.
 ```yaml
 services:
   clickhouse-server:
-    image: clickhouse/clickhouse-server:24.11.1.2557
+    image: clickhouse/clickhouse-server:26.6.1.1193
+    environment:
+      CLICKHOUSE_SKIP_USER_SETUP: "1"
     ports:
       - "8123:8123"
 ```
 
 ### Create business tables
 
-Use a third-party tool to create a business database and business table in ClickHouse.
-Taking DBeaver Community as an example, if you use Ubuntu 22.04.4, you can quickly install it through Snapcraft.
+Use a third-party tool to create some business databases and business tables in ClickHouse.
+Taking DBeaver Community as an example, if you use Ubuntu 24.04, you can quickly install it through Snapcraft.
 
 ```shell
 sudo apt update && sudo apt upgrade -y
-sudo snap install dbeaver-ce
+sudo snap install dbeaver-ce --classic
 snap run dbeaver-ce
 ```
 
@@ -91,8 +88,42 @@ TRUNCATE TABLE t_order;
 
 ### Create ShardingSphere data source in business project
 
-After the business project introduces the dependencies involved in `prerequisites`, 
-write the ShardingSphere data source configuration file `demo.yaml` on the classpath of the business project.
+After including the dependencies related to the `Prerequisites` in the business project, add the following additional dependencies,
+
+```xml
+<dependency>
+    <groupId>org.apache.shardingsphere</groupId>
+    <artifactId>shardingsphere-jdbc</artifactId>
+    <version>${shardingsphere.version}</version>
+</dependency>
+<dependency>
+    <groupId>org.apache.shardingsphere</groupId>
+    <artifactId>shardingsphere-infra-data-source-pool-hikari</artifactId>
+    <version>${shardingsphere.version}</version>
+</dependency>
+<dependency>
+    <groupId>org.apache.shardingsphere</groupId>
+    <artifactId>shardingsphere-infra-url-classpath</artifactId>
+    <version>${shardingsphere.version}</version>
+</dependency>
+<dependency>
+    <groupId>org.apache.shardingsphere</groupId>
+    <artifactId>shardingsphere-standalone-mode-repository-memory</artifactId>
+    <version>${shardingsphere.version}</version>
+</dependency>
+<dependency>
+    <groupId>org.apache.shardingsphere</groupId>
+    <artifactId>shardingsphere-sharding-core</artifactId>
+    <version>${shardingsphere.version}</version>
+</dependency>
+<dependency>
+    <groupId>org.apache.shardingsphere</groupId>
+    <artifactId>shardingsphere-authority-simple</artifactId>
+    <version>${shardingsphere.version}</version>
+</dependency>
+```
+
+Write the ShardingSphere data source configuration file `demo.yaml` on the classpath of the business project.
 
 ```yaml
 dataSources:
@@ -118,14 +149,17 @@ rules:
 - !SHARDING
     tables:
       t_order:
-        actualDataNodes:
-        keyGenerateStrategy:
-          column: order_id
-          keyGeneratorName: snowflake
+        actualDataNodes: <LITERAL>ds_0.t_order, ds_1.t_order, ds_2.t_order
     defaultDatabaseStrategy:
       standard:
         shardingColumn: user_id
         shardingAlgorithmName: inline
+    keyGenerateStrategies:
+      t_order_order_id:
+        keyGenerateType: column
+        keyGeneratorName: snowflake
+        logicTable: t_order
+        keyGenerateColumn: order_id
     shardingAlgorithms:
       inline:
         type: INLINE
@@ -156,7 +190,7 @@ public class ExampleUtils {
              Statement statement = connection.createStatement()) {
             statement.execute("INSERT INTO t_order (user_id, order_type, address_id, status) VALUES (1, 1, 1, 'INSERT_TEST')");
             statement.executeQuery("SELECT * FROM t_order");
-            statement.execute("alter table t_order delete where order_id=1");
+            statement.execute("alter table t_order delete where user_id=1");
         }
     }
 }
@@ -168,27 +202,15 @@ public class ExampleUtils {
 
 ShardingSphere JDBC DataSource does not yet support executing ClickHouse's `create table`, `truncate table`,
 and `drop table` statements.
-Users should consider submitting a PR containing unit tests for ShardingSphere.
+The current ShardingSphere parsing of ClickHouse's `INNER JOIN` syntax has shortcomings, 
+and it may return incorrect query results for SQL statements such as `SELECT i.* FROM t_order o, t_order_item i WHERE o.order_id = i.order_id`.
 
 ### Key Generate restrictions
 
-The column type corresponding to the Key Generate function of ClickHouse itself is `UUID`, 
-and `UUID` is received as `java.util.UUID` in ClickHouse JDBC Driver,
-refer to https://github.com/ClickHouse/ClickHouse/issues/56228 .
-The column type corresponding to the Key Generate SPI implementation of ShardingSphere's `SNOWFLAKE` is `UInt64`,
-which is received as `java.lang.Long` in ShardingSphere JDBC Driver.
-
-When configuring ShardingSphere to connect to ClickHouse, 
-if ShardingSphere is also configured to use the Key Generate SPI implementation of `SNOWFLAKE`,
-the column type in the ClickHouse real database used by ShardingSphere's Key Generate function should not be set to `UUID`.
-
-Because `com.clickhouse.jdbc.ClickHouseConnection#prepareStatement(String, int)` of `com.clickhouse:clickhouse-jdbc:0.6.3:http`
-Maven module intentionally throws an exception when `autoGeneratedKeys` is `java.sql.Statement.RETURN_GENERATED_KEYS`,
-to prevent ShardingSphere from proxying `com.clickhouse.jdbc.internal.ClickHouseConnectionImpl` normally,
-therefore, if users need to obtain the Key generated by ShardingSphere from the JDBC business code, 
-they need to set `autoGeneratedKeys` to `java.sql.Statement.NO_GENERATED_KEYS`.
-
-A possible example is as follows,
+Due to the issue mentioned in https://github.com/ClickHouse/ClickHouse/issues/21697 ,
+because ClickHouse does not support the `INSERT ... RETURNING` syntax,
+developers cannot obtain distributed sequences after executing `INSERT` SQL into ShardingSphere's logical data source. 
+Specifically, the following operations are not allowed:
 
 ```java
 import com.zaxxer.hikari.HikariConfig;
@@ -203,7 +225,7 @@ public class ExampleTest {
              Connection connection = dataSource.getConnection();
              PreparedStatement preparedStatement = connection.prepareStatement(
                      "INSERT INTO t_order (user_id, order_type, address_id, status) VALUES (1, 1, 1, 'INSERT_TEST')",
-                     Statement.NO_GENERATED_KEYS
+                     Statement.RETURN_GENERATED_KEYS
              )) {
             preparedStatement.executeUpdate();
             try (ResultSet resultSet = preparedStatement.getGeneratedKeys()) {

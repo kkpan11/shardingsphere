@@ -8,7 +8,7 @@ weight = 2
 
 ![shardingsphere-proxy](https://shardingsphere.apache.org/document/current/img/shardingsphere-proxy_v2.png)
 
-ShardingSphere-Proxy 的定位为透明化的数据库代理，理论上支持任何使用 MySQL、PostgreSQL、openGauss 协议的客户端操作数据，对异构语言、运维场景更友好。
+ShardingSphere-Proxy 的定位为透明化的数据库代理，理论上支持任何使用 MySQL、PostgreSQL、openGauss 和 Firebird 协议的客户端操作数据，对异构语言、运维场景更友好。
 
 ## 使用限制
 
@@ -40,9 +40,9 @@ ShardingSphere-Proxy 对系统库/表（如 information_schema、pg_catalog）�
 
 3. 引入依赖
 
-如果后端连接 PostgreSQL 或 openGauss 数据库，不需要引入额外依赖。
+如果后端连接 PostgreSQL、openGauss 或 Firebird 数据库，不需要引入额外依赖。
 
-如果后端连接 MySQL 数据库，请下载 [mysql-connector-java-5.1.49.jar](https://repo1.maven.org/maven2/mysql/mysql-connector-java/5.1.49/mysql-connector-java-5.1.49.jar) 或者 [mysql-connector-java-8.0.11.jar](https://repo1.maven.org/maven2/mysql/mysql-connector-java/8.0.11/mysql-connector-java-8.0.11.jar)，并将其放入 `%SHARDINGSPHERE_PROXY_HOME%/ext-lib` 目录。
+如果后端连接 MySQL 数据库，请下载 [mysql-connector-j-8.4.0.jar](https://repo1.maven.org/maven2/com/mysql/mysql-connector-j/8.4.0/mysql-connector-j-8.4.0.jar)，并将其放入 `%SHARDINGSPHERE_PROXY_HOME%/ext-lib` 目录。
 
 4. 启动服务
 
@@ -59,14 +59,6 @@ sh %SHARDINGSPHERE_PROXY_HOME%/bin/start.sh
 ```bash
 sh %SHARDINGSPHERE_PROXY_HOME%/bin/start.sh ${proxy_port} ${proxy_conf_directory}
 ```
-
-* 强制启动
-
-```bash
-sh %SHARDINGSPHERE_PROXY_HOME%/bin/start.sh -f
-```
-
-使用 `-f` 参数强制启动 Proxy，该参数会忽略启动期间异常的数据源，强行启动 Proxy，用户可以在 Proxy 启动完成后，通过 DistSQL 移除异常数据源。
 
 5. 使用 ShardingSphere-Proxy
 

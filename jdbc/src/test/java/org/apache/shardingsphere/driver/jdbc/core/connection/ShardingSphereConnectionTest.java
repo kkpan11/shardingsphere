@@ -23,7 +23,7 @@ import org.apache.shardingsphere.infra.metadata.database.resource.unit.StorageUn
 import org.apache.shardingsphere.infra.metadata.database.rule.RuleMetaData;
 import org.apache.shardingsphere.infra.session.connection.ConnectionContext;
 import org.apache.shardingsphere.mode.manager.ContextManager;
-import org.apache.shardingsphere.test.fixture.jdbc.MockedDataSource;
+import org.apache.shardingsphere.test.infra.fixture.jdbc.MockedDataSource;
 import org.apache.shardingsphere.transaction.ConnectionTransaction;
 import org.apache.shardingsphere.transaction.ConnectionTransaction.DistributedTransactionOperationType;
 import org.apache.shardingsphere.transaction.api.TransactionType;
@@ -39,8 +39,8 @@ import java.util.Collections;
 import java.util.Optional;
 import java.util.Properties;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
@@ -122,7 +122,7 @@ class ShardingSphereConnectionTest {
         when(connectionTransaction.getDistributedTransactionOperationType(false)).thenReturn(Optional.of(DistributedTransactionOperationType.BEGIN));
         when(connectionTransaction.getTransactionType()).thenReturn(TransactionType.XA);
         try (ShardingSphereConnection connection = new ShardingSphereConnection("foo_db", mockContextManager())) {
-            final DriverDatabaseConnectionManager databaseConnectionManager = mockConnectionManager(connection, connectionTransaction);
+            DriverDatabaseConnectionManager databaseConnectionManager = mockConnectionManager(connection, connectionTransaction);
             connection.setAutoCommit(false);
             assertFalse(connection.getAutoCommit());
             verify(databaseConnectionManager).begin();

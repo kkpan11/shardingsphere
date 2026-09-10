@@ -20,7 +20,7 @@ package org.apache.shardingsphere.encrypt.checker.sql.insert;
 import org.apache.shardingsphere.encrypt.exception.syntax.UnsupportedEncryptSQLException;
 import org.apache.shardingsphere.encrypt.rewrite.token.generator.fixture.EncryptGeneratorFixtureBuilder;
 import org.apache.shardingsphere.infra.binder.context.statement.SQLStatementContext;
-import org.apache.shardingsphere.infra.binder.context.statement.dml.InsertStatementContext;
+import org.apache.shardingsphere.infra.binder.context.statement.type.dml.InsertStatementContext;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
@@ -50,7 +50,7 @@ class EncryptInsertSelectSupportedCheckerTest {
     @Test
     void assertCheckWithoutEncryptTable() {
         assertDoesNotThrow(() -> new EncryptInsertSelectSupportedChecker()
-                .check(EncryptGeneratorFixtureBuilder.createEncryptRule(), null, null, mockInsertStatementContext("t_order")));
+                .check(EncryptGeneratorFixtureBuilder.createEncryptRule(), null, null, mockInsertStatementContext("t_order_plain")));
     }
     
     @Test

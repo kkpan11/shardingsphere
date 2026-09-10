@@ -19,11 +19,8 @@ package org.apache.shardingsphere.test.natived.jdbc.databases;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
-import org.apache.shardingsphere.driver.jdbc.core.connection.ShardingSphereConnection;
-import org.apache.shardingsphere.infra.database.core.DefaultDatabase;
-import org.apache.shardingsphere.infra.metadata.database.resource.unit.StorageUnit;
-import org.apache.shardingsphere.mode.manager.ContextManager;
 import org.apache.shardingsphere.test.natived.commons.TestShardingService;
+import org.apache.shardingsphere.test.natived.commons.util.ResourceUtils;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,9 +38,7 @@ import java.sql.Statement;
 import java.time.Duration;
 import java.util.Properties;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 @Testcontainers
 @EnabledInNativeImage
@@ -55,7 +50,7 @@ class OpenGaussTest {
     
     @SuppressWarnings("resource")
     @Container
-    private final GenericContainer<?> container = new GenericContainer<>("opengauss/opengauss-server:7.0.0-RC1")
+    private final GenericContainer<?> container = new GenericContainer<>("opengauss/opengauss-server:7.0.0-RC3.B025-openEuler22.03")
             .withEnv("GS_PASSWORD", password)
             .withExposedPorts(5432);
     
@@ -67,20 +62,14 @@ class OpenGaussTest {
     
     @BeforeEach
     void beforeEach() {
-        assertThat(System.getProperty(systemPropKeyPrefix + "ds0.jdbc-url"), is(nullValue()));
-        assertThat(System.getProperty(systemPropKeyPrefix + "ds1.jdbc-url"), is(nullValue()));
-        assertThat(System.getProperty(systemPropKeyPrefix + "ds2.jdbc-url"), is(nullValue()));
+        assertNull(System.getProperty(systemPropKeyPrefix + "ds0.jdbc-url"));
+        assertNull(System.getProperty(systemPropKeyPrefix + "ds1.jdbc-url"));
+        assertNull(System.getProperty(systemPropKeyPrefix + "ds2.jdbc-url"));
     }
     
     @AfterEach
     void afterEach() throws SQLException {
-        try (Connection connection = logicDataSource.getConnection()) {
-            ContextManager contextManager = connection.unwrap(ShardingSphereConnection.class).getContextManager();
-            for (StorageUnit each : contextManager.getStorageUnits(DefaultDatabase.LOGIC_NAME).values()) {
-                each.getDataSource().unwrap(HikariDataSource.class).close();
-            }
-            contextManager.close();
-        }
+        ResourceUtils.closeJdbcDataSource(logicDataSource);
         System.clearProperty(systemPropKeyPrefix + "ds0.jdbc-url");
         System.clearProperty(systemPropKeyPrefix + "ds1.jdbc-url");
         System.clearProperty(systemPropKeyPrefix + "ds2.jdbc-url");

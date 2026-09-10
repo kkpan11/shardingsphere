@@ -25,13 +25,16 @@ import org.apache.shardingsphere.readwritesplitting.exception.actual.DuplicateRe
 import org.apache.shardingsphere.readwritesplitting.exception.actual.MissingRequiredReadwriteSplittingActualDataSourceException;
 import org.apache.shardingsphere.readwritesplitting.exception.actual.ReadwriteSplittingActualDataSourceNotFoundException;
 import org.apache.shardingsphere.readwritesplitting.exception.logic.MissingRequiredReadwriteSplittingDataSourceRuleNameException;
+import org.apache.shardingsphere.test.infra.fixture.jdbc.MockedDataSource;
 import org.junit.jupiter.api.Test;
 
-import javax.sql.DataSource;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
@@ -71,15 +74,19 @@ class ReadwriteSplittingDataSourceRuleConfigurationCheckerTest {
     @Test
     void assertCheckWithDuplicatedWriteDataSourceName() {
         ReadwriteSplittingDataSourceGroupRuleConfiguration config = new ReadwriteSplittingDataSourceGroupRuleConfiguration("foo_group", "write_ds", Arrays.asList("read_ds0", "read_ds1"), "foo_algo");
-        assertThrows(DuplicateReadwriteSplittingActualDataSourceException.class, () -> new ReadwriteSplittingDataSourceRuleConfigurationChecker("foo_db",
-                config, Collections.singletonMap("write_ds", mock(DataSource.class))).check(new HashSet<>(Collections.singleton("write_ds")), Collections.emptyList(), Collections.emptyList()));
+        SQLException actual = assertThrows(DuplicateReadwriteSplittingActualDataSourceException.class, () -> new ReadwriteSplittingDataSourceRuleConfigurationChecker("foo_db", config,
+                Collections.singletonMap("write_ds", new MockedDataSource())).check(new HashSet<>(Collections.singleton("write_ds")), Collections.emptyList(), Collections.emptyList()))
+                .toSQLException();
+        assertThat(actual.getErrorCode(), is(20204));
+        assertThat(actual.getSQLState(), is("42S01"));
+        assertThat(actual.getMessage(), is("Readwrite-splitting WRITE data source 'write_ds' is duplicated in database.data_source_rule: 'foo_db'.'foo_group'."));
     }
     
     @Test
     void assertCheckSuccess() {
         ReadwriteSplittingDataSourceGroupRuleConfiguration config = new ReadwriteSplittingDataSourceGroupRuleConfiguration("foo_group", "write_ds", Arrays.asList("read_ds0", "read_ds1"), "foo_algo");
         assertDoesNotThrow(() -> new ReadwriteSplittingDataSourceRuleConfigurationChecker("foo_db", config,
-                Collections.singletonMap("write_ds", mock(DataSource.class))).check(new HashSet<>(), new HashSet<>(), Arrays.asList(mock(ShardingSphereRule.class, RETURNS_DEEP_STUBS), mockRule())));
+                Collections.singletonMap("write_ds", new MockedDataSource())).check(new HashSet<>(), new HashSet<>(), Arrays.asList(mock(ShardingSphereRule.class, RETURNS_DEEP_STUBS), mockRule())));
     }
     
     private static ShardingSphereRule mockRule() {

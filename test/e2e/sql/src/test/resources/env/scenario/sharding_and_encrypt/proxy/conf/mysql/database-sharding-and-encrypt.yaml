@@ -20,8 +20,9 @@ databaseName: sharding_and_encrypt
 dataSources:
   encrypt_ds_0:
     url: jdbc:mysql://mysql.sharding_and_encrypt.host:3306/encrypt_ds_0?useSSL=false&characterEncoding=utf-8
+    driverClassName: com.mysql.cj.jdbc.Driver
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
@@ -29,84 +30,93 @@ dataSources:
     minPoolSize: 2
   encrypt_ds_1:
     url: jdbc:mysql://mysql.sharding_and_encrypt.host:3306/encrypt_ds_1?useSSL=false&characterEncoding=utf-8
+    driverClassName: com.mysql.cj.jdbc.Driver
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   encrypt_ds_2:
     url: jdbc:mysql://mysql.sharding_and_encrypt.host:3306/encrypt_ds_2?useSSL=false&characterEncoding=utf-8
+    driverClassName: com.mysql.cj.jdbc.Driver
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   encrypt_ds_3:
     url: jdbc:mysql://mysql.sharding_and_encrypt.host:3306/encrypt_ds_3?useSSL=false&characterEncoding=utf-8
+    driverClassName: com.mysql.cj.jdbc.Driver
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   encrypt_ds_4:
     url: jdbc:mysql://mysql.sharding_and_encrypt.host:3306/encrypt_ds_4?useSSL=false&characterEncoding=utf-8
+    driverClassName: com.mysql.cj.jdbc.Driver
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   encrypt_ds_5:
     url: jdbc:mysql://mysql.sharding_and_encrypt.host:3306/encrypt_ds_5?useSSL=false&characterEncoding=utf-8
+    driverClassName: com.mysql.cj.jdbc.Driver
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   encrypt_ds_6:
     url: jdbc:mysql://mysql.sharding_and_encrypt.host:3306/encrypt_ds_6?useSSL=false&characterEncoding=utf-8
+    driverClassName: com.mysql.cj.jdbc.Driver
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   encrypt_ds_7:
     url: jdbc:mysql://mysql.sharding_and_encrypt.host:3306/encrypt_ds_7?useSSL=false&characterEncoding=utf-8
+    driverClassName: com.mysql.cj.jdbc.Driver
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   encrypt_ds_8:
     url: jdbc:mysql://mysql.sharding_and_encrypt.host:3306/encrypt_ds_8?useSSL=false&characterEncoding=utf-8
+    driverClassName: com.mysql.cj.jdbc.Driver
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   encrypt_ds_9:
     url: jdbc:mysql://mysql.sharding_and_encrypt.host:3306/encrypt_ds_9?useSSL=false&characterEncoding=utf-8
+    driverClassName: com.mysql.cj.jdbc.Driver
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
 
 rules:
@@ -120,24 +130,21 @@ rules:
       databaseStrategy:
         standard:
           shardingColumn: user_id
-          shardingAlgorithmName: it_standard_fixture
+          shardingAlgorithmName: e2e_standard_fixture
       tableStrategy:
         standard:
           shardingColumn: order_id
-          shardingAlgorithmName: it_standard_fixture
+          shardingAlgorithmName: e2e_standard_fixture
     t_order_item:
       actualDataNodes: encrypt_ds_${0..9}.t_order_item_${0..9}
       databaseStrategy:
         standard:
           shardingColumn: user_id
-          shardingAlgorithmName: it_standard_fixture
+          shardingAlgorithmName: e2e_standard_fixture
       tableStrategy:
         standard:
           shardingColumn: order_id
-          shardingAlgorithmName: it_standard_fixture
-      keyGenerateStrategy:
-        column: item_id
-        keyGeneratorName: constant
+          shardingAlgorithmName: e2e_standard_fixture
       auditStrategy:
         auditorNames:
           - auditor_constant
@@ -147,14 +154,11 @@ rules:
       databaseStrategy:
         standard:
           shardingColumn: user_id
-          shardingAlgorithmName: it_standard_fixture
+          shardingAlgorithmName: e2e_standard_fixture
       tableStrategy:
         standard:
           shardingColumn: item_id
-          shardingAlgorithmName: it_standard_fixture
-      keyGenerateStrategy:
-        column: item_id
-        keyGeneratorName: constant
+          shardingAlgorithmName: e2e_standard_fixture
       auditStrategy:
         auditorNames:
           - auditor_constant
@@ -164,14 +168,11 @@ rules:
       databaseStrategy:
         standard:
           shardingColumn: address_id
-          shardingAlgorithmName: it_standard_fixture
+          shardingAlgorithmName: e2e_standard_fixture
       tableStrategy:
         standard:
           shardingColumn: user_id
-          shardingAlgorithmName: it_standard_fixture
-      keyGenerateStrategy:
-        column: user_id
-        keyGeneratorName: constant
+          shardingAlgorithmName: e2e_standard_fixture
       auditStrategy:
         auditorNames:
           - auditor_constant
@@ -181,26 +182,43 @@ rules:
       databaseStrategy:
         standard:
           shardingColumn: address_id
-          shardingAlgorithmName: it_standard_fixture
+          shardingAlgorithmName: e2e_standard_fixture
       tableStrategy:
         standard:
           shardingColumn: user_id
-          shardingAlgorithmName: it_standard_fixture
+          shardingAlgorithmName: e2e_standard_fixture
+  keyGenerateStrategies:
+    t_order_item_item_id:
+      keyGenerateType: column
+      keyGeneratorName: constant
+      logicTable: t_order_item
+      keyGenerateColumn: item_id
+    t_user_item_item_id:
+      keyGenerateType: column
+      keyGeneratorName: constant
+      logicTable: t_user_item
+      keyGenerateColumn: item_id
+    t_user_user_id:
+      keyGenerateType: column
+      keyGeneratorName: constant
+      logicTable: t_user
+      keyGenerateColumn: user_id
+
   bindingTables:
     - ref_0:t_user,t_user_item,t_user_details
     - ref_1:t_order,t_order_item
 
   shardingAlgorithms:
-    it_standard_fixture:
-      type: IT.STANDARD.FIXTURE
+    e2e_standard_fixture:
+      type: E2E.SHARDING.STANDARD.FIXTURE
 
   keyGenerators:
     constant:
-      type: IT.FIXTURE
+      type: E2E.KEYGEN.FIXTURE
 
   auditors:
     auditor_constant:
-      type: IT.AUDITOR.FIXTURE
+      type: E2E.AUDITOR.FIXTURE
 
 - !BROADCAST
   tables:

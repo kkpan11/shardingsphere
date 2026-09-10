@@ -41,7 +41,7 @@ rules:
 dataSources:
   unique_ds:
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
-    driverClassName: com.mysql.jdbc.Driver
+    driverClassName: com.mysql.cj.jdbc.Driver
     jdbcUrl: jdbc:mysql://localhost:3306/demo_ds?serverTimezone=UTC&useSSL=false&useUnicode=true&characterEncoding=UTF-8
     username: root
     password:

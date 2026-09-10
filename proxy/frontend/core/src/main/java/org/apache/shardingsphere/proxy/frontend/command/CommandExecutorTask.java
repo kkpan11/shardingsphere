@@ -22,21 +22,21 @@ import io.netty.buffer.CompositeByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.shardingsphere.db.protocol.constant.CommonConstants;
-import org.apache.shardingsphere.db.protocol.event.WriteCompleteEvent;
-import org.apache.shardingsphere.db.protocol.packet.command.CommandPacket;
-import org.apache.shardingsphere.db.protocol.packet.command.CommandPacketType;
-import org.apache.shardingsphere.db.protocol.packet.DatabasePacket;
-import org.apache.shardingsphere.db.protocol.payload.PacketPayload;
-import org.apache.shardingsphere.infra.exception.dialect.exception.SQLDialectException;
+import org.apache.shardingsphere.database.exception.core.exception.SQLDialectException;
+import org.apache.shardingsphere.database.protocol.constant.CommonConstants;
+import org.apache.shardingsphere.database.protocol.packet.DatabasePacket;
+import org.apache.shardingsphere.database.protocol.packet.command.CommandPacket;
+import org.apache.shardingsphere.database.protocol.packet.command.CommandPacketType;
+import org.apache.shardingsphere.database.protocol.payload.PacketPayload;
 import org.apache.shardingsphere.infra.config.props.ConfigurationPropertyKey;
-import org.apache.shardingsphere.infra.exception.core.external.sql.ShardingSphereSQLException;
+import org.apache.shardingsphere.infra.exception.external.sql.ShardingSphereSQLException;
 import org.apache.shardingsphere.proxy.backend.context.ProxyContext;
 import org.apache.shardingsphere.proxy.backend.exception.BackendConnectionException;
 import org.apache.shardingsphere.proxy.backend.session.ConnectionSession;
 import org.apache.shardingsphere.proxy.frontend.command.executor.CommandExecutor;
 import org.apache.shardingsphere.proxy.frontend.command.executor.QueryCommandExecutor;
 import org.apache.shardingsphere.proxy.frontend.constant.LogMDCConstants;
+import org.apache.shardingsphere.proxy.frontend.event.WriteCompleteEvent;
 import org.apache.shardingsphere.proxy.frontend.exception.ExpectedExceptions;
 import org.apache.shardingsphere.proxy.frontend.spi.DatabaseProtocolFrontendEngine;
 import org.slf4j.MDC;
@@ -86,25 +86,7 @@ public final class CommandExecutorTask implements Runnable {
             // CHECKSTYLE:ON
             processException(new RuntimeException(error));
         } finally {
-            connectionSession.clearQueryContext();
-            Collection<SQLException> exceptions = Collections.emptyList();
-            try {
-                connectionSession.getDatabaseConnectionManager().closeExecutionResources();
-            } catch (final BackendConnectionException ex) {
-                exceptions = ex.getExceptions().stream().filter(SQLException.class::isInstance).map(SQLException.class::cast).collect(Collectors.toList());
-            }
-            if (isNeedFlush) {
-                context.flush();
-            }
-            processClosedExceptions(exceptions);
-            context.pipeline().fireUserEventTriggered(new WriteCompleteEvent());
-            if (sqlShowEnabled) {
-                clearLogMDC();
-            }
-            if (message instanceof CompositeByteBuf) {
-                releaseCompositeByteBuf((CompositeByteBuf) message);
-            }
-            ((ByteBuf) message).release();
+            finish(isNeedFlush, sqlShowEnabled);
         }
     }
     
@@ -122,6 +104,20 @@ public final class CommandExecutorTask implements Runnable {
     }
     
     private boolean doExecuteCommand(final ChannelHandlerContext context, final CommandExecuteEngine commandExecuteEngine, final CommandExecutor commandExecutor) throws SQLException {
+        boolean result;
+        try {
+            result = executeCommandAndWriteResponse(context, commandExecuteEngine, commandExecutor);
+            // CHECKSTYLE:OFF
+        } catch (final SQLException | RuntimeException | Error ex) {
+            // CHECKSTYLE:ON
+            closeCommandExecutor(commandExecutor, ex);
+            throw ex;
+        }
+        commandExecutor.close();
+        return result;
+    }
+    
+    private boolean executeCommandAndWriteResponse(final ChannelHandlerContext context, final CommandExecuteEngine commandExecuteEngine, final CommandExecutor commandExecutor) throws SQLException {
         try {
             Collection<? extends DatabasePacket> responsePackets = commandExecutor.execute();
             if (responsePackets.isEmpty()) {
@@ -135,8 +131,16 @@ public final class CommandExecutorTask implements Runnable {
         } catch (final SQLException | ShardingSphereSQLException | SQLDialectException ex) {
             databaseProtocolFrontendEngine.handleException(connectionSession, ex);
             throw ex;
-        } finally {
+        }
+    }
+    
+    private void closeCommandExecutor(final CommandExecutor commandExecutor, final Throwable executionException) {
+        try {
             commandExecutor.close();
+            // CHECKSTYLE:OFF
+        } catch (final SQLException | RuntimeException | Error ex) {
+            // CHECKSTYLE:ON
+            executionException.addSuppressed(ex);
         }
     }
     
@@ -149,6 +153,28 @@ public final class CommandExecutorTask implements Runnable {
         context.write(databaseProtocolFrontendEngine.getCommandExecuteEngine().getErrorPacket(cause));
         databaseProtocolFrontendEngine.getCommandExecuteEngine().getOtherPacket(connectionSession).ifPresent(context::write);
         context.flush();
+    }
+    
+    private void finish(final boolean isNeedFlush, final boolean sqlShowEnabled) {
+        connectionSession.clearQueryContext();
+        Collection<SQLException> exceptions = Collections.emptyList();
+        try {
+            connectionSession.getDatabaseConnectionManager().closeExecutionResources();
+        } catch (final BackendConnectionException ex) {
+            exceptions = ex.getExceptions().stream().filter(SQLException.class::isInstance).map(SQLException.class::cast).collect(Collectors.toList());
+        }
+        if (isNeedFlush) {
+            context.flush();
+        }
+        processClosedExceptions(exceptions);
+        context.pipeline().fireUserEventTriggered(new WriteCompleteEvent());
+        if (sqlShowEnabled) {
+            clearLogMDC();
+        }
+        if (message instanceof CompositeByteBuf) {
+            releaseCompositeByteBuf((CompositeByteBuf) message);
+        }
+        ((ByteBuf) message).release();
     }
     
     private void processClosedExceptions(final Collection<SQLException> exceptions) {

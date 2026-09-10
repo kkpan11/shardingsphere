@@ -19,26 +19,35 @@ package org.apache.shardingsphere.infra.executor.sql.execute.result.query.impl.d
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Types;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class JDBCQueryResultMetaDataTest {
+    
+    private ResultSetMetaData resultSetMetaData;
     
     private JDBCQueryResultMetaData queryResultMetaData;
     
     @BeforeEach
     void setUp() throws SQLException {
-        queryResultMetaData = new JDBCQueryResultMetaData(mockResultSetMetaData());
+        resultSetMetaData = mockResultSetMetaData();
+        queryResultMetaData = new JDBCQueryResultMetaData(resultSetMetaData);
     }
     
     private ResultSetMetaData mockResultSetMetaData() throws SQLException {
@@ -55,6 +64,11 @@ class JDBCQueryResultMetaDataTest {
         when(result.isNullable(1)).thenReturn(ResultSetMetaData.columnNoNulls);
         when(result.isAutoIncrement(1)).thenReturn(true);
         return result;
+    }
+    
+    @Test
+    void assertGetResultSetMetaData() {
+        assertThat(queryResultMetaData.getResultSetMetaData(), is(resultSetMetaData));
     }
     
     @Test

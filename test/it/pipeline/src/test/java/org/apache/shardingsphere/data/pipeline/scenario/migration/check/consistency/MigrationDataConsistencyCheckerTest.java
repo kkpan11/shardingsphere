@@ -32,7 +32,6 @@ import org.apache.shardingsphere.data.pipeline.scenario.migration.config.yaml.sw
 import org.apache.shardingsphere.data.pipeline.scenario.migration.context.MigrationJobItemContext;
 import org.apache.shardingsphere.elasticjob.infra.pojo.JobConfigurationPOJO;
 import org.apache.shardingsphere.infra.util.yaml.YamlEngine;
-import org.apache.shardingsphere.mode.manager.ContextManager;
 import org.apache.shardingsphere.mode.repository.cluster.ClusterPersistRepository;
 import org.apache.shardingsphere.test.it.data.pipeline.core.util.JobConfigurationBuilder;
 import org.apache.shardingsphere.test.it.data.pipeline.core.util.PipelineContextUtils;
@@ -44,8 +43,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Map;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -53,7 +52,7 @@ class MigrationDataConsistencyCheckerTest {
     
     @BeforeAll
     static void beforeClass() {
-        PipelineContextUtils.mockModeConfigAndContextManager();
+        PipelineContextUtils.initPipelineContextManager();
     }
     
     @Test
@@ -88,8 +87,7 @@ class MigrationDataConsistencyCheckerTest {
     }
     
     private ClusterPersistRepository getClusterPersistRepository() {
-        ContextManager contextManager = PipelineContextManager.getContext(PipelineContextUtils.getContextKey()).getContextManager();
-        return (ClusterPersistRepository) contextManager.getPersistServiceFacade().getRepository();
+        return (ClusterPersistRepository) PipelineContextManager.getContext(PipelineContextUtils.getContextKey()).getPersistServiceFacade().getRepository();
     }
     
     private ConsistencyCheckJobItemProgressContext createConsistencyCheckJobItemProgressContext(final String jobId) {

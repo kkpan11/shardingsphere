@@ -22,12 +22,12 @@ import org.apache.shardingsphere.infra.datanode.DataNodeInfo;
 import org.apache.shardingsphere.infra.exception.generic.UnsupportedSQLOperationException;
 import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 import org.apache.shardingsphere.infra.util.datetime.DateTimeFormatterFactory;
+import org.apache.shardingsphere.infra.util.props.PropertiesBuilder;
+import org.apache.shardingsphere.infra.util.props.PropertiesBuilder.Property;
 import org.apache.shardingsphere.sharding.api.sharding.standard.PreciseShardingValue;
 import org.apache.shardingsphere.sharding.api.sharding.standard.RangeShardingValue;
 import org.apache.shardingsphere.sharding.exception.data.InvalidDatetimeFormatException;
 import org.apache.shardingsphere.sharding.spi.ShardingAlgorithm;
-import org.apache.shardingsphere.test.util.PropertiesBuilder;
-import org.apache.shardingsphere.test.util.PropertiesBuilder.Property;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -49,8 +49,8 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.Properties;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -193,8 +193,8 @@ class IntervalShardingAlgorithmTest {
     
     @Test
     void assertRangeDoShardingByDays() {
-        final int expectSize = 24;
-        final int stepAmount = 2;
+        int expectSize = 24;
+        int stepAmount = 2;
         IntervalShardingAlgorithm algorithm = createAlgorithm("yyyy-MM-dd HH:mm:ss.SSS", "2021-06-01 00:00:00.000",
                 "2021-07-31 00:00:00.000", "yyyyMMdd", stepAmount, "DAYS");
         Collection<String> availableTargetNames = new LinkedList<>();
@@ -203,40 +203,40 @@ class IntervalShardingAlgorithmTest {
                 availableTargetNames.add(String.format("t_order_%04d%02d%02d", 2021, j, i));
             }
         }
-        final LocalDateTime lower = LocalDateTime.of(2021, 6, 15, 2, 25, 27, 0);
-        final LocalDateTime upper = LocalDateTime.of(2021, 7, 31, 2, 25, 27, 0);
-        final RangeShardingValue<Comparable<?>> shardingValueAsLocalDateTime = createShardingValue(lower, upper);
+        LocalDateTime lower = LocalDateTime.of(2021, 6, 15, 2, 25, 27, 0);
+        LocalDateTime upper = LocalDateTime.of(2021, 7, 31, 2, 25, 27, 0);
+        RangeShardingValue<Comparable<?>> shardingValueAsLocalDateTime = createShardingValue(lower, upper);
         assertThat(algorithm.doSharding(availableTargetNames, shardingValueAsLocalDateTime).size(), is(expectSize));
-        final RangeShardingValue<Comparable<?>> shardingValueAsInstant = createShardingValue(
+        RangeShardingValue<Comparable<?>> shardingValueAsInstant = createShardingValue(
                 lower.atZone(ZoneId.systemDefault()).toInstant(),
                 upper.atZone(ZoneId.systemDefault()).toInstant());
         assertThat(algorithm.doSharding(availableTargetNames, shardingValueAsInstant).size(), is(expectSize));
-        final RangeShardingValue<Comparable<?>> shardingValueAsTimestamp = createShardingValue(Timestamp.valueOf(lower), Timestamp.valueOf(upper));
+        RangeShardingValue<Comparable<?>> shardingValueAsTimestamp = createShardingValue(Timestamp.valueOf(lower), Timestamp.valueOf(upper));
         assertThat(algorithm.doSharding(availableTargetNames, shardingValueAsTimestamp).size(), is(expectSize));
-        final RangeShardingValue<Comparable<?>> shardingValueAsOffsetDateTime = createShardingValue(
+        RangeShardingValue<Comparable<?>> shardingValueAsOffsetDateTime = createShardingValue(
                 OffsetDateTime.of(lower, OffsetDateTime.now().getOffset()),
                 OffsetDateTime.of(upper, OffsetDateTime.now().getOffset()));
         assertThat(algorithm.doSharding(availableTargetNames, shardingValueAsOffsetDateTime).size(), is(expectSize));
-        final RangeShardingValue<Comparable<?>> shardingValueAsZonedDateTime = createShardingValue(
+        RangeShardingValue<Comparable<?>> shardingValueAsZonedDateTime = createShardingValue(
                 ZonedDateTime.of(lower, ZoneId.systemDefault()),
                 ZonedDateTime.of(upper, ZoneId.systemDefault()));
         assertThat(algorithm.doSharding(availableTargetNames, shardingValueAsZonedDateTime).size(), is(expectSize));
-        final RangeShardingValue<Comparable<?>> shardingValueAsUtilDate = createShardingValue(
+        RangeShardingValue<Comparable<?>> shardingValueAsUtilDate = createShardingValue(
                 Date.from(lower.atZone(ZoneId.systemDefault()).toInstant()),
                 Date.from(upper.atZone(ZoneId.systemDefault()).toInstant()));
         assertThat(algorithm.doSharding(availableTargetNames, shardingValueAsUtilDate).size(), is(expectSize));
-        final RangeShardingValue<Comparable<?>> shardingValueAsSqlDate = createShardingValue(
+        RangeShardingValue<Comparable<?>> shardingValueAsSqlDate = createShardingValue(
                 new java.sql.Date(lower.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()),
                 new java.sql.Date(upper.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()));
         assertThrows(UnsupportedTemporalTypeException.class, () -> algorithm.doSharding(availableTargetNames, shardingValueAsSqlDate),
                 "SQL Date values do not have a time component.");
         assertThat(createAlgorithm("yyyy-MM-dd", "2021-06-01",
                 "2021-07-31", "yyyyMMdd", stepAmount, null)
-                        .doSharding(availableTargetNames, shardingValueAsSqlDate).size(),
+                .doSharding(availableTargetNames, shardingValueAsSqlDate).size(),
                 is(expectSize));
-        final RangeShardingValue<Comparable<?>> shardingValueAsString = createShardingValue(
-                DateTimeFormatterFactory.getStandardFormatter().format(lower),
-                DateTimeFormatterFactory.getStandardFormatter().format(upper));
+        RangeShardingValue<Comparable<?>> shardingValueAsString = createShardingValue(
+                DateTimeFormatterFactory.getDatetimeFormatter().format(lower),
+                DateTimeFormatterFactory.getDatetimeFormatter().format(upper));
         assertThat(algorithm.doSharding(availableTargetNames, shardingValueAsString).size(), is(expectSize));
         assertThat(shardingAlgorithmByDay.doSharding(availableTablesForDayDataSources, shardingValueAsString).size(), is(expectSize));
     }
@@ -252,8 +252,8 @@ class IntervalShardingAlgorithmTest {
         }
         Collection<String> actualAsLocalDate = createAlgorithm("yyyy-MM-dd", "2021-06-01",
                 "2021-07-31", "yyyyMMdd", stepAmount, null)
-                        .doSharding(availableTargetNames,
-                                createShardingValue(LocalDate.of(2021, 6, 15), LocalDate.of(2021, 7, 31)));
+                .doSharding(availableTargetNames,
+                        createShardingValue(LocalDate.of(2021, 6, 15), LocalDate.of(2021, 7, 31)));
         assertThat(actualAsLocalDate.size(), is(24));
     }
     
@@ -283,7 +283,7 @@ class IntervalShardingAlgorithmTest {
         }
         Collection<String> actual = createAlgorithm("yyyy", "2000",
                 "2022", "yyyy", 2, "Years")
-                        .doSharding(availableTargetNames, createShardingValue(Year.of(2001), Year.of(2013)));
+                .doSharding(availableTargetNames, createShardingValue(Year.of(2001), Year.of(2013)));
         assertThat(actual.size(), is(7));
     }
     
@@ -297,8 +297,8 @@ class IntervalShardingAlgorithmTest {
         }
         Collection<String> actualAsYearMonth = createAlgorithm("yyyy-MM", "2016-01",
                 "2021-12", "yyyyMM", 2, "Years")
-                        .doSharding(availableTargetNames,
-                                createShardingValue(YearMonth.of(2016, 1), YearMonth.of(2020, 1)));
+                .doSharding(availableTargetNames,
+                        createShardingValue(YearMonth.of(2016, 1), YearMonth.of(2020, 1)));
         assertThat(actualAsYearMonth.size(), is(3));
     }
     
@@ -329,7 +329,7 @@ class IntervalShardingAlgorithmTest {
                 new Property("sharding-suffix-pattern", shardingSuffixPattern),
                 new Property("datetime-interval-amount", Integer.toString(datetimeIntervalAmount)));
         if (null != datetimeIntervalUnit) {
-            props.put("datetime-interval-unit", datetimeIntervalUnit);
+            props.setProperty("datetime-interval-unit", datetimeIntervalUnit);
         }
         return (IntervalShardingAlgorithm) TypedSPILoader.getService(ShardingAlgorithm.class, "INTERVAL", props);
     }

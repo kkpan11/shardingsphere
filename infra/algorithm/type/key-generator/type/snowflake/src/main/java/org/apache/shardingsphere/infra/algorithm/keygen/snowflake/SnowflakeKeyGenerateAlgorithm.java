@@ -22,14 +22,14 @@ import lombok.SneakyThrows;
 import org.apache.shardingsphere.infra.algorithm.core.context.AlgorithmSQLContext;
 import org.apache.shardingsphere.infra.algorithm.core.exception.AlgorithmExecuteException;
 import org.apache.shardingsphere.infra.algorithm.core.exception.AlgorithmInitializationException;
-import org.apache.shardingsphere.infra.algorithm.keygen.core.KeyGenerateAlgorithm;
-import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.algorithm.keygen.spi.KeyGenerateAlgorithm;
+import org.apache.shardingsphere.infra.annotation.HighFrequencyInvocation;
+import org.apache.shardingsphere.infra.exception.ShardingSpherePreconditions;
 import org.apache.shardingsphere.infra.instance.ComputeNodeInstanceContext;
 import org.apache.shardingsphere.infra.instance.ComputeNodeInstanceContextAware;
 
-import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.Properties;
@@ -90,7 +90,7 @@ public final class SnowflakeKeyGenerateAlgorithm implements KeyGenerateAlgorithm
     private int maxTolerateTimeDifferenceMillis;
     
     static {
-        EPOCH = LocalDateTime.of(2016, 11, 1, 0, 0, 0).toInstant(ZoneId.systemDefault().getRules().getOffset(Instant.now())).toEpochMilli();
+        EPOCH = LocalDateTime.of(2016, 11, 1, 0, 0, 0).toInstant(ZoneOffset.UTC).toEpochMilli();
     }
     
     @Override
@@ -120,6 +120,7 @@ public final class SnowflakeKeyGenerateAlgorithm implements KeyGenerateAlgorithm
         }
     }
     
+    @HighFrequencyInvocation
     @Override
     public Collection<Long> generateKeys(final AlgorithmSQLContext context, final int keyGenerateCount) {
         Collection<Long> result = new LinkedList<>();
@@ -129,6 +130,7 @@ public final class SnowflakeKeyGenerateAlgorithm implements KeyGenerateAlgorithm
         return result;
     }
     
+    @HighFrequencyInvocation
     private synchronized Long generateKey() {
         long currentMillis = timeService.getCurrentMillis();
         if (waitTolerateTimeDifferenceIfNeed(currentMillis)) {
@@ -167,12 +169,14 @@ public final class SnowflakeKeyGenerateAlgorithm implements KeyGenerateAlgorithm
         return result;
     }
     
+    @HighFrequencyInvocation
     private void vibrateSequenceOffset() {
         if (!sequenceOffset.compareAndSet(maxVibrationOffset, 0)) {
             sequenceOffset.incrementAndGet();
         }
     }
     
+    @HighFrequencyInvocation
     private int getWorkerId() {
         return null == computeNodeInstanceContext.get() ? DEFAULT_WORKER_ID : computeNodeInstanceContext.get().getWorkerId();
     }

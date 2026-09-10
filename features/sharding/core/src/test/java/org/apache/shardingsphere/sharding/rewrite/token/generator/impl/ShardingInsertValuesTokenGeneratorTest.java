@@ -19,7 +19,7 @@ package org.apache.shardingsphere.sharding.rewrite.token.generator.impl;
 
 import org.apache.shardingsphere.infra.binder.context.segment.insert.values.InsertValueContext;
 import org.apache.shardingsphere.infra.binder.context.statement.SQLStatementContext;
-import org.apache.shardingsphere.infra.binder.context.statement.dml.InsertStatementContext;
+import org.apache.shardingsphere.infra.binder.context.statement.type.dml.InsertStatementContext;
 import org.apache.shardingsphere.infra.datanode.DataNode;
 import org.apache.shardingsphere.infra.rewrite.sql.token.common.pojo.generic.InsertValuesToken;
 import org.apache.shardingsphere.infra.route.context.RouteContext;
@@ -33,8 +33,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
@@ -73,7 +73,7 @@ class ShardingInsertValuesTokenGeneratorTest {
     @Test
     void assertGenerateSQLTokenWithDataNodes() {
         RouteContext routeContext = new RouteContext();
-        routeContext.getOriginalDataNodes().add(Collections.singleton(new DataNode("foo_ds", "foo_tbl")));
+        routeContext.getOriginalDataNodes().add(Collections.singleton(new DataNode("foo_ds", (String) null, "foo_tbl")));
         generator.setRouteContext(routeContext);
         InsertValuesToken actual = generator.generateSQLToken(mockInsertStatementContext());
         ShardingInsertValue actualInsertValue = (ShardingInsertValue) actual.getInsertValues().get(0);

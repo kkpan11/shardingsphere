@@ -17,56 +17,68 @@
 
 package org.apache.shardingsphere.sharding.rewrite.token.pojo;
 
-import org.apache.shardingsphere.infra.binder.context.statement.SQLStatementContext;
-import org.apache.shardingsphere.infra.binder.context.statement.ddl.CreateIndexStatementContext;
-import org.apache.shardingsphere.infra.binder.context.statement.dml.SelectStatementContext;
+import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
+import org.apache.shardingsphere.infra.binder.context.statement.type.CommonSQLStatementContext;
+import org.apache.shardingsphere.infra.binder.context.statement.type.dml.SelectStatementContext;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereSchema;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereTable;
+import org.apache.shardingsphere.infra.metadata.database.schema.util.IndexMetaDataUtils;
 import org.apache.shardingsphere.infra.route.context.RouteMapper;
 import org.apache.shardingsphere.infra.route.context.RouteUnit;
+import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 import org.apache.shardingsphere.sharding.rule.ShardingRule;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.type.ddl.index.CreateIndexStatement;
 import org.apache.shardingsphere.sql.parser.statement.core.value.identifier.IdentifierValue;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class IndexTokenTest {
     
+    private final DatabaseType databaseType = TypedSPILoader.getService(DatabaseType.class, "PostgreSQL");
+    
     @Test
     void assertToStringWithNotShardingTable() {
-        IndexToken indexToken = new IndexToken(0, 0, new IdentifierValue("foo_idx"), mock(SelectStatementContext.class, RETURNS_DEEP_STUBS), mock(ShardingRule.class), mockSchema());
+        SelectStatementContext selectStatementContext = mock(SelectStatementContext.class, RETURNS_DEEP_STUBS);
+        when(selectStatementContext.getTablesContext().getDatabaseNames()).thenReturn(Collections.emptyList());
+        when(selectStatementContext.getSqlStatement().getDatabaseType()).thenReturn(databaseType);
+        IndexToken indexToken = new IndexToken(0, 0, new IdentifierValue("foo_idx"), selectStatementContext, mock(ShardingRule.class), mockSchema());
         assertThat(indexToken.toString(mockRouteUnit()), is("foo_idx"));
     }
     
     @Test
     void assertToStringWithShardingTable() {
+        SelectStatementContext selectStatementContext = mock(SelectStatementContext.class, RETURNS_DEEP_STUBS);
+        when(selectStatementContext.getTablesContext().getDatabaseNames()).thenReturn(Collections.emptyList());
+        when(selectStatementContext.getSqlStatement().getDatabaseType()).thenReturn(databaseType);
         ShardingRule rule = mock(ShardingRule.class);
         when(rule.isShardingTable("foo_tbl")).thenReturn(true);
-        IndexToken indexToken = new IndexToken(0, 0, new IdentifierValue("foo_idx"), mock(SelectStatementContext.class, RETURNS_DEEP_STUBS), rule, mockSchema());
-        assertThat(indexToken.toString(mockRouteUnit()), is("foo_idx_foo_tbl_0"));
-    }
-    
-    @Test
-    void assertToStringWithShardingTableButNotTableAvailable() {
-        ShardingRule rule = mock(ShardingRule.class);
-        when(rule.isShardingTable("foo_tbl")).thenReturn(true);
-        IndexToken indexToken = new IndexToken(0, 0, new IdentifierValue("foo_idx"), mock(SQLStatementContext.class, RETURNS_DEEP_STUBS), rule, mockSchema());
-        assertThat(indexToken.toString(mockRouteUnit()), is("foo_idx"));
+        IndexToken indexToken = new IndexToken(0, 0, new IdentifierValue("foo_idx"), selectStatementContext, rule, mockSchema());
+        assertThat(indexToken.toString(mockRouteUnit()), is(IndexMetaDataUtils.getActualIndexName("foo_idx", "foo_tbl_0", databaseType)));
     }
     
     @Test
     void assertToStringWithShardingTableAndGeneratedIndex() {
-        CreateIndexStatementContext sqlStatementContext = mock(CreateIndexStatementContext.class, RETURNS_DEEP_STUBS);
-        when(sqlStatementContext.isGeneratedIndex()).thenReturn(true);
+        CreateIndexStatement sqlStatement = CreateIndexStatement.builder().databaseType(databaseType).build();
+        CommonSQLStatementContext sqlStatementContext = new CommonSQLStatementContext(sqlStatement);
         IndexToken indexToken = new IndexToken(0, 0, new IdentifierValue("bar_idx"), sqlStatementContext, mock(ShardingRule.class), mockSchema());
-        assertThat(indexToken.toString(mockRouteUnit()), is(" bar_idx_foo_tbl_0 "));
+        assertThat(indexToken.toString(mockRouteUnit()), is(" " + IndexMetaDataUtils.getActualIndexName("bar_idx", "foo_tbl_0", databaseType) + " "));
+    }
+    
+    @Test
+    void assertToStringWithLongGeneratedIndex() {
+        CreateIndexStatement sqlStatement = CreateIndexStatement.builder().databaseType(databaseType).build();
+        CommonSQLStatementContext sqlStatementContext = new CommonSQLStatementContext(sqlStatement);
+        String logicIndexName = "very_long_generated_index_boundary_case_for_sharding_length_safety_validation";
+        IndexToken indexToken = new IndexToken(0, 0, new IdentifierValue(logicIndexName), sqlStatementContext, mock(ShardingRule.class), mockSchema());
+        assertThat(indexToken.toString(mockRouteUnit()), is(" " + IndexMetaDataUtils.getActualIndexName(logicIndexName, "foo_tbl_0", databaseType) + " "));
     }
     
     private ShardingSphereSchema mockSchema() {

@@ -16,10 +16,12 @@ chapter = true
 
 ### 2. 确认 Release Note
 
-Release Note 需提供中文/英文两种版本，确认中英文描述是否明确，并按以下标签进行分类：
+确认 Release Note 中的内容完整，描述准确，并按以下标签进行分类：
 
-1. 新功能
+1. CVE
+1. 元数据存储变更
 1. API 变更
+1. 新功能
 1. 功能增强
 1. 漏洞修复
 
@@ -47,9 +49,9 @@ Release Note 需提供中文/英文两种版本，确认中英文描述是否明
 
 ### 6. 发起发布讨论
 
-1. 创建 [GitHub Discussion](https://github.com/apache/shardingsphere/discussions) 并在讨论内容中列出 Release Note，并 **明确具体代码冻结日期** ；
+1. 创建 [GitHub Issue](https://github.com/apache/shardingsphere/issues)，在 Issue 内容中列出 Release Note，并 **明确具体代码冻结日期** ；
 1. 发送邮件至 [dev@shardingsphere.apache.org](mailto:dev@shardingsphere.apache.org)，在邮件正文中链接 GitHub Discussion，并 **明确具体代码冻结日期** ；
-1. 关注 Discussion 与邮件列表，确认社区开发者对 Release Note 没有任何疑问。
+1. 关注 Issue 与邮件列表，确认社区开发者对 Release Note 没有任何疑问。
 
 ## GPG 设置
 
@@ -196,7 +198,7 @@ GPG 签名文件和哈希校验文件的下载连接应该使用这个前缀：`
 
 ### 5. 修改 README 文件
 
-更新 `README.md` 和 `README_ZH.md` 里的 `${RELEASE.VERSION}` 和 `${NEXT.RELEASE.VERSION}`。
+更新根目录 `README.md` 和 `README_ZH.md` 里的 `${RELEASE.VERSION}` 和 `${NEXT.RELEASE.VERSION}`。
 
 ### 6. 修改 ShardingSphereDriver
 
@@ -233,10 +235,10 @@ export GPG_TTY=$(tty)
 ```
 
 ```shell
-./mvnw release:prepare -Prelease -Darguments="-DskipTests" -DautoVersionSubmodules=true -DdryRun=true -Dusername=${Github用户名}
+./mvnw release:prepare -P-dev,release,all -Darguments="-DskipTests" -DautoVersionSubmodules=true -DdryRun=true -Dusername=${Github用户名}
 ```
 
--Prelease：选择 release 的 profile，这个 profile 会打包所有源码、jar 文件以及 ShardingSphere-Proxy 的可执行二进制包。
+-P-dev,release,all：选择 release 的 profile，这个 profile 会打包默认依赖源码、jar 文件以及 ShardingSphere-Proxy 的可执行二进制包。
 
 -DautoVersionSubmodules=true：作用是发布过程中版本号只需要输入一次，不必为每个子模块都输入一次。
 
@@ -251,7 +253,7 @@ export GPG_TTY=$(tty)
 ```
 
 ```shell
-./mvnw release:prepare -Prelease -Darguments="-DskipTests" -DautoVersionSubmodules=true -DpushChanges=false -Dusername=${Github 用户名}
+./mvnw release:prepare -P-dev,release,all -Darguments="-DskipTests" -DautoVersionSubmodules=true -DpushChanges=false -Dusername=${Github 用户名}
 ```
 
 和上一步演练的命令基本相同，去掉了 -DdryRun=true 参数。
@@ -270,7 +272,7 @@ git push origin ${RELEASE.VERSION}
 使用稳定的网络环境，本过程可能持续`1`个小时以上。
 
 ```shell
-./mvnw release:perform -Prelease -Darguments="-DskipTests" -DautoVersionSubmodules=true -DlocalCheckout=true -Dusername=${Github 用户名}
+./mvnw release:perform -Prelease,-dev,all -Darguments="-DskipTests" -DautoVersionSubmodules=true -DlocalCheckout=true -Dusername=${Github 用户名}
 ```
 
 -DlocalCheckout=true：从本地 checkout 代替从远程仓库拉取代码。
@@ -568,7 +570,7 @@ docker login
 ```shell
 cd ~/shardingsphere
 git checkout ${RELEASE.VERSION}
-./mvnw -pl distribution/proxy -B -Prelease,docker.buildx.push clean package
+./mvnw -pl distribution/proxy -B -P-dev,release,all,docker.buildx.push clean package
 ```
 
 3.4 确认发布成功
@@ -590,7 +592,7 @@ docker login ghcr.io/apache/shardingsphere
 ```shell
 cd ~/shardingsphere
 git checkout ${RELEASE.VERSION}
-./mvnw -am -pl distribution/agent -Prelease,docker.buildx.push -T 1C -DskipTests clean package
+./mvnw -am -pl distribution/agent -P-dev,release,all,docker.buildx.push -T 1C -DskipTests clean package
 ```
 
 3.7 确认发布成功
@@ -601,11 +603,27 @@ git checkout ${RELEASE.VERSION}
 docker logout
 ```
 
+3.8 ShardingSphere MCP 发布
+
+ShardingSphere MCP 通过仓库中的 [`.github/workflows/release-mcp.yml`](https://github.com/apache/shardingsphere/blob/master/.github/workflows/release-mcp.yml) workflow 发布。
+该 workflow 会构建 MCP 发行包、把 `ghcr.io/apache/shardingsphere-mcp:${RELEASE.VERSION}` 推送到 GHCR，
+稳定版额外更新 `latest`，然后通过 GitHub OIDC 把 `mcp/server.json` 发布到官方 MCP Registry。
+
 ### 4. GitHub 版本发布
 
 在 [GitHub Releases](https://github.com/apache/shardingsphere/releases) 页面创建新版本。
 
 编辑版本号及版本说明，选择 `Set as the latest release`，并点击 `Publish release`。
+
+GitHub release 发布后：
+
+- 等待 `Release - MCP` workflow 成功完成
+- 确认 [GitHub Packages](https://github.com/apache/shardingsphere/pkgs/container/shardingsphere-mcp) 中存在 `ghcr.io/apache/shardingsphere-mcp:${RELEASE.VERSION}`
+- 通过下面的命令确认官方 MCP Registry 已返回该 server 的 metadata：
+
+```shell
+curl "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.apache/shardingsphere-mcp"
+```
 
 ### 5. 从发布区移除上一版本内容
 

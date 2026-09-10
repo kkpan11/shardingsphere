@@ -35,8 +35,8 @@ import java.sql.SQLException;
 import java.util.Collections;
 import java.util.Properties;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
@@ -56,7 +56,6 @@ class ClusterContextManagerBuilderTest {
     void assertBuildWithNullRepositoryConfiguration() {
         ContextManagerBuilderParameter param = mock(ContextManagerBuilderParameter.class, RETURNS_DEEP_STUBS);
         when(param.getModeConfiguration()).thenReturn(mock(ModeConfiguration.class));
-        when(param.getLabels()).thenReturn(Collections.emptyList());
         assertThrows(MissingRequiredClusterRepositoryConfigurationException.class, () -> builder.build(param, mock(EventBusContext.class)));
     }
     
@@ -72,7 +71,7 @@ class ClusterContextManagerBuilderTest {
     
     private void assertBuild(final InstanceMetaData instanceMetaData) throws SQLException {
         ContextManager actual = builder.build(new ContextManagerBuilderParameter(createModeConfiguration(),
-                Collections.emptyMap(), Collections.emptyMap(), Collections.emptyList(), new Properties(), Collections.emptyList(), instanceMetaData), mock(EventBusContext.class));
+                Collections.emptyMap(), Collections.emptyMap(), Collections.emptyList(), new Properties(), instanceMetaData), mock(EventBusContext.class));
         assertThat(actual.getComputeNodeInstanceContext().getInstance().getMetaData(), is(instanceMetaData));
     }
     

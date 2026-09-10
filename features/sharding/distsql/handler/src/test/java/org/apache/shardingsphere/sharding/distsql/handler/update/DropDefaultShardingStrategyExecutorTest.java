@@ -30,8 +30,9 @@ import org.junit.jupiter.api.Test;
 import java.util.Collections;
 import java.util.Properties;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -64,7 +65,7 @@ class DropDefaultShardingStrategyExecutorTest {
         executor.setRule(rule);
         executor.checkBeforeUpdate(new DropDefaultShardingStrategyStatement(true, "table"));
         executor.setRule(null);
-        executor.checkBeforeUpdate(new DropDefaultShardingStrategyStatement(true, "table"));
+        assertDoesNotThrow(() -> executor.checkBeforeUpdate(new DropDefaultShardingStrategyStatement(true, "table")));
     }
     
     @Test

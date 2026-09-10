@@ -18,9 +18,6 @@
 package org.apache.shardingsphere.sharding.route.engine.type.broadcast;
 
 import lombok.RequiredArgsConstructor;
-import org.apache.shardingsphere.infra.binder.context.statement.SQLStatementContext;
-import org.apache.shardingsphere.infra.binder.context.type.IndexAvailable;
-import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.datanode.DataNode;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.infra.metadata.database.schema.QualifiedTable;
@@ -33,6 +30,8 @@ import org.apache.shardingsphere.sharding.route.engine.type.complex.ShardingCart
 import org.apache.shardingsphere.sharding.rule.ShardingRule;
 import org.apache.shardingsphere.sharding.rule.ShardingTable;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.index.IndexSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.SQLStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.attribute.type.IndexSQLStatementAttribute;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -47,7 +46,7 @@ public final class ShardingTableBroadcastRouteEngine implements ShardingRouteEng
     
     private final ShardingSphereDatabase database;
     
-    private final SQLStatementContext sqlStatementContext;
+    private final SQLStatement sqlStatement;
     
     private final Collection<String> shardingRuleTableNames;
     
@@ -106,14 +105,13 @@ public final class ShardingTableBroadcastRouteEngine implements ShardingRouteEng
         if (!shardingRuleTableNames.isEmpty()) {
             return shardingRuleTableNames;
         }
-        return sqlStatementContext instanceof IndexAvailable
-                ? getTableNames(database, sqlStatementContext.getDatabaseType(), ((IndexAvailable) sqlStatementContext).getIndexes())
-                : Collections.emptyList();
+        return sqlStatement.getAttributes().findAttribute(IndexSQLStatementAttribute.class)
+                .map(optional -> getTableNames(database, optional.getIndexes())).orElse(Collections.emptyList());
     }
     
-    private Collection<String> getTableNames(final ShardingSphereDatabase database, final DatabaseType databaseType, final Collection<IndexSegment> indexes) {
+    private Collection<String> getTableNames(final ShardingSphereDatabase database, final Collection<IndexSegment> indexes) {
         Collection<String> result = new LinkedList<>();
-        for (QualifiedTable each : IndexMetaDataUtils.getTableNames(database, databaseType, indexes)) {
+        for (QualifiedTable each : IndexMetaDataUtils.getTableNames(database, indexes)) {
             result.add(each.getTableName());
         }
         return result;

@@ -17,22 +17,27 @@
 
 package org.apache.shardingsphere.mode.metadata.refresher.pushdown.type.index;
 
+import com.google.common.base.Preconditions;
+import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.config.props.ConfigurationProperties;
-import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
-import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.exception.ShardingSpherePreconditions;
 import org.apache.shardingsphere.infra.exception.kernel.metadata.SchemaNotFoundException;
 import org.apache.shardingsphere.infra.exception.kernel.metadata.TableNotFoundException;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereIndex;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereSchema;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereTable;
-import org.apache.shardingsphere.infra.metadata.database.schema.util.IndexMetaDataUtils;
 import org.apache.shardingsphere.mode.metadata.refresher.pushdown.PushDownMetaDataRefresher;
+import org.apache.shardingsphere.mode.metadata.refresher.util.TableRefreshUtils;
 import org.apache.shardingsphere.mode.persist.service.MetaDataManagerPersistService;
-import org.apache.shardingsphere.sql.parser.statement.core.statement.ddl.CreateIndexStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.index.IndexSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.column.ColumnSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.attribute.type.IndexSQLStatementAttribute;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.type.ddl.index.CreateIndexStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.value.identifier.IdentifierValue;
 
+import java.util.Collection;
 import java.util.Collections;
-import java.util.LinkedList;
 
 /**
  * Create index push down meta data refresher.
@@ -42,16 +47,20 @@ public final class CreateIndexPushDownMetaDataRefresher implements PushDownMetaD
     @Override
     public void refresh(final MetaDataManagerPersistService metaDataManagerPersistService, final ShardingSphereDatabase database, final String logicDataSourceName,
                         final String schemaName, final DatabaseType databaseType, final CreateIndexStatement sqlStatement, final ConfigurationProperties props) {
-        String indexName = null == sqlStatement.getIndex()
-                ? IndexMetaDataUtils.getGeneratedLogicIndexName(sqlStatement.getColumns())
-                : sqlStatement.getIndex().getIndexName().getIdentifier().getValue();
-        String tableName = sqlStatement.getTable().getTableName().getIdentifier().getValue();
+        Collection<IndexSegment> indexes = sqlStatement.getAttributes().getAttribute(IndexSQLStatementAttribute.class).getIndexes();
+        Preconditions.checkArgument(1 == indexes.size());
+        String tableName = TableRefreshUtils.getActualTableName(database, schemaName, sqlStatement.getTable().getTableName().getIdentifier());
         ShardingSpherePreconditions.checkState(database.containsSchema(schemaName), () -> new SchemaNotFoundException(schemaName));
         ShardingSphereSchema schema = database.getSchema(schemaName);
         ShardingSpherePreconditions.checkState(schema.containsTable(tableName), () -> new TableNotFoundException(tableName));
         ShardingSphereTable table = schema.getTable(tableName);
         ShardingSphereTable newTable = new ShardingSphereTable(table.getName(), table.getAllColumns(), table.getAllIndexes(), table.getAllConstraints(), table.getType());
-        newTable.putIndex(new ShardingSphereIndex(indexName, new LinkedList<>(), false));
+        IdentifierValue indexIdentifier = indexes.iterator().next().getIndexName().getIdentifier();
+        String actualIndexName = TableRefreshUtils.getActualIndexName(database, schemaName, tableName, indexIdentifier);
+        newTable.putIndex(new ShardingSphereIndex(actualIndexName,
+                TableRefreshUtils.getActualColumnNames(database, schemaName, tableName,
+                        sqlStatement.getColumns().stream().map(ColumnSegment::getIdentifier).collect(java.util.stream.Collectors.toList())),
+                false));
         metaDataManagerPersistService.alterTables(database, schemaName, Collections.singleton(newTable));
     }
     

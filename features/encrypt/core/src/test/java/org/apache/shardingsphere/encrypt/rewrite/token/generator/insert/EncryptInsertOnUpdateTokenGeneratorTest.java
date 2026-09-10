@@ -17,15 +17,15 @@
 
 package org.apache.shardingsphere.encrypt.rewrite.token.generator.insert;
 
+import org.apache.shardingsphere.database.connector.core.metadata.database.enums.QuoteCharacter;
+import org.apache.shardingsphere.database.connector.core.metadata.database.metadata.DialectDatabaseMetaData;
+import org.apache.shardingsphere.database.connector.core.type.DatabaseTypeRegistry;
 import org.apache.shardingsphere.encrypt.rewrite.token.pojo.EncryptAssignmentToken;
 import org.apache.shardingsphere.encrypt.rule.EncryptRule;
 import org.apache.shardingsphere.encrypt.rule.column.EncryptColumn;
 import org.apache.shardingsphere.encrypt.rule.table.EncryptTable;
-import org.apache.shardingsphere.infra.binder.context.statement.dml.InsertStatementContext;
-import org.apache.shardingsphere.infra.binder.context.statement.dml.SelectStatementContext;
-import org.apache.shardingsphere.infra.database.core.metadata.database.metadata.DialectDatabaseMetaData;
-import org.apache.shardingsphere.infra.database.core.metadata.database.enums.QuoteCharacter;
-import org.apache.shardingsphere.infra.database.core.type.DatabaseTypeRegistry;
+import org.apache.shardingsphere.infra.binder.context.statement.type.dml.InsertStatementContext;
+import org.apache.shardingsphere.infra.binder.context.statement.type.dml.SelectStatementContext;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.infra.rewrite.sql.token.common.pojo.SQLToken;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.assignment.ColumnAssignmentSegment;
@@ -36,8 +36,8 @@ import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.simp
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.simple.ParameterMarkerExpressionSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.SimpleTableSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.TableNameSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.type.dml.InsertStatement;
 import org.apache.shardingsphere.sql.parser.statement.core.value.identifier.IdentifierValue;
-import org.apache.shardingsphere.sql.parser.statement.mysql.dml.MySQLInsertStatement;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -51,8 +51,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
@@ -86,7 +86,7 @@ class EncryptInsertOnUpdateTokenGeneratorTest {
     }
     
     private EncryptRule mockEncryptRule() {
-        EncryptRule result = mock(EncryptRule.class);
+        EncryptRule result = mock(EncryptRule.class, RETURNS_DEEP_STUBS);
         EncryptColumn encryptColumn = mockEncryptColumn();
         EncryptTable encryptTable = mockEncryptTable();
         when(encryptTable.getEncryptColumn("mobile")).thenReturn(encryptColumn);
@@ -122,9 +122,9 @@ class EncryptInsertOnUpdateTokenGeneratorTest {
     @Test
     void assertIsGenerateSQLToken() {
         InsertStatementContext insertStatementContext = mock(InsertStatementContext.class);
-        MySQLInsertStatement insertStatement = mock(MySQLInsertStatement.class);
-        when(insertStatementContext.getSqlStatement()).thenReturn(insertStatement);
+        InsertStatement insertStatement = mock(InsertStatement.class);
         when(insertStatement.getOnDuplicateKeyColumns()).thenReturn(Optional.of(new OnDuplicateKeyColumnsSegment(0, 0, Collections.emptyList())));
+        when(insertStatementContext.getSqlStatement()).thenReturn(insertStatement);
         assertTrue(generator.isGenerateSQLToken(insertStatementContext));
     }
     
@@ -132,7 +132,7 @@ class EncryptInsertOnUpdateTokenGeneratorTest {
     void assertGenerateSQLTokens() {
         InsertStatementContext insertStatementContext = mock(InsertStatementContext.class, RETURNS_DEEP_STUBS);
         when(insertStatementContext.getTablesContext().getSchemaName()).thenReturn(Optional.of("db_test"));
-        MySQLInsertStatement insertStatement = mock(MySQLInsertStatement.class, RETURNS_DEEP_STUBS);
+        InsertStatement insertStatement = mock(InsertStatement.class, RETURNS_DEEP_STUBS);
         when(insertStatement.getTable()).thenReturn(Optional.of(new SimpleTableSegment(new TableNameSegment(0, 0, new IdentifierValue("t_user")))));
         OnDuplicateKeyColumnsSegment onDuplicateKeyColumnsSegment = mock(OnDuplicateKeyColumnsSegment.class);
         when(onDuplicateKeyColumnsSegment.getColumns()).thenReturn(buildAssignmentSegment());
@@ -144,6 +144,26 @@ class EncryptInsertOnUpdateTokenGeneratorTest {
         assertEncryptAssignmentToken((EncryptAssignmentToken) actual.next(), "cipher_mobile = VALUES(cipher_mobile)");
         assertEncryptAssignmentToken((EncryptAssignmentToken) actual.next(), "cipher_mobile = 'encryptValue'");
         assertFalse(actual.hasNext());
+    }
+    
+    @Test
+    void assertGenerateSQLTokensWithDatabaseDefaultSchema() {
+        ShardingSphereDatabase database = mock(ShardingSphereDatabase.class);
+        when(database.getName()).thenReturn("foo_db");
+        when(database.getDefaultSchemaName()).thenReturn("foo_default_schema");
+        EncryptRule rule = mockEncryptRule();
+        when(rule.getEncryptTable("t_user").getEncryptColumn("mobile").getCipher()
+                .encrypt("foo_db", "foo_default_schema", "t_user", "mobile", Collections.singletonList(0))).thenReturn(Collections.singletonList("defaultEncryptValue"));
+        generator = new EncryptInsertOnUpdateTokenGenerator(rule, database);
+        InsertStatementContext insertStatementContext = mock(InsertStatementContext.class, RETURNS_DEEP_STUBS);
+        when(insertStatementContext.getTablesContext().getSchemaName()).thenReturn(Optional.empty());
+        InsertStatement insertStatement = mock(InsertStatement.class, RETURNS_DEEP_STUBS);
+        when(insertStatement.getTable()).thenReturn(Optional.of(new SimpleTableSegment(new TableNameSegment(0, 0, new IdentifierValue("t_user")))));
+        ColumnAssignmentSegment assignmentSegment = new ColumnAssignmentSegment(
+                0, 0, Collections.singletonList(new ColumnSegment(0, 0, new IdentifierValue("mobile"))), new LiteralExpressionSegment(0, 0, 0));
+        when(insertStatement.getOnDuplicateKeyColumns()).thenReturn(Optional.of(new OnDuplicateKeyColumnsSegment(0, 0, Collections.singletonList(assignmentSegment))));
+        when(insertStatementContext.getSqlStatement()).thenReturn(insertStatement);
+        assertThat(generator.generateSQLTokens(insertStatementContext).iterator().next().toString(), is("cipher_mobile = 'defaultEncryptValue'"));
     }
     
     private Collection<ColumnAssignmentSegment> buildAssignmentSegment() {

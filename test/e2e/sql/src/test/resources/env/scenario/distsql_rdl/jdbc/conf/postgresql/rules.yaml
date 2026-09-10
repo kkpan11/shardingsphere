@@ -20,33 +20,36 @@ databaseName: distsql_rdl
 dataSources:
   ds_0:
     url: jdbc:postgresql://postgresql.distsql_rdl.host:5432/rdl_ds_0?ssl=on&sslmode=prefer
+    driverClassName: org.postgresql.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   ds_1:
     url: jdbc:postgresql://postgresql.distsql_rdl.host:5432/rdl_ds_1?ssl=on&sslmode=prefer
+    driverClassName: org.postgresql.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   ds_2:
     url: jdbc:postgresql://postgresql.distsql_rdl.host:5432/rdl_ds_2?ssl=on&sslmode=prefer
+    driverClassName: org.postgresql.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
 
 rules:

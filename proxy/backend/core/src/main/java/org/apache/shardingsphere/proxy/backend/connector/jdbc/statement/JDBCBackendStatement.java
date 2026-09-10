@@ -17,13 +17,16 @@
 
 package org.apache.shardingsphere.proxy.backend.connector.jdbc.statement;
 
-import org.apache.shardingsphere.db.protocol.parameter.TypeUnspecifiedSQLParameter;
-import org.apache.shardingsphere.infra.database.core.spi.DatabaseTypedSPILoader;
-import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
+import org.apache.shardingsphere.database.connector.core.spi.DatabaseTypedSPILoader;
+import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
+import org.apache.shardingsphere.database.protocol.parameter.TypeUnspecifiedSQLParameter;
 import org.apache.shardingsphere.infra.executor.sql.context.ExecutionUnit;
 import org.apache.shardingsphere.infra.executor.sql.execute.engine.ConnectionMode;
 import org.apache.shardingsphere.infra.executor.sql.prepare.driver.jdbc.ExecutorJDBCStatementManager;
 import org.apache.shardingsphere.infra.executor.sql.prepare.driver.jdbc.StatementOption;
+import org.apache.shardingsphere.proxy.backend.session.ConnectionSession;
+import org.apache.shardingsphere.proxy.backend.session.PreparedStatementCacheContext;
+import org.apache.shardingsphere.proxy.backend.session.PreparedStatementCacheKey;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -32,12 +35,19 @@ import java.sql.Statement;
 import java.sql.Types;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
  * JDBC backend statement.
  */
 public final class JDBCBackendStatement implements ExecutorJDBCStatementManager {
+    
+    private final ConnectionSession connectionSession;
+    
+    public JDBCBackendStatement(final ConnectionSession connectionSession) {
+        this.connectionSession = Objects.requireNonNull(connectionSession, "connectionSession cannot be null.");
+    }
     
     @Override
     public Statement createStorageResource(final Connection connection, final ConnectionMode connectionMode, final StatementOption option, final DatabaseType databaseType) throws SQLException {
@@ -53,9 +63,8 @@ public final class JDBCBackendStatement implements ExecutorJDBCStatementManager 
                                            final ConnectionMode connectionMode, final StatementOption option, final DatabaseType databaseType) throws SQLException {
         String sql = executionUnit.getSqlUnit().getSql();
         List<Object> params = executionUnit.getSqlUnit().getParameters();
-        PreparedStatement result = option.isReturnGeneratedKeys()
-                ? connection.prepareStatement(executionUnit.getSqlUnit().getSql(), Statement.RETURN_GENERATED_KEYS)
-                : connection.prepareStatement(sql);
+        PreparedStatement result = getPreparedStatement(connection, sql, option.isReturnGeneratedKeys());
+        result.clearParameters();
         Iterator<Object> paramIterator = params.iterator();
         int index = 0;
         while (paramIterator.hasNext()) {
@@ -71,6 +80,19 @@ public final class JDBCBackendStatement implements ExecutorJDBCStatementManager 
             setFetchSize(result, databaseType);
         }
         return result;
+    }
+    
+    private PreparedStatement getPreparedStatement(final Connection connection, final String sql, final boolean returnGeneratedKeys) throws SQLException {
+        Optional<PreparedStatementCacheKey> preparedStatementCacheKey = connectionSession.getCurrentPreparedStatementCacheKey();
+        if (!preparedStatementCacheKey.isPresent()) {
+            return createPreparedStatement(connection, sql, returnGeneratedKeys);
+        }
+        PreparedStatementCacheContext cacheContext = connectionSession.getPreparedStatementCacheContext();
+        return cacheContext.getOrCreate(connection, sql, returnGeneratedKeys, preparedStatementCacheKey.get(), () -> createPreparedStatement(connection, sql, returnGeneratedKeys));
+    }
+    
+    private PreparedStatement createPreparedStatement(final Connection connection, final String sql, final boolean returnGeneratedKeys) throws SQLException {
+        return returnGeneratedKeys ? connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS) : connection.prepareStatement(sql);
     }
     
     private void setFetchSize(final Statement statement, final DatabaseType databaseType) throws SQLException {

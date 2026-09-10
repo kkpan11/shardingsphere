@@ -17,7 +17,6 @@
 
 package org.apache.shardingsphere.test.it.yaml;
 
-import lombok.extern.slf4j.Slf4j;
 import org.apache.shardingsphere.infra.util.yaml.YamlEngine;
 import org.apache.shardingsphere.infra.yaml.config.pojo.YamlRootConfiguration;
 import org.apache.shardingsphere.infra.yaml.config.pojo.rule.YamlGlobalRuleConfiguration;
@@ -38,12 +37,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-@Slf4j
 public abstract class YamlRuleNodeTupleSwapperEngineIT {
     
     private final File yamlFile;

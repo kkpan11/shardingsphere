@@ -18,7 +18,7 @@
 package org.apache.shardingsphere.sharding.distsql.handler.query;
 
 import org.apache.shardingsphere.distsql.handler.executor.rql.resource.InUsedStorageUnitRetriever;
-import org.apache.shardingsphere.distsql.statement.rql.rule.database.ShowRulesUsedStorageUnitStatement;
+import org.apache.shardingsphere.distsql.statement.type.rql.rule.database.ShowRulesUsedStorageUnitStatement;
 import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 import org.apache.shardingsphere.sharding.rule.ShardingRule;
 import org.apache.shardingsphere.sharding.rule.ShardingTable;
@@ -27,8 +27,8 @@ import org.junit.jupiter.api.Test;
 import java.util.Arrays;
 import java.util.Collections;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -41,6 +41,12 @@ class InUsedShardingStorageUnitRetrieverTest {
     void assertGetInUsedResources() {
         ShowRulesUsedStorageUnitStatement sqlStatement = new ShowRulesUsedStorageUnitStatement("foo_ds", null);
         assertThat(retriever.getInUsedResources(sqlStatement, mockRule()), is(Collections.singleton("foo_tbl")));
+    }
+    
+    @Test
+    void assertGetInUsedResourcesWithDifferentCaseStorageUnit() {
+        ShowRulesUsedStorageUnitStatement sqlStatement = new ShowRulesUsedStorageUnitStatement("FOO_DS", null);
+        assertThat(retriever.getInUsedResources(sqlStatement, mockRule()), is(Collections.emptySet()));
     }
     
     private ShardingRule mockRule() {

@@ -21,6 +21,8 @@ import org.apache.shardingsphere.infra.algorithm.core.ShardingSphereAlgorithm;
 import org.apache.shardingsphere.infra.algorithm.core.config.AlgorithmConfiguration;
 import org.apache.shardingsphere.infra.algorithm.core.context.AlgorithmSQLContext;
 
+import java.util.Optional;
+
 /**
  * Encrypt algorithm.
  */
@@ -52,7 +54,16 @@ public interface EncryptAlgorithm extends ShardingSphereAlgorithm {
     EncryptAlgorithmMetaData getMetaData();
     
     /**
-     * convert to encryptor configuration.
+     * Get encoder.
+     *
+     * @return encoder
+     */
+    default Optional<String> getEncoder() {
+        return Optional.empty();
+    }
+    
+    /**
+     * Convert to encryptor configuration.
      *
      * @return converted configuration
      */

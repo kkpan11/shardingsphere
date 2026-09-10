@@ -17,13 +17,15 @@
 
 package org.apache.shardingsphere.driver.jdbc.core.resultset;
 
+import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
 import org.apache.shardingsphere.driver.jdbc.core.connection.ShardingSphereConnection;
+import org.apache.shardingsphere.driver.jdbc.core.statement.ShardingSpherePreparedStatement;
 import org.apache.shardingsphere.driver.jdbc.core.statement.ShardingSphereStatement;
 import org.apache.shardingsphere.infra.binder.context.segment.table.TablesContext;
 import org.apache.shardingsphere.infra.binder.context.statement.SQLStatementContext;
-import org.apache.shardingsphere.infra.binder.context.type.TableAvailable;
 import org.apache.shardingsphere.infra.config.props.ConfigurationProperties;
 import org.apache.shardingsphere.infra.merge.result.MergedResult;
+import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.mode.metadata.MetaDataContexts;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,6 +36,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.Clob;
@@ -45,28 +48,38 @@ import java.sql.SQLException;
 import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Properties;
 
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.isA;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.withSettings;
 
 class ShardingSphereResultSetTest {
     
     private MergedResult mergeResultSet;
     
     private ShardingSphereResultSet shardingSphereResultSet;
+    
+    private DatabaseType protocolType;
+    
+    private ShardingSphereConnection connection;
+    
+    private MetaDataContexts metaDataContexts;
+    
+    private ShardingSphereStatement statement;
     
     @BeforeEach
     void setUp() throws SQLException {
@@ -75,10 +88,10 @@ class ShardingSphereResultSetTest {
     }
     
     private SQLStatementContext createSQLStatementContext() {
-        SQLStatementContext result = mock(SQLStatementContext.class, withSettings().extraInterfaces(TableAvailable.class));
+        SQLStatementContext result = mock(SQLStatementContext.class);
         TablesContext tablesContext = mock(TablesContext.class);
         when(tablesContext.getTableNames()).thenReturn(Collections.emptyList());
-        when(((TableAvailable) result).getTablesContext()).thenReturn(tablesContext);
+        when(result.getTablesContext()).thenReturn(tablesContext);
         return result;
     }
     
@@ -92,13 +105,19 @@ class ShardingSphereResultSetTest {
     }
     
     private ShardingSphereStatement getShardingSphereStatement() {
-        ShardingSphereConnection connection = mock(ShardingSphereConnection.class, RETURNS_DEEP_STUBS);
-        MetaDataContexts metaDataContexts = mock(MetaDataContexts.class, RETURNS_DEEP_STUBS);
+        connection = mock(ShardingSphereConnection.class, RETURNS_DEEP_STUBS);
+        metaDataContexts = mock(MetaDataContexts.class, RETURNS_DEEP_STUBS);
         when(metaDataContexts.getMetaData().getProps()).thenReturn(new ConfigurationProperties(new Properties()));
+        when(connection.getCurrentDatabaseName()).thenReturn("logic_db");
+        protocolType = mock(DatabaseType.class);
+        when(protocolType.getType()).thenReturn("MySQL");
+        when(protocolType.getTrunkDatabaseType()).thenReturn(Optional.empty());
+        when(metaDataContexts.getMetaData().getDatabase("logic_db").getProtocolType()).thenReturn(protocolType);
         when(connection.getContextManager().getMetaDataContexts()).thenReturn(metaDataContexts);
-        ShardingSphereStatement result = mock(ShardingSphereStatement.class);
-        when(result.getConnection()).thenReturn(connection);
-        return result;
+        statement = mock(ShardingSphereStatement.class);
+        when(statement.getConnection()).thenReturn(connection);
+        when(statement.getUsedDatabaseName()).thenReturn("logic_db");
+        return statement;
     }
     
     @Test
@@ -268,9 +287,22 @@ class ShardingSphereResultSetTest {
     }
     
     @Test
+    void assertGetBytesWithStringValue() throws SQLException {
+        when(mergeResultSet.getValue(1, byte[].class)).thenReturn("张三");
+        assertThat(shardingSphereResultSet.getBytes(1), is("张三".getBytes(StandardCharsets.UTF_8)));
+    }
+    
+    @Test
     void assertGetDateWithColumnIndex() throws SQLException {
         when(mergeResultSet.getValue(1, Date.class)).thenReturn(new Date(0L));
         assertThat(shardingSphereResultSet.getDate(1), is(new Date(0L)));
+    }
+    
+    @Test
+    void assertGetDateConvertedByLocalDateWithColumnIndex() throws SQLException {
+        LocalDate localDate = LocalDate.now();
+        when(mergeResultSet.getValue(1, Date.class)).thenReturn(localDate);
+        assertThat(shardingSphereResultSet.getDate(1), is(Date.valueOf(localDate)));
     }
     
     @Test
@@ -326,6 +358,13 @@ class ShardingSphereResultSetTest {
     }
     
     @Test
+    void assertGetTimestampConvertedByLocalDateWithColumnIndex() throws SQLException {
+        LocalDate localDate = LocalDate.now();
+        when(mergeResultSet.getValue(1, Timestamp.class)).thenReturn(localDate);
+        assertThat(shardingSphereResultSet.getTimestamp(1), is(Timestamp.valueOf(localDate.atStartOfDay())));
+    }
+    
+    @Test
     void assertGetTimestampWithColumnLabel() throws SQLException {
         when(mergeResultSet.getValue(1, Timestamp.class)).thenReturn(new Timestamp(0L));
         assertThat(shardingSphereResultSet.getTimestamp("label"), is(new Timestamp(0L)));
@@ -349,42 +388,42 @@ class ShardingSphereResultSetTest {
     void assertGetAsciiStreamWithColumnIndex() throws SQLException {
         InputStream inputStream = mock(InputStream.class);
         when(mergeResultSet.getInputStream(1, "Ascii")).thenReturn(inputStream);
-        assertThat(shardingSphereResultSet.getAsciiStream(1), instanceOf(InputStream.class));
+        assertThat(shardingSphereResultSet.getAsciiStream(1), isA(InputStream.class));
     }
     
     @Test
     void assertGetAsciiStreamWithColumnLabel() throws SQLException {
         InputStream inputStream = mock(InputStream.class);
         when(mergeResultSet.getInputStream(1, "Ascii")).thenReturn(inputStream);
-        assertThat(shardingSphereResultSet.getAsciiStream("label"), instanceOf(InputStream.class));
+        assertThat(shardingSphereResultSet.getAsciiStream("label"), isA(InputStream.class));
     }
     
     @Test
     void assertGetUnicodeStreamWithColumnIndex() throws SQLException {
         InputStream inputStream = mock(InputStream.class);
         when(mergeResultSet.getInputStream(1, "Unicode")).thenReturn(inputStream);
-        assertThat(shardingSphereResultSet.getUnicodeStream(1), instanceOf(InputStream.class));
+        assertThat(shardingSphereResultSet.getUnicodeStream(1), isA(InputStream.class));
     }
     
     @Test
     void assertGetUnicodeStreamWithColumnLabel() throws SQLException {
         InputStream inputStream = mock(InputStream.class);
         when(mergeResultSet.getInputStream(1, "Unicode")).thenReturn(inputStream);
-        assertThat(shardingSphereResultSet.getUnicodeStream("label"), instanceOf(InputStream.class));
+        assertThat(shardingSphereResultSet.getUnicodeStream("label"), isA(InputStream.class));
     }
     
     @Test
     void assertGetBinaryStreamWithColumnIndex() throws SQLException {
         InputStream inputStream = mock(InputStream.class);
         when(mergeResultSet.getInputStream(1, "Binary")).thenReturn(inputStream);
-        assertThat(shardingSphereResultSet.getBinaryStream(1), instanceOf(InputStream.class));
+        assertThat(shardingSphereResultSet.getBinaryStream(1), isA(InputStream.class));
     }
     
     @Test
     void assertGetBinaryStreamWithColumnLabel() throws SQLException {
         InputStream inputStream = mock(InputStream.class);
         when(mergeResultSet.getInputStream(1, "Binary")).thenReturn(inputStream);
-        assertThat(shardingSphereResultSet.getBinaryStream("label"), instanceOf(InputStream.class));
+        assertThat(shardingSphereResultSet.getBinaryStream("label"), isA(InputStream.class));
     }
     
     @Test
@@ -553,6 +592,74 @@ class ShardingSphereResultSetTest {
     }
     
     @Test
+    void assertGetObjectWithIntegerFromStringInMySQLProtocol() throws SQLException {
+        when(mergeResultSet.getValue(1, Integer.class)).thenReturn("123");
+        assertThat(shardingSphereResultSet.getObject(1, Integer.class), is(123));
+    }
+    
+    @Test
+    void assertGetObjectWithIntegerFromStringInNonMySQLProtocol() throws SQLException {
+        when(mergeResultSet.getValue(1, Integer.class)).thenReturn("123");
+        DatabaseType actualProtocolType = mock(DatabaseType.class);
+        when(actualProtocolType.getType()).thenReturn("PostgreSQL");
+        when(actualProtocolType.getTrunkDatabaseType()).thenReturn(Optional.empty());
+        when(metaDataContexts.getMetaData().getDatabase("logic_db").getProtocolType()).thenReturn(actualProtocolType);
+        ShardingSphereResultSet actualResultSet = new ShardingSphereResultSet(getResultSets(), mergeResultSet, statement, createSQLStatementContext());
+        assertThrows(SQLException.class, () -> actualResultSet.getObject(1, Integer.class));
+    }
+    
+    @Test
+    void assertGetObjectWithIntegerFromStringInTrunkMySQLProtocol() throws SQLException {
+        when(mergeResultSet.getValue(1, Integer.class)).thenReturn("123");
+        DatabaseType trunkDatabaseType = mock(DatabaseType.class);
+        when(trunkDatabaseType.getType()).thenReturn("MySQL");
+        when(trunkDatabaseType.getTrunkDatabaseType()).thenReturn(Optional.empty());
+        DatabaseType actualProtocolType = mock(DatabaseType.class);
+        when(actualProtocolType.getType()).thenReturn("MariaDB");
+        when(actualProtocolType.getTrunkDatabaseType()).thenReturn(Optional.of(trunkDatabaseType));
+        when(metaDataContexts.getMetaData().getDatabase("logic_db").getProtocolType()).thenReturn(actualProtocolType);
+        ShardingSphereResultSet actualResultSet = new ShardingSphereResultSet(getResultSets(), mergeResultSet, statement, createSQLStatementContext());
+        assertThrows(SQLException.class, () -> actualResultSet.getObject(1, Integer.class));
+    }
+    
+    @Test
+    void assertGetObjectWithIntegerFromStringUsesUsedDatabaseProtocolForStatement() throws SQLException {
+        ShardingSphereConnection statementConnection = mock(ShardingSphereConnection.class, RETURNS_DEEP_STUBS);
+        MetaDataContexts statementMetaDataContexts = mock(MetaDataContexts.class, RETURNS_DEEP_STUBS);
+        when(statementMetaDataContexts.getMetaData().getProps()).thenReturn(new ConfigurationProperties(new Properties()));
+        DatabaseType currentDatabaseProtocolType = mock(DatabaseType.class);
+        when(currentDatabaseProtocolType.getType()).thenReturn("PostgreSQL");
+        when(currentDatabaseProtocolType.getTrunkDatabaseType()).thenReturn(Optional.empty());
+        DatabaseType usedDatabaseProtocolType = mock(DatabaseType.class);
+        when(usedDatabaseProtocolType.getType()).thenReturn("MySQL");
+        when(usedDatabaseProtocolType.getTrunkDatabaseType()).thenReturn(Optional.empty());
+        ShardingSphereStatement usedDatabaseStatement = mock(ShardingSphereStatement.class);
+        when(statementConnection.getCurrentDatabaseName()).thenReturn("current_db");
+        when(statementConnection.getContextManager().getMetaDataContexts()).thenReturn(statementMetaDataContexts);
+        when(statementMetaDataContexts.getMetaData().getDatabase("current_db").getProtocolType()).thenReturn(currentDatabaseProtocolType);
+        when(statementMetaDataContexts.getMetaData().getDatabase("used_db").getProtocolType()).thenReturn(usedDatabaseProtocolType);
+        when(usedDatabaseStatement.getConnection()).thenReturn(statementConnection);
+        when(usedDatabaseStatement.getUsedDatabaseName()).thenReturn("used_db");
+        ShardingSphereResultSet usedDatabaseResultSet = new ShardingSphereResultSet(getResultSets(), mergeResultSet, usedDatabaseStatement, createSQLStatementContext());
+        when(mergeResultSet.getValue(1, Integer.class)).thenReturn("123");
+        assertThat(usedDatabaseResultSet.getObject(1, Integer.class), is(123));
+    }
+    
+    @Test
+    void assertGetObjectWithIntegerFromStringUsesUsedDatabaseProtocolForPreparedStatement() throws SQLException {
+        ShardingSpherePreparedStatement preparedStatement = mock(ShardingSpherePreparedStatement.class);
+        ShardingSphereDatabase usedDatabase = mock(ShardingSphereDatabase.class);
+        DatabaseType usedDatabaseProtocolType = mock(DatabaseType.class);
+        when(usedDatabaseProtocolType.getType()).thenReturn("MySQL");
+        when(usedDatabaseProtocolType.getTrunkDatabaseType()).thenReturn(Optional.empty());
+        when(usedDatabase.getProtocolType()).thenReturn(usedDatabaseProtocolType);
+        when(preparedStatement.getUsedDatabase()).thenReturn(usedDatabase);
+        ShardingSphereResultSet preparedResultSet = new ShardingSphereResultSet(getResultSets(), mergeResultSet, preparedStatement, createSQLStatementContext());
+        when(mergeResultSet.getValue(1, Integer.class)).thenReturn("123");
+        assertThat(preparedResultSet.getObject(1, Integer.class), is(123));
+    }
+    
+    @Test
     void assertGetObjectWithLong() throws SQLException {
         long result = 0L;
         when(mergeResultSet.getValue(1, long.class)).thenReturn(result);
@@ -563,7 +670,7 @@ class ShardingSphereResultSetTest {
     
     @Test
     void assertGetObjectWithShort() throws SQLException {
-        short result = (short) 0;
+        short result = 0;
         when(mergeResultSet.getValue(1, short.class)).thenReturn(result);
         assertThat(shardingSphereResultSet.getObject(1, short.class), is(result));
         when(mergeResultSet.getValue(1, Short.class)).thenReturn(result);

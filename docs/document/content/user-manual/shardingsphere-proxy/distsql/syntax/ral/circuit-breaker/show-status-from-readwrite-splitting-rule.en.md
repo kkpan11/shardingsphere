@@ -12,7 +12,7 @@ The `SHOW STATUS FROM READWRITE_SPLITTING RULE` syntax is used to query readwrit
 {{< tabs >}}
 {{% tab name="Grammar" %}}
 ```sql
-ShowStatusFromReadwriteSplittingRule ::=
+ShowStatusFromReadwriteSplittingRules ::=
   'SHOW' 'STATUS' 'FROM' 'READWRITE_SPLITTING' ('RULES' | 'RULE' groupName) ('FROM' databaseName)?
 
 groupName ::=
@@ -33,10 +33,11 @@ databaseName ::=
 
 ### Return Value Description
 
-| Columns        | Description         |
-|----------------|---------------------|
-| storage_unit   | storage unit name   |
-| status         | storage unit status |
+| Columns      | Description                     |
+|--------------|---------------------------------|
+| name         | readwrite-splitting rule name   |
+| storage_unit | storage unit name               |
+| status       | storage unit status             |
 
 ### Example
 
@@ -48,15 +49,15 @@ SHOW STATUS FROM READWRITE_SPLITTING RULE ms_group_0 FROM sharding_db;
 
 ```sql
 mysql> SHOW STATUS FROM READWRITE_SPLITTING RULE ms_group_0 FROM sharding_db;
-+--------------+----------+
-| storage_unit | status   |
-+--------------+----------+
-| ds_0         | disabled |
-+--------------+----------+
-1 rows in set (0.01 sec)
++-------------+--------------+----------+
+| name        | storage_unit | status   |
++-------------+--------------+----------+
+| ms_group_0  | ds_0         | disabled |
++-------------+--------------+----------+
+1 row in set (0.01 sec)
 ```
 
-- Query all readwrite-splitting storage unit from specified database
+- Query all readwrite-splitting storage unit status from specified database.
 
 ```sql
 SHOW STATUS FROM READWRITE_SPLITTING RULES FROM sharding_db;
@@ -64,12 +65,12 @@ SHOW STATUS FROM READWRITE_SPLITTING RULES FROM sharding_db;
 
 ```sql
 mysql> SHOW STATUS FROM READWRITE_SPLITTING RULES FROM sharding_db;
-+--------------+----------+
-| storage_unit | status   |
-+--------------+----------+
-| ds_0         | disabled |
-+--------------+----------+
-1 rows in set (0.01 sec)
++-------------+--------------+----------+
+| name        | storage_unit | status   |
++-------------+--------------+----------+
+| ms_group_0  | ds_0         | disabled |
++-------------+--------------+----------+
+1 row in set (0.01 sec)
 ```
 
 - Query readwrite-splitting storage unit status for specified readwrite-splitting rule in current database
@@ -80,28 +81,28 @@ SHOW STATUS FROM READWRITE_SPLITTING RULE ms_group_0;
 
 ```sql
 mysql> SHOW STATUS FROM READWRITE_SPLITTING RULE ms_group_0;
-+--------------+----------+
-| storage_unit | status   |
-+--------------+----------+
-| ds_0         | disabled |
-+--------------+----------+
-1 rows in set (0.01 sec)
++-------------+--------------+----------+
+| name        | storage_unit | status   |
++-------------+--------------+----------+
+| ms_group_0  | ds_0         | disabled |
++-------------+--------------+----------+
+1 row in set (0.01 sec)
 ```
 
-- Query all readwrite-splitting storage unit from current database
+- Query all readwrite-splitting storage unit status from current database.
+
+```sql
+SHOW STATUS FROM READWRITE_SPLITTING RULES;
+```
 
 ```sql
 mysql> SHOW STATUS FROM READWRITE_SPLITTING RULES;
-```
-
-```sql
-mysql> SHOW STATUS FROM READWRITE_SPLITTING RULES;
-+--------------+----------+
-| storage_unit | status   |
-+--------------+----------+
-| ds_0         | disabled |
-+--------------+----------+
-1 rows in set (0.01 sec)
++-------------+--------------+----------+
+| name        | storage_unit | status   |
++-------------+--------------+----------+
+| ms_group_0  | ds_0         | disabled |
++-------------+--------------+----------+
+1 row in set (0.01 sec)
 ```
 
 ### Reserved word

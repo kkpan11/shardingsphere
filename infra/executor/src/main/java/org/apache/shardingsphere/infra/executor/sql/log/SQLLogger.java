@@ -20,9 +20,9 @@ package org.apache.shardingsphere.infra.executor.sql.log;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.shardingsphere.infra.session.query.QueryContext;
 import org.apache.shardingsphere.infra.executor.sql.context.ExecutionContext;
 import org.apache.shardingsphere.infra.executor.sql.context.ExecutionUnit;
+import org.apache.shardingsphere.infra.session.query.QueryContext;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -32,7 +32,7 @@ import java.util.Set;
  * SQL logger.
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
-@Slf4j(topic = "ShardingSphere-SQL")
+@Slf4j(topic = "org.apache.shardingsphere.sql")
 public final class SQLLogger {
     
     /**

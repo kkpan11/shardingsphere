@@ -23,10 +23,10 @@ import org.apache.shardingsphere.data.pipeline.core.ingest.position.type.placeho
 import org.apache.shardingsphere.data.pipeline.core.ingest.record.DataRecord;
 import org.apache.shardingsphere.data.pipeline.core.ingest.record.NormalColumn;
 import org.apache.shardingsphere.data.pipeline.core.sqlbuilder.dialect.DialectPipelineSQLBuilder;
-import org.apache.shardingsphere.infra.database.core.spi.DatabaseTypedSPILoader;
-import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
+import org.apache.shardingsphere.database.connector.core.spi.DatabaseTypedSPILoader;
+import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
-import org.apache.shardingsphere.test.fixture.jdbc.MockedDataSource;
+import org.apache.shardingsphere.test.infra.fixture.jdbc.MockedDataSource;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
@@ -35,8 +35,8 @@ import java.sql.SQLException;
 import java.util.Collections;
 import java.util.Optional;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
@@ -81,6 +81,14 @@ class MySQLPipelineSQLBuilderTest {
         Optional<String> actual = sqlBuilder.buildCRC32SQL("foo_tbl", "id");
         assertTrue(actual.isPresent());
         assertThat(actual.get(), is("SELECT BIT_XOR(CAST(CRC32(id) AS UNSIGNED)) AS checksum, COUNT(1) AS cnt FROM foo_tbl"));
+    }
+    
+    @Test
+    void assertBuildSplitByUniqueKeyRangedSubqueryClause() {
+        assertThat(sqlBuilder.buildSplitByUniqueKeyRangedSubqueryClause("foo_tbl", "id", true),
+                is("SELECT id FROM foo_tbl WHERE id>? ORDER BY id LIMIT ?"));
+        assertThat(sqlBuilder.buildSplitByUniqueKeyRangedSubqueryClause("foo_tbl", "id", false),
+                is("SELECT id FROM foo_tbl ORDER BY id LIMIT ?"));
     }
     
     @Test

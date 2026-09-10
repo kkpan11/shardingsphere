@@ -17,9 +17,9 @@
 
 package org.apache.shardingsphere.sharding.merge.dql.groupby;
 
-import org.apache.shardingsphere.infra.binder.context.statement.dml.SelectStatementContext;
-import org.apache.shardingsphere.infra.database.core.metadata.database.enums.NullsOrderType;
-import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
+import org.apache.shardingsphere.database.connector.core.metadata.database.enums.NullsOrderType;
+import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
+import org.apache.shardingsphere.infra.binder.context.statement.type.dml.SelectStatementContext;
 import org.apache.shardingsphere.infra.executor.sql.execute.result.query.QueryResult;
 import org.apache.shardingsphere.infra.merge.result.MergedResult;
 import org.apache.shardingsphere.infra.metadata.ShardingSphereMetaData;
@@ -31,17 +31,20 @@ import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 import org.apache.shardingsphere.sharding.merge.dql.ShardingDQLResultMerger;
 import org.apache.shardingsphere.sql.parser.statement.core.enums.AggregationType;
 import org.apache.shardingsphere.sql.parser.statement.core.enums.OrderDirection;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.column.ColumnSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.item.AggregationProjectionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.item.ColumnProjectionSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.item.ProjectionsSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.item.ShorthandProjectionSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.order.GroupBySegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.order.OrderBySegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.order.item.IndexOrderByItemSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.AliasSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.WindowItemSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.SimpleTableSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.TableNameSegment;
-import org.apache.shardingsphere.sql.parser.statement.core.statement.dml.SelectStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.type.dml.SelectStatement;
 import org.apache.shardingsphere.sql.parser.statement.core.value.identifier.IdentifierValue;
-import org.apache.shardingsphere.sql.parser.statement.mysql.dml.MySQLSelectStatement;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Answers;
@@ -54,9 +57,10 @@ import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Optional;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
@@ -67,13 +71,15 @@ import static org.mockito.Mockito.when;
 @MockitoSettings(strictness = Strictness.LENIENT)
 class GroupByMemoryMergedResultTest {
     
+    private final DatabaseType databaseType = TypedSPILoader.getService(DatabaseType.class, "SQL92");
+    
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
     private ShardingSphereDatabase database;
     
     @Test
     void assertNextForResultSetsAllEmpty() throws SQLException {
         when(database.getName()).thenReturn("db_schema");
-        ShardingDQLResultMerger resultMerger = new ShardingDQLResultMerger(TypedSPILoader.getService(DatabaseType.class, "MySQL"));
+        ShardingDQLResultMerger resultMerger = new ShardingDQLResultMerger(databaseType);
         MergedResult actual = resultMerger.merge(Arrays.asList(createQueryResult(), createQueryResult(), createQueryResult()), createSelectStatementContext(), database, mock(ConnectionContext.class));
         assertFalse(actual.next());
     }
@@ -96,7 +102,7 @@ class GroupByMemoryMergedResultTest {
         when(queryResult3.getValue(3, Object.class)).thenReturn(2, 3);
         when(queryResult3.getValue(4, Object.class)).thenReturn(2, 2, 3);
         when(queryResult3.getValue(5, Object.class)).thenReturn(20, 20, 30);
-        ShardingDQLResultMerger resultMerger = new ShardingDQLResultMerger(TypedSPILoader.getService(DatabaseType.class, "MySQL"));
+        ShardingDQLResultMerger resultMerger = new ShardingDQLResultMerger(databaseType);
         MergedResult actual = resultMerger.merge(Arrays.asList(queryResult1, queryResult2, queryResult3), createSelectStatementContext(), database, mock(ConnectionContext.class));
         assertTrue(actual.next());
         assertThat(actual.getValue(1, Object.class), is(new BigDecimal(30)));
@@ -114,31 +120,34 @@ class GroupByMemoryMergedResultTest {
     }
     
     private SelectStatementContext createSelectStatementContext() {
-        SelectStatement selectStatement = new MySQLSelectStatement();
         ProjectionsSegment projectionsSegment = new ProjectionsSegment(0, 0);
         projectionsSegment.getProjections().add(new AggregationProjectionSegment(0, 0, AggregationType.COUNT, "COUNT(*)"));
         projectionsSegment.getProjections().add(new AggregationProjectionSegment(0, 0, AggregationType.AVG, "AVG(num)"));
-        selectStatement.setProjections(projectionsSegment);
-        selectStatement.setGroupBy(new GroupBySegment(0, 0, Collections.singletonList(new IndexOrderByItemSegment(0, 0, 3, OrderDirection.ASC, NullsOrderType.FIRST))));
-        selectStatement.setOrderBy(new OrderBySegment(0, 0, Collections.singletonList(new IndexOrderByItemSegment(0, 0, 3, OrderDirection.DESC, NullsOrderType.FIRST))));
-        selectStatement.setProjections(projectionsSegment);
+        SelectStatement selectStatement = SelectStatement.builder()
+                .databaseType(databaseType)
+                .projections(projectionsSegment)
+                .groupBy(new GroupBySegment(0, 0, Collections.singletonList(new IndexOrderByItemSegment(0, 0, 3, OrderDirection.ASC, NullsOrderType.FIRST))))
+                .orderBy(new OrderBySegment(0, 0, Arrays.asList(new IndexOrderByItemSegment(0, 0, 3, OrderDirection.DESC, NullsOrderType.FIRST),
+                        new IndexOrderByItemSegment(0, 0, 4, OrderDirection.ASC, NullsOrderType.FIRST))))
+                .build();
         ShardingSphereDatabase database = mock(ShardingSphereDatabase.class, RETURNS_DEEP_STUBS);
         when(database.getName()).thenReturn("foo_db");
         return new SelectStatementContext(
-                new ShardingSphereMetaData(Collections.singleton(database), mock(), mock(), mock()), Collections.emptyList(), selectStatement, "foo_db", Collections.emptyList());
+                selectStatement, new ShardingSphereMetaData(Collections.singleton(database), mock(), mock(), mock()), "foo_db", Collections.emptyList());
     }
     
     private SelectStatementContext createSelectStatementContext(final ShardingSphereDatabase database) {
-        SelectStatement selectStatement = new MySQLSelectStatement();
         ProjectionsSegment projectionsSegment = new ProjectionsSegment(0, 0);
         projectionsSegment.setDistinctRow(true);
         projectionsSegment.getProjections().add(new ShorthandProjectionSegment(0, 0));
-        selectStatement.setProjections(projectionsSegment);
-        selectStatement.setOrderBy(new OrderBySegment(0, 0, Collections.singletonList(new IndexOrderByItemSegment(0, 0, 3, OrderDirection.DESC, NullsOrderType.FIRST))));
-        selectStatement.setFrom(new SimpleTableSegment(new TableNameSegment(0, 0, new IdentifierValue("t_order"))));
-        selectStatement.setProjections(projectionsSegment);
+        SelectStatement selectStatement = SelectStatement.builder()
+                .databaseType(databaseType)
+                .projections(projectionsSegment)
+                .orderBy(new OrderBySegment(0, 0, Collections.singletonList(new IndexOrderByItemSegment(0, 0, 3, OrderDirection.DESC, NullsOrderType.FIRST))))
+                .from(new SimpleTableSegment(new TableNameSegment(0, 0, new IdentifierValue("t_order"))))
+                .build();
         return new SelectStatementContext(
-                new ShardingSphereMetaData(Collections.singleton(database), mock(), mock(), mock()), Collections.emptyList(), selectStatement, "foo_db", Collections.emptyList());
+                selectStatement, new ShardingSphereMetaData(Collections.singleton(database), mock(), mock(), mock()), "foo_db", Collections.emptyList());
     }
     
     @Test
@@ -159,7 +168,7 @@ class GroupByMemoryMergedResultTest {
         when(queryResult3.getValue(3, Object.class)).thenReturn(2, 3);
         when(queryResult3.getValue(4, Object.class)).thenReturn(2, 2, 3);
         when(queryResult3.getValue(5, Object.class)).thenReturn(20, 20, 30);
-        ShardingDQLResultMerger resultMerger = new ShardingDQLResultMerger(TypedSPILoader.getService(DatabaseType.class, "MySQL"));
+        ShardingDQLResultMerger resultMerger = new ShardingDQLResultMerger(databaseType);
         MergedResult actual = resultMerger.merge(Arrays.asList(queryResult1, queryResult2, queryResult3), createSelectStatementContext(), database, mock(ConnectionContext.class));
         assertTrue(actual.next());
         assertThat(actual.getValue(1, Object.class), is(new BigDecimal(30)));
@@ -197,14 +206,48 @@ class GroupByMemoryMergedResultTest {
         ShardingSphereTable table = mock(ShardingSphereTable.class);
         when(schema.getTable("t_order")).thenReturn(table);
         when(schema.containsTable("t_order")).thenReturn(true);
+        when(schema.getTable(new IdentifierValue("t_order"))).thenReturn(table);
+        when(schema.containsTable(new IdentifierValue("t_order"))).thenReturn(true);
         when(table.getAllColumns()).thenReturn(Collections.emptyList());
         ShardingSphereDatabase database = mock(ShardingSphereDatabase.class, RETURNS_DEEP_STUBS);
         when(database.getName()).thenReturn("foo_db");
-        when(database.getSchema("foo_db")).thenReturn(schema);
+        when(database.findDefaultSchema()).thenReturn(Optional.of(schema));
         when(database.getAllSchemas()).thenReturn(Collections.singleton(schema));
-        ShardingDQLResultMerger merger = new ShardingDQLResultMerger(TypedSPILoader.getService(DatabaseType.class, "MySQL"));
+        ShardingDQLResultMerger merger = new ShardingDQLResultMerger(databaseType);
         MergedResult actual = merger.merge(Arrays.asList(queryResult, queryResult, queryResult), createSelectStatementContext(database), database, mock(ConnectionContext.class));
         assertFalse(actual.next());
+    }
+    
+    @Test
+    void assertNextForEmptyResultWithWindowAggregation() throws SQLException {
+        when(database.getName()).thenReturn("db_schema");
+        QueryResult queryResult1 = createEmptyQueryResultWithWindowAggregation();
+        QueryResult queryResult2 = createEmptyQueryResultWithWindowAggregation();
+        ShardingDQLResultMerger resultMerger = new ShardingDQLResultMerger(databaseType);
+        MergedResult actual = resultMerger.merge(Arrays.asList(queryResult1, queryResult2), createSelectStatementContextForWindowAggregation(), database, mock(ConnectionContext.class));
+        assertFalse(actual.next());
+    }
+    
+    private QueryResult createEmptyQueryResultWithWindowAggregation() throws SQLException {
+        QueryResult result = mock(QueryResult.class, RETURNS_DEEP_STUBS);
+        when(result.getMetaData().getColumnCount()).thenReturn(1);
+        when(result.getMetaData().getColumnLabel(1)).thenReturn("c_5");
+        when(result.next()).thenReturn(false);
+        return result;
+    }
+    
+    private SelectStatementContext createSelectStatementContextForWindowAggregation() {
+        ProjectionsSegment projectionsSegment = new ProjectionsSegment(0, 0);
+        AggregationProjectionSegment aggregationProjectionSegment = new AggregationProjectionSegment(
+                0, 0, AggregationType.MAX, "pg_catalog.max(ref_0.c36) over (partition by ref_0.c39 order by ref_0.vkey desc)");
+        aggregationProjectionSegment.setAlias(new AliasSegment(0, 0, new IdentifierValue("c_5")));
+        aggregationProjectionSegment.setWindow(new WindowItemSegment(29, 86));
+        projectionsSegment.getProjections().add(aggregationProjectionSegment);
+        SelectStatement selectStatement = SelectStatement.builder().databaseType(databaseType).projections(projectionsSegment).build();
+        ShardingSphereDatabase database = mock(ShardingSphereDatabase.class, RETURNS_DEEP_STUBS);
+        when(database.getName()).thenReturn("foo_db");
+        return new SelectStatementContext(
+                selectStatement, new ShardingSphereMetaData(Collections.singleton(database), mock(), mock(), mock()), "foo_db", Collections.emptyList());
     }
     
     @Test
@@ -212,7 +255,7 @@ class GroupByMemoryMergedResultTest {
         when(database.getName()).thenReturn("db_schema");
         QueryResult queryResult1 = createEmptyQueryResultWithCountGroupBy();
         QueryResult queryResult2 = createEmptyQueryResultWithCountGroupBy();
-        ShardingDQLResultMerger resultMerger = new ShardingDQLResultMerger(TypedSPILoader.getService(DatabaseType.class, "MySQL"));
+        ShardingDQLResultMerger resultMerger = new ShardingDQLResultMerger(databaseType);
         MergedResult actual = resultMerger.merge(Arrays.asList(queryResult1, queryResult2), createSelectStatementContextForCountGroupBy(), database, mock(ConnectionContext.class));
         assertFalse(actual.next());
     }
@@ -221,7 +264,7 @@ class GroupByMemoryMergedResultTest {
     void assertNextForEmptyResultWithCountGroupByDifferentOrderBy() throws SQLException {
         when(database.getName()).thenReturn("db_schema");
         QueryResult queryResult = createEmptyQueryResultWithCountGroupBy();
-        ShardingDQLResultMerger resultMerger = new ShardingDQLResultMerger(TypedSPILoader.getService(DatabaseType.class, "MySQL"));
+        ShardingDQLResultMerger resultMerger = new ShardingDQLResultMerger(databaseType);
         MergedResult actual = resultMerger.merge(Collections.singletonList(queryResult), createSelectStatementContextForCountGroupByDifferentOrderBy(), database, mock(ConnectionContext.class));
         assertFalse(actual.next());
     }
@@ -237,28 +280,109 @@ class GroupByMemoryMergedResultTest {
     }
     
     private SelectStatementContext createSelectStatementContextForCountGroupBy() {
-        SelectStatement selectStatement = new MySQLSelectStatement();
         ProjectionsSegment projectionsSegment = new ProjectionsSegment(0, 0);
         projectionsSegment.getProjections().add(new AggregationProjectionSegment(0, 0, AggregationType.COUNT, "COUNT(*)"));
-        selectStatement.setGroupBy(new GroupBySegment(0, 0, Collections.singletonList(new IndexOrderByItemSegment(0, 0, 2, OrderDirection.ASC, NullsOrderType.FIRST))));
-        selectStatement.setOrderBy(new OrderBySegment(0, 0, Collections.singletonList(new IndexOrderByItemSegment(0, 0, 2, OrderDirection.ASC, NullsOrderType.FIRST))));
-        selectStatement.setProjections(projectionsSegment);
+        SelectStatement selectStatement = SelectStatement.builder()
+                .databaseType(databaseType)
+                .groupBy(new GroupBySegment(0, 0, Collections.singletonList(new IndexOrderByItemSegment(0, 0, 2, OrderDirection.ASC, NullsOrderType.FIRST))))
+                .orderBy(new OrderBySegment(0, 0, Collections.singletonList(new IndexOrderByItemSegment(0, 0, 2, OrderDirection.ASC, NullsOrderType.FIRST))))
+                .projections(projectionsSegment)
+                .build();
         ShardingSphereDatabase database = mock(ShardingSphereDatabase.class, RETURNS_DEEP_STUBS);
         when(database.getName()).thenReturn("foo_db");
         return new SelectStatementContext(
-                new ShardingSphereMetaData(Collections.singleton(database), mock(), mock(), mock()), Collections.emptyList(), selectStatement, "foo_db", Collections.emptyList());
+                selectStatement, new ShardingSphereMetaData(Collections.singleton(database), mock(), mock(), mock()), "foo_db", Collections.emptyList());
     }
     
     private SelectStatementContext createSelectStatementContextForCountGroupByDifferentOrderBy() {
-        SelectStatement selectStatement = new MySQLSelectStatement();
         ProjectionsSegment projectionsSegment = new ProjectionsSegment(0, 0);
         projectionsSegment.getProjections().add(new AggregationProjectionSegment(0, 0, AggregationType.COUNT, "COUNT(*)"));
-        selectStatement.setGroupBy(new GroupBySegment(0, 0, Collections.singletonList(new IndexOrderByItemSegment(0, 0, 2, OrderDirection.ASC, NullsOrderType.FIRST))));
-        selectStatement.setOrderBy(new OrderBySegment(0, 0, Collections.singletonList(new IndexOrderByItemSegment(0, 0, 3, OrderDirection.ASC, NullsOrderType.FIRST))));
-        selectStatement.setProjections(projectionsSegment);
+        SelectStatement selectStatement = SelectStatement.builder()
+                .databaseType(databaseType)
+                .groupBy(new GroupBySegment(0, 0, Collections.singletonList(new IndexOrderByItemSegment(0, 0, 2, OrderDirection.ASC, NullsOrderType.FIRST))))
+                .orderBy(new OrderBySegment(0, 0, Collections.singletonList(new IndexOrderByItemSegment(0, 0, 3, OrderDirection.ASC, NullsOrderType.FIRST))))
+                .projections(projectionsSegment)
+                .build();
         ShardingSphereDatabase database = mock(ShardingSphereDatabase.class, RETURNS_DEEP_STUBS);
         when(database.getName()).thenReturn("foo_db");
         return new SelectStatementContext(
-                new ShardingSphereMetaData(Collections.singleton(database), mock(), mock(), mock()), Collections.emptyList(), selectStatement, "foo_db", Collections.emptyList());
+                selectStatement, new ShardingSphereMetaData(Collections.singleton(database), mock(), mock(), mock()), "foo_db", Collections.emptyList());
+    }
+    
+    @Test
+    void assertGroupByVarBinaryFromMultipleResults() throws SQLException {
+        when(database.getName()).thenReturn("db_schema");
+        QueryResult queryResult1 = createGroupByVarBinaryQueryResult();
+        when(queryResult1.next()).thenReturn(true, false);
+        when(queryResult1.getValue(1, Object.class)).thenReturn(1);
+        when(queryResult1.getValue(2, Object.class)).thenReturn(new byte[]{0x10});
+        QueryResult queryResult2 = createGroupByVarBinaryQueryResult();
+        when(queryResult2.next()).thenReturn(true, false);
+        when(queryResult2.getValue(1, Object.class)).thenReturn(1);
+        when(queryResult2.getValue(2, Object.class)).thenReturn(new byte[]{0x10});
+        QueryResult queryResult3 = createGroupByVarBinaryQueryResult();
+        when(queryResult3.next()).thenReturn(true, false);
+        when(queryResult3.getValue(1, Object.class)).thenReturn(1);
+        when(queryResult3.getValue(2, Object.class)).thenReturn(new byte[]{(byte) 0x80});
+        ShardingDQLResultMerger resultMerger = new ShardingDQLResultMerger(databaseType);
+        MergedResult actual = resultMerger.merge(Arrays.asList(queryResult1, queryResult2, queryResult3), createSelectStatementContextForCountGroupBy(), database, mock(ConnectionContext.class));
+        assertTrue(actual.next());
+        assertThat((byte[]) actual.getValue(2, Object.class), is(new byte[]{0x10}));
+        assertThat(actual.getValue(1, Object.class), is(new BigDecimal(2)));
+        assertTrue(actual.next());
+        assertThat((byte[]) actual.getValue(2, Object.class), is(new byte[]{(byte) 0x80}));
+        assertThat(actual.getValue(1, Object.class), is(new BigDecimal(1)));
+        assertFalse(actual.next());
+    }
+    
+    private QueryResult createGroupByVarBinaryQueryResult() throws SQLException {
+        QueryResult result = mock(QueryResult.class, RETURNS_DEEP_STUBS);
+        when(result.getMetaData().getColumnCount()).thenReturn(2);
+        when(result.getMetaData().getColumnLabel(1)).thenReturn("COUNT(*)");
+        when(result.getMetaData().getColumnLabel(2)).thenReturn("varbinary_col");
+        return result;
+    }
+    
+    @Test
+    void assertDistinctVarBinaryFromMultipleResults() throws SQLException {
+        when(database.getName()).thenReturn("foo_db");
+        QueryResult queryResult1 = createDistinctVarBinaryQueryResult();
+        when(queryResult1.next()).thenReturn(true, false);
+        when(queryResult1.getValue(1, Object.class)).thenReturn(new byte[]{0x10});
+        QueryResult queryResult2 = createDistinctVarBinaryQueryResult();
+        when(queryResult2.next()).thenReturn(true, false);
+        when(queryResult2.getValue(1, Object.class)).thenReturn(new byte[]{0x10});
+        QueryResult queryResult3 = createDistinctVarBinaryQueryResult();
+        when(queryResult3.next()).thenReturn(true, false);
+        when(queryResult3.getValue(1, Object.class)).thenReturn(new byte[]{(byte) 0x80});
+        ShardingDQLResultMerger resultMerger = new ShardingDQLResultMerger(databaseType);
+        MergedResult actual = resultMerger.merge(
+                Arrays.asList(queryResult1, queryResult2, queryResult3), createDistinctVarBinaryContext(), database, mock(ConnectionContext.class));
+        assertTrue(actual.next());
+        assertThat((byte[]) actual.getValue(1, Object.class), is(new byte[]{0x10}));
+        assertTrue(actual.next());
+        assertThat((byte[]) actual.getValue(1, Object.class), is(new byte[]{(byte) 0x80}));
+        assertFalse(actual.next());
+    }
+    
+    private QueryResult createDistinctVarBinaryQueryResult() throws SQLException {
+        QueryResult result = mock(QueryResult.class, RETURNS_DEEP_STUBS);
+        when(result.getMetaData().getColumnCount()).thenReturn(1);
+        when(result.getMetaData().getColumnLabel(1)).thenReturn("varbinary_col");
+        return result;
+    }
+    
+    private SelectStatementContext createDistinctVarBinaryContext() {
+        ProjectionsSegment projectionsSegment = new ProjectionsSegment(0, 0);
+        projectionsSegment.setDistinctRow(true);
+        projectionsSegment.getProjections().add(new ColumnProjectionSegment(new ColumnSegment(0, 0, new IdentifierValue("varbinary_col"))));
+        SelectStatement selectStatement = SelectStatement.builder()
+                .databaseType(databaseType)
+                .projections(projectionsSegment)
+                .orderBy(new OrderBySegment(0, 0, Collections.singletonList(new IndexOrderByItemSegment(0, 0, 1, OrderDirection.ASC, NullsOrderType.FIRST))))
+                .from(new SimpleTableSegment(new TableNameSegment(0, 0, new IdentifierValue("t_order"))))
+                .build();
+        return new SelectStatementContext(
+                selectStatement, new ShardingSphereMetaData(Collections.singleton(database), mock(), mock(), mock()), "foo_db", Collections.emptyList());
     }
 }

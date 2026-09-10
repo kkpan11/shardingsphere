@@ -37,7 +37,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * Sharding cartesian route engine.
@@ -75,11 +74,15 @@ public final class ShardingCartesianRouteEngine implements ShardingRouteEngine {
     
     private Collection<String> getIntersectionDataSources() {
         Collection<String> result = new HashSet<>();
+        boolean initialized = false;
         for (RouteContext each : routeContexts) {
-            if (result.isEmpty()) {
-                result.addAll(each.getActualDataSourceNames());
+            Collection<String> actualDataSourceNames = each.getActualDataSourceNames();
+            if (!initialized) {
+                result.addAll(actualDataSourceNames);
+                initialized = true;
+            } else {
+                result.retainAll(actualDataSourceNames);
             }
-            result.retainAll(each.getActualDataSourceNames());
         }
         return result;
     }
@@ -95,7 +98,11 @@ public final class ShardingCartesianRouteEngine implements ShardingRouteEngine {
     private List<Set<RouteMapper>> toRoutingTableGroups(final String dataSource, final List<Set<String>> actualTableGroups) {
         List<Set<RouteMapper>> result = new ArrayList<>(actualTableGroups.size());
         for (Set<String> each : actualTableGroups) {
-            result.add(new LinkedHashSet<>(new ArrayList<>(each).stream().map(input -> findRoutingTable(dataSource, input)).collect(Collectors.toList())));
+            Set<RouteMapper> routingTableGroup = new LinkedHashSet<>(each.size(), 1F);
+            for (String actualTable : each) {
+                routingTableGroup.add(findRoutingTable(dataSource, actualTable));
+            }
+            result.add(routingTableGroup);
         }
         return result;
     }
@@ -112,8 +119,9 @@ public final class ShardingCartesianRouteEngine implements ShardingRouteEngine {
     
     private Collection<RouteUnit> getRouteUnits(final String dataSource, final Set<List<RouteMapper>> cartesianRoutingTableGroups) {
         Collection<RouteUnit> result = new LinkedHashSet<>(cartesianRoutingTableGroups.size(), 1F);
+        RouteMapper dataSourceMapper = new RouteMapper(dataSource, dataSource);
         for (List<RouteMapper> each : cartesianRoutingTableGroups) {
-            result.add(new RouteUnit(new RouteMapper(dataSource, dataSource), new LinkedList<>(each)));
+            result.add(new RouteUnit(dataSourceMapper, new LinkedList<>(each)));
         }
         return result;
     }

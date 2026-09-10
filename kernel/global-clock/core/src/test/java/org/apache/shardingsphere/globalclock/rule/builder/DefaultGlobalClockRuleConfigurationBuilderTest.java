@@ -26,8 +26,8 @@ import org.junit.jupiter.api.Test;
 import java.util.Collections;
 import java.util.Map;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -36,9 +36,9 @@ class DefaultGlobalClockRuleConfigurationBuilderTest {
     @SuppressWarnings("rawtypes")
     @Test
     void assertBuild() {
-        GlobalClockRuleBuilder builder = new GlobalClockRuleBuilder();
-        Map<GlobalRuleBuilder, DefaultGlobalRuleConfigurationBuilder> builders = OrderedSPILoader.getServices(DefaultGlobalRuleConfigurationBuilder.class, Collections.singleton(builder));
-        GlobalClockRuleConfiguration actual = (GlobalClockRuleConfiguration) builders.get(builder).build();
+        Map<GlobalRuleBuilder, DefaultGlobalRuleConfigurationBuilder> builders = OrderedSPILoader.getServices(
+                DefaultGlobalRuleConfigurationBuilder.class, Collections.singleton(new GlobalClockRuleBuilder()));
+        GlobalClockRuleConfiguration actual = (GlobalClockRuleConfiguration) builders.values().iterator().next().build();
         assertThat(actual.getType(), is("TSO"));
         assertThat(actual.getProvider(), is("local"));
         assertFalse(actual.isEnabled());

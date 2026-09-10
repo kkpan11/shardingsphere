@@ -47,7 +47,7 @@ public final class DataSourceProvidedDatabaseConfiguration implements DatabaseCo
     private final Map<StorageNode, DataSource> dataSources;
     
     public DataSourceProvidedDatabaseConfiguration(final Map<String, DataSource> dataSources, final Collection<RuleConfiguration> ruleConfigs) {
-        this.ruleConfigurations = ruleConfigs;
+        ruleConfigurations = ruleConfigs;
         Map<String, StorageNode> storageUnitNodeMap = dataSources.keySet().stream()
                 .collect(Collectors.toMap(each -> each, StorageNode::new, (oldValue, currentValue) -> oldValue, LinkedHashMap::new));
         Map<StorageNode, DataSource> storageNodeDataSources = StorageNodeAggregator.aggregateDataSources(dataSources);
@@ -55,10 +55,10 @@ public final class DataSourceProvidedDatabaseConfiguration implements DatabaseCo
         this.dataSources = storageNodeDataSources;
     }
     
-    public DataSourceProvidedDatabaseConfiguration(final Map<StorageNode, DataSource> storageNodeDataSources,
-                                                   final Collection<RuleConfiguration> ruleConfigs, final Map<String, DataSourcePoolProperties> dataSourcePoolPropsMap) {
-        this.ruleConfigurations = ruleConfigs;
-        Map<String, StorageNode> storageUnitNodeMap = StorageUnitNodeMapCreator.create(dataSourcePoolPropsMap);
+    public DataSourceProvidedDatabaseConfiguration(final Map<StorageNode, DataSource> storageNodeDataSources, final Collection<RuleConfiguration> ruleConfigs,
+                                                   final Map<String, DataSourcePoolProperties> dataSourcePoolPropsMap, final boolean isInstanceConnectionEnabled) {
+        ruleConfigurations = ruleConfigs;
+        Map<String, StorageNode> storageUnitNodeMap = StorageUnitNodeMapCreator.create(dataSourcePoolPropsMap, isInstanceConnectionEnabled);
         storageUnits = getStorageUnits(storageUnitNodeMap, storageNodeDataSources, dataSourcePoolPropsMap);
         dataSources = storageNodeDataSources;
     }
@@ -70,8 +70,7 @@ public final class DataSourceProvidedDatabaseConfiguration implements DatabaseCo
             String storageUnitName = entry.getKey();
             StorageNode storageNode = storageUnitNodeMap.get(storageUnitName);
             DataSource dataSource = storageNodeDataSources.containsKey(storageNode) ? storageNodeDataSources.get(storageNode) : storageNodeDataSources.get(new StorageNode(storageUnitName));
-            StorageUnit storageUnit = new StorageUnit(storageNode, entry.getValue(), dataSource);
-            result.put(storageUnitName, storageUnit);
+            result.put(storageUnitName, new StorageUnit(storageNode, entry.getValue(), dataSource));
         }
         return result;
     }
@@ -80,4 +79,5 @@ public final class DataSourceProvidedDatabaseConfiguration implements DatabaseCo
         return dataSources.entrySet().stream()
                 .collect(Collectors.toMap(Entry::getKey, entry -> DataSourcePoolPropertiesCreator.create(entry.getValue()), (oldValue, currentValue) -> oldValue, LinkedHashMap::new));
     }
+    
 }

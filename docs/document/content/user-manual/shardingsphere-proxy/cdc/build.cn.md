@@ -14,7 +14,6 @@ ShardingSphere CDC 分为两个部分，一个是 CDC Server，另一个是 CDC 
 - 纯 JAVA 开发，JDK 建议 1.8 或以上版本。
 - CDC Server 要求 ShardingSphere-Proxy 使用集群模式，目前支持 ZooKeeper 作为注册中心。
 - CDC 只同步数据，不会同步表结构，目前也不支持 DDL 的语句同步。
-- CDC 增量阶段会按照分库事务的维度输出数据， 如果要开启 XA 事务的兼容，则 openGauss 和 ShardingSphere-Proxy 都需要 GLT 模块
 
 ## CDC Server 部署步骤
 
@@ -22,32 +21,9 @@ ShardingSphere CDC 分为两个部分，一个是 CDC Server，另一个是 CDC 
 
 由于 CDC Server 内置于 ShardingSphere-Proxy，所以需要获取 ShardingSphere-Proxy。详情请参见 [proxy 启动手册](/cn/user-manual/shardingsphere-proxy/startup/bin/)。
 
-### 配置 GLT 模块（可选）
-
-官网发布的二进制包默认不包含 GLT 模块，如果使用的是包含 GLT 功能的 openGauss 数据库，则可以额外引入 GLT 模块，保证 XA 事务的完整性。
-
-目前有两种方式引入 GLT 模块，并且需要在 global.yaml 中也进行相应的配置。
-
-#### 1. 源码编译安装
-
-1.1 准备代码环境，提前下载或者使用 Git clone，从 Github 下载 [ShardingSphere](https://github.com/apache/shardingsphere.git) 源码。
-
-1.2 删除 kernel/global-clock/type/tso/core/pom.xml 中 shardingsphere-global-clock-tso-provider-redis 依赖的 `<scope>provided</scope>` 标签和 kernel/global-clock/type/tso/provider/redis/pom.xml 中 jedis
-   的 `<scope>provided</scope>` 标签
-
-1.3 编译 ShardingSphere-Proxy，具体编译步骤请参考 [ShardingSphere 编译手册](https://github.com/apache/shardingsphere/wiki#build-apache-shardingsphere)。
-
-#### 2. 直接引入 GLT 依赖
-
-可以从 maven 仓库中引入
-
-2.1. [shardingsphere-global-clock-tso-provider-redis](https://repo1.maven.org/maven2/org/apache/shardingsphere/shardingsphere-global-clock-tso-provider-redis)，下载和 ShardingSphere-Proxy 同名版本
-
-2.2. [jedis-4.3.1](https://repo1.maven.org/maven2/redis/clients/jedis/4.3.1/jedis-4.3.1.jar)
-
 ### CDC Server 使用手册
 
-修改配置文件 `conf/global.yaml`，打开 CDC 功能。 目前 `mode` 必须是 `Cluster`，需要提前启动对应的注册中心。如果 GLT provider 使用 Redis，需要提前启动 Redis。
+修改配置文件 `conf/global.yaml`，打开 CDC 功能。 目前 `mode` 必须是 `Cluster`，需要提前启动对应的注册中心。
 
 配置示例：
 
@@ -73,21 +49,7 @@ authority:
   privilege:
     type: ALL_PERMITTED
 
-# 使用 GLT 的时候也需要开启分布式事务，目前 GLT 只有 openGauss 数据库支持
-#transaction:
-#  defaultType: XA
-#  providerType: Atomikos
-#
-#globalClock:
-#  enabled: true
-#  type: TSO
-#  provider: redis
-#  props:
-#    host: 127.0.0.1
-#    port: 6379
-
 props:
-  system-log-level: INFO
   proxy-default-port: 3307 # Proxy default port
   cdc-server-port: 33071 # CDC Server 端口，必须配置
   proxy-frontend-database-protocol-type: openGauss # 和后端数据库的类型一致
@@ -101,7 +63,7 @@ proxy 已包含 PostgreSQL JDBC 和 openGauss JDBC 驱动。
 
 | 数据库       | JDBC 驱动                                                                                                                        |
 |-----------|--------------------------------------------------------------------------------------------------------------------------------|
-| MySQL     | [mysql-connector-j-8.3.0.jar](https://repo1.maven.org/maven2/com/mysql/mysql-connector-j/8.3.0/)                            |
+| MySQL     | [mysql-connector-j-8.4.0.jar](https://repo1.maven.org/maven2/com/mysql/mysql-connector-j/8.4.0/)                            |
 
 4. 启动 ShardingSphere-Proxy：
 
@@ -118,6 +80,9 @@ sh bin/start.sh
 确认启动成功。
 
 6. 按需配置 CDC 任务同步配置
+
+完整 DistSQL 语法请参考 [SHOW STREAMING RULE](/cn/user-manual/shardingsphere-proxy/distsql/syntax/ral/streaming/show-streaming-rule/)
+和 [ALTER STREAMING RULE](/cn/user-manual/shardingsphere-proxy/distsql/syntax/ral/streaming/alter-streaming-rule/)。
 
 6.1. 查询配置。
 
@@ -212,9 +177,9 @@ CDC Client 不需要额外部署，只需要通过 maven 引入 CDC Client 的�
 
 | 方法名                                                                                                                         | 返回值         | 说明                                                                                                           |
 |-----------------------------------------------------------------------------------------------------------------------------|-------------|--------------------------------------------------------------------------------------------------------------|
-| connect(Consumer<List<Record>> dataConsumer, ExceptionHandler exceptionHandler, ServerErrorResultHandler errorResultHandler | void        | 和服务端进行连接，连接的时候需要指定 <br/>1. 数据的消费处理逻辑 <br/>2. 消费时候的异常处理逻辑 <br/>3. 服务端错误的异常处理逻辑                                |
+| connect(Consumer<List<Record>> dataConsumer, ExceptionHandler exceptionHandler, ServerErrorResultHandler errorResultHandler) | void        | 和服务端进行连接，连接的时候需要指定 <br/>1. 数据的消费处理逻辑 <br/>2. 消费时候的异常处理逻辑 <br/>3. 服务端错误的异常处理逻辑                                |
 | login(CDCLoginParameter parameter)                                                                                          | void        | CDC登陆，参数 <br/>username：用户名 <br/>password：密码                                                                  |
-| startStreaming(StartStreamingParameter parameter)                                                                           | streamingId | 开启 CDC 订阅 <br/> StartStreamingParameter 参数 <br/> database：逻辑库名称 <br/> schemaTables：订阅的表名 <br/> full：是否订阅全量数据 |
+| startStreaming(StartStreamingParameter parameter)                                                                           | String      | 开启 CDC 订阅并返回 streaming ID <br/> StartStreamingParameter 参数 <br/> database：逻辑库名称 <br/> schemaTables：订阅的表名 <br/> full：是否订阅全量数据 |
 | restartStreaming(String streamingId)                                                                                        | void        | 重启订阅                                                                                                         |
 | stopStreaming(String streamingId)                                                                                           | void        | 停止订阅                                                                                                         |
 | dropStreaming(String streamingId)                                                                                           | void        | 删除订阅                                                                                                         |

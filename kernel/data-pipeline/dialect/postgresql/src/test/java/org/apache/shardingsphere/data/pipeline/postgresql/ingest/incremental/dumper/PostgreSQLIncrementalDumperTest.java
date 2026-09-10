@@ -31,10 +31,10 @@ import org.apache.shardingsphere.data.pipeline.postgresql.ingest.incremental.wal
 import org.apache.shardingsphere.data.pipeline.postgresql.ingest.incremental.wal.decode.PostgreSQLLogSequenceNumber;
 import org.apache.shardingsphere.data.pipeline.postgresql.ingest.incremental.wal.position.PostgreSQLIncrementalPositionManager;
 import org.apache.shardingsphere.data.pipeline.postgresql.ingest.incremental.wal.position.slot.PostgreSQLSlotNameGenerator;
-import org.apache.shardingsphere.infra.exception.core.external.sql.type.wrapper.SQLWrapperException;
+import org.apache.shardingsphere.infra.exception.external.sql.type.wrapper.SQLWrapperException;
 import org.apache.shardingsphere.infra.metadata.identifier.ShardingSphereIdentifier;
-import org.apache.shardingsphere.test.mock.AutoMockExtension;
-import org.apache.shardingsphere.test.mock.StaticMockSettings;
+import org.apache.shardingsphere.test.infra.framework.extension.mock.AutoMockExtension;
+import org.apache.shardingsphere.test.infra.framework.extension.mock.StaticMockSettings;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -56,8 +56,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;

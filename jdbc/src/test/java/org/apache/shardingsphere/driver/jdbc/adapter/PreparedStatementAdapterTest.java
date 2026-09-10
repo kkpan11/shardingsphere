@@ -17,10 +17,10 @@
 
 package org.apache.shardingsphere.driver.jdbc.adapter;
 
+import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
 import org.apache.shardingsphere.driver.jdbc.core.connection.ShardingSphereConnection;
 import org.apache.shardingsphere.driver.jdbc.core.statement.ShardingSpherePreparedStatement;
 import org.apache.shardingsphere.infra.config.props.ConfigurationProperties;
-import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.metadata.database.rule.RuleMetaData;
 import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 import org.apache.shardingsphere.parser.rule.SQLParserRule;
@@ -49,8 +49,8 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.Properties;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
@@ -70,7 +70,7 @@ class PreparedStatementAdapterTest {
                         new SQLFederationRule(new DefaultSQLFederationRuleConfigurationBuilder().build(), Collections.emptyList()))));
         when(connection.getContextManager().getMetaDataContexts().getMetaData().getProps()).thenReturn(new ConfigurationProperties(new Properties()));
         when(connection.getContextManager().getMetaDataContexts().getMetaData().getDatabase(
-                connection.getCurrentDatabaseName()).getProtocolType()).thenReturn(TypedSPILoader.getService(DatabaseType.class, "MySQL"));
+                connection.getCurrentDatabaseName()).getProtocolType()).thenReturn(TypedSPILoader.getService(DatabaseType.class, "SQL92"));
         shardingSpherePreparedStatement = new ShardingSpherePreparedStatement(connection, "SELECT 1", null);
     }
     

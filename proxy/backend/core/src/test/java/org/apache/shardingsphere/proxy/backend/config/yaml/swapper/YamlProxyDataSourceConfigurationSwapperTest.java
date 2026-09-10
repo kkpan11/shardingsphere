@@ -27,8 +27,8 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -46,6 +46,7 @@ class YamlProxyDataSourceConfigurationSwapperTest {
     private void assertConnectionConfig(final DataSourceConfiguration actualDataSourceConfig) {
         ConnectionConfiguration actualConnection = actualDataSourceConfig.getConnection();
         assertNotNull(actualConnection);
+        assertThat(actualConnection.getDriverClassName(), is("org.h2.Driver"));
         assertThat(actualConnection.getUrl(), is("jdbc:h2:mem:foo_db;DB_CLOSE_DELAY=-1"));
         assertThat(actualConnection.getUsername(), is("sa"));
         assertThat(actualConnection.getPassword(), is(""));
@@ -55,10 +56,10 @@ class YamlProxyDataSourceConfigurationSwapperTest {
         PoolConfiguration actualPool = actualDataSourceConfig.getPool();
         assertNotNull(actualPool);
         assertThat(actualPool.getConnectionTimeoutMilliseconds(), is(250L));
-        assertThat(actualPool.getIdleTimeoutMilliseconds(), is(2L));
-        assertThat(actualPool.getMaxLifetimeMilliseconds(), is(3L));
-        assertThat(actualPool.getMaxPoolSize(), is(4));
-        assertThat(actualPool.getMinPoolSize(), is(5));
+        assertThat(actualPool.getIdleTimeoutMilliseconds(), is(30000L));
+        assertThat(actualPool.getMaxLifetimeMilliseconds(), is(600000L));
+        assertThat(actualPool.getMaxPoolSize(), is(5));
+        assertThat(actualPool.getMinPoolSize(), is(4));
         assertTrue(actualPool.getReadOnly());
     }
 }

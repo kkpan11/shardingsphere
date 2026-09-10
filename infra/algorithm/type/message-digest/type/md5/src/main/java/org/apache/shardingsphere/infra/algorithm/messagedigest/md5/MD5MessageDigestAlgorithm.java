@@ -17,9 +17,11 @@
 
 package org.apache.shardingsphere.infra.algorithm.messagedigest.md5;
 
-import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.shardingsphere.infra.algorithm.messagedigest.core.MessageDigestAlgorithm;
+import lombok.SneakyThrows;
+import org.apache.shardingsphere.infra.algorithm.messagedigest.spi.MessageDigestAlgorithm;
+import org.apache.shardingsphere.infra.annotation.HighFrequencyInvocation;
 
+import java.security.GeneralSecurityException;
 import java.util.Properties;
 
 /**
@@ -36,9 +38,11 @@ public final class MD5MessageDigestAlgorithm implements MessageDigestAlgorithm {
         salt = props.getProperty(SALT_KEY, "");
     }
     
+    @HighFrequencyInvocation
+    @SneakyThrows(GeneralSecurityException.class)
     @Override
-    public String digest(final Object plainValue) {
-        return null == plainValue ? null : DigestUtils.md5Hex(plainValue + salt);
+    public byte[] digest(final Object plainValue) {
+        return null == plainValue ? null : MD5MessageDigestEngine.digest(plainValue, salt);
     }
     
     @Override

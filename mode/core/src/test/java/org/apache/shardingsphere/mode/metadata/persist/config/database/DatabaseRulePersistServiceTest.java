@@ -20,7 +20,7 @@ package org.apache.shardingsphere.mode.metadata.persist.config.database;
 import org.apache.shardingsphere.infra.config.rule.RuleConfiguration;
 import org.apache.shardingsphere.mode.node.path.version.MetaDataVersion;
 import org.apache.shardingsphere.mode.spi.repository.PersistRepository;
-import org.apache.shardingsphere.test.fixture.infra.rule.MockedRuleConfiguration;
+import org.apache.shardingsphere.test.infra.fixture.rule.MockedRuleConfiguration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,8 +30,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.Collection;
 import java.util.Collections;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -82,7 +82,7 @@ class DatabaseRulePersistServiceTest {
         when(repository.getChildrenKeys("/metadata/foo_db/rules/fixture/unique/versions")).thenReturn(Collections.singletonList("10"));
         Collection<MetaDataVersion> actual = persistService.persist("foo_db", Collections.singleton(new MockedRuleConfiguration("test")));
         assertThat(actual.size(), is(1));
-        assertThat(actual.iterator().next().getActiveVersion(), is(10));
+        assertThat(actual.iterator().next().getActiveVersion(), is(11));
     }
     
     @Test

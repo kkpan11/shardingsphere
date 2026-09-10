@@ -36,7 +36,6 @@ import org.apache.shardingsphere.elasticjob.infra.pojo.JobConfigurationPOJO;
 import org.apache.shardingsphere.infra.util.yaml.YamlEngine;
 import org.apache.shardingsphere.mode.event.DataChangedEvent;
 import org.apache.shardingsphere.mode.event.DataChangedEvent.Type;
-import org.apache.shardingsphere.mode.manager.ContextManager;
 import org.apache.shardingsphere.mode.repository.cluster.ClusterPersistRepository;
 import org.apache.shardingsphere.test.it.data.pipeline.core.util.JobConfigurationBuilder;
 import org.apache.shardingsphere.test.it.data.pipeline.core.util.PipelineContextUtils;
@@ -52,9 +51,9 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.hamcrest.CoreMatchers.anyOf;
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -70,7 +69,7 @@ class PipelineGovernanceFacadeTest {
     
     @BeforeAll
     static void beforeClass() {
-        PipelineContextUtils.mockModeConfigAndContextManager();
+        PipelineContextUtils.initPipelineContextManager();
         governanceFacade = PipelineAPIFactory.getPipelineGovernanceFacade(PipelineContextUtils.getContextKey());
         watch();
     }
@@ -185,12 +184,12 @@ class PipelineGovernanceFacadeTest {
     void assertPersistJobOffset() {
         assertFalse(governanceFacade.getJobFacade().getOffset().load("1").isTargetSchemaTableCreated());
         governanceFacade.getJobFacade().getOffset().persist("1", new JobOffsetInfo(true));
-        assertTrue(governanceFacade.getJobFacade().getOffset().load("1").isTargetSchemaTableCreated());
+        JobOffsetInfo actual = governanceFacade.getJobFacade().getOffset().load("1");
+        assertTrue(actual.isTargetSchemaTableCreated());
     }
     
     private ClusterPersistRepository getClusterPersistRepository() {
-        ContextManager contextManager = PipelineContextManager.getContext(PipelineContextUtils.getContextKey()).getContextManager();
-        return (ClusterPersistRepository) contextManager.getPersistServiceFacade().getRepository();
+        return (ClusterPersistRepository) PipelineContextManager.getContext(PipelineContextUtils.getContextKey()).getPersistServiceFacade().getRepository();
     }
     
     private MigrationJobItemContext mockJobItemContext() {

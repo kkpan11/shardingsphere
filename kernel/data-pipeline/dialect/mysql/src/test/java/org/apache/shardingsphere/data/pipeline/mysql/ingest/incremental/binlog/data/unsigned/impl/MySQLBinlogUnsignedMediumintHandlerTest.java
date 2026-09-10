@@ -21,8 +21,9 @@ import org.junit.jupiter.api.Test;
 
 import java.io.Serializable;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.isA;
 
 class MySQLBinlogUnsignedMediumintHandlerTest {
     
@@ -31,8 +32,10 @@ class MySQLBinlogUnsignedMediumintHandlerTest {
     @Test
     void assertHandle() {
         Serializable actual = handler.handle(1);
+        assertThat(actual, isA(Integer.class));
         assertThat(actual, is(1));
         actual = handler.handle(-1);
+        assertThat(actual, isA(Integer.class));
         assertThat(actual, is(16777215));
     }
 }

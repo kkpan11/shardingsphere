@@ -4,24 +4,29 @@
 
     {"excludeClasses": "android.app.**"},
     {"excludeClasses": "com.**"},
-    {"includeClasses": "com.oracle.svm.core.**"},
-    {"includeClasses": "com.sun.management.**"},
-    {"includeClasses": "com.sun.security.auth.UnixPrincipal"},
     {"excludeClasses": "ch.qos.logback.**"},
+    {"excludeClasses": "dm.jdbc.driver.DmdbTimestamp"},
     {"excludeClasses": "groovy.**"},
     {"excludeClasses": "io.**"},
+    {"excludeClasses": "java.lang.**"},
     {"excludeClasses": "javax.**"},
     {"excludeClasses": "jdk.internal.misc.**"},
     {"excludeClasses": "libcore.io.**"},
     {"excludeClasses": "net.bytebuddy.**"},
     {"excludeClasses": "org.**"},
-    {"includeClasses": "org.apache.shardingsphere.**"},
     {"excludeClasses": "sun.**"},
-    {"includeClasses": "sun.security.provider.ConfigFile"},
+    {"excludeClasses": "JdkLogger"},
+
+    {"includeClasses": "com.oracle.svm.core.**"},
+    {"includeClasses": "com.sun.management.internal.OperatingSystemImpl"},
+    {"includeClasses": "java.lang.*"},
+    {"includeClasses": "java.lang.reflect.*"},
+    {"includeClasses": "org.apache.shardingsphere.**"},
     {"includeClasses": "sun.security.provider.SecureRandom"},
 
     {"excludeClasses": "org.apache.shardingsphere.test.natived.**"}
   ],
   "regexRules": [
+    {"excludeClasses": "^\\[.*$"}
   ]
 }

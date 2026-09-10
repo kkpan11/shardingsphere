@@ -20,7 +20,7 @@ package org.apache.shardingsphere.sharding.algorithm.sharding.datetime;
 import com.google.common.collect.Range;
 import lombok.Getter;
 import org.apache.shardingsphere.infra.algorithm.core.exception.AlgorithmInitializationException;
-import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.exception.ShardingSpherePreconditions;
 import org.apache.shardingsphere.infra.util.datetime.DateTimeFormatterFactory;
 import org.apache.shardingsphere.sharding.algorithm.sharding.ShardingAutoTableAlgorithmUtils;
 import org.apache.shardingsphere.sharding.api.sharding.ShardingAutoTableAlgorithm;
@@ -31,12 +31,14 @@ import org.apache.shardingsphere.sharding.exception.data.InvalidDatetimeFormatEx
 import org.apache.shardingsphere.sharding.exception.data.NullShardingValueException;
 
 import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.text.ParsePosition;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.Collection;
 import java.util.LinkedHashSet;
+import java.util.Locale;
 import java.util.Properties;
 
 /**
@@ -68,7 +70,7 @@ public final class AutoIntervalShardingAlgorithm implements StandardShardingAlgo
         String value = props.getProperty(DATE_TIME_LOWER_KEY);
         ShardingSpherePreconditions.checkNotNull(value, () -> new AlgorithmInitializationException(this, String.format("%s cannot be null.", DATE_TIME_LOWER_KEY)));
         try {
-            return LocalDateTime.parse(value, DateTimeFormatterFactory.getStandardFormatter());
+            return LocalDateTime.parse(value, DateTimeFormatterFactory.getDatetimeFormatter());
         } catch (final DateTimeParseException ignored) {
             throw new InvalidDatetimeFormatException(DATE_TIME_LOWER_KEY, value, "yyyy-MM-dd HH:mm:ss");
         }
@@ -99,7 +101,7 @@ public final class AutoIntervalShardingAlgorithm implements StandardShardingAlgo
     }
     
     private int doSharding(final long shardingValue) {
-        String position = new DecimalFormat("0.00").format((double) shardingValue / shardingSeconds);
+        String position = new DecimalFormat("0.00", DecimalFormatSymbols.getInstance(Locale.ROOT)).format((double) shardingValue / shardingSeconds);
         return Math.min(Math.max(0, (int) Math.ceil(Double.parseDouble(position))), autoTablesAmount - 1);
     }
     
@@ -112,7 +114,7 @@ public final class AutoIntervalShardingAlgorithm implements StandardShardingAlgo
     }
     
     private long parseDate(final Comparable<?> shardingValue) {
-        LocalDateTime dateValue = LocalDateTime.from(DateTimeFormatterFactory.getStandardFormatter().parse(shardingValue.toString(), new ParsePosition(0)));
+        LocalDateTime dateValue = LocalDateTime.from(DateTimeFormatterFactory.getDatetimeFormatter().parse(shardingValue.toString(), new ParsePosition(0)));
         return Duration.between(dateTimeLower, dateValue).toMillis() / 1000L;
     }
     

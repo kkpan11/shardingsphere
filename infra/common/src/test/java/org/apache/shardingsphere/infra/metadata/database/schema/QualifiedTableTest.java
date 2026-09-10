@@ -19,37 +19,38 @@ package org.apache.shardingsphere.infra.metadata.database.schema;
 
 import org.junit.jupiter.api.Test;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 
 class QualifiedTableTest {
     
     @Test
+    void assertFormat() {
+        assertThat(new QualifiedTable("schema", "t_order").format(), is("schema.t_order"));
+        assertThat(new QualifiedTable("SCHEMA", "T_ORDER").format(), is("SCHEMA.T_ORDER"));
+        assertThat(new QualifiedTable(null, "t_order").format(), is("t_order"));
+    }
+    
+    @Test
     void assertEqualsTrueWithoutSchema() {
-        QualifiedTable actual = new QualifiedTable(null, "t_order");
-        QualifiedTable expected = new QualifiedTable(null, "T_ORDER");
-        assertThat(actual, is(expected));
+        assertThat(new QualifiedTable(null, "t_order"), is(new QualifiedTable(null, "T_ORDER")));
+        assertThat(new QualifiedTable("schema", "t_order"), is(new QualifiedTable("SCHEMA", "T_ORDER")));
+        assertThat(new QualifiedTable("schema", null), is(new QualifiedTable("SCHEMA", null)));
+        assertThat(new QualifiedTable("schema", "t_order"), not(new QualifiedTable(null, "t_order")));
+        assertThat(new QualifiedTable("schema", "t_order"), not(new QualifiedTable("schema", null)));
+        assertThat(new QualifiedTable("schema", "table"), not(new QualifiedTable("schema", null)));
+        assertThat(new QualifiedTable(null, "table"), not(new QualifiedTable(null, null)));
+        assertThat(new QualifiedTable(null, null), is(new QualifiedTable(null, null)));
+        assertThat(new QualifiedTable("schema", "table"), not((Object) null));
+        assertThat(new QualifiedTable("schema", "table"), not(new Object()));
     }
     
     @Test
-    void assertEqualsTrueWithSchema() {
-        QualifiedTable actual = new QualifiedTable("schema", "t_order");
-        QualifiedTable expected = new QualifiedTable("SCHEMA", "T_ORDER");
-        assertThat(actual, is(expected));
-        actual = new QualifiedTable("schema", null);
-        expected = new QualifiedTable("SCHEMA", null);
-        assertThat(actual, is(expected));
-    }
-    
-    @Test
-    void assertEqualsFalse() {
-        QualifiedTable actual = new QualifiedTable("schema", "t_order");
-        QualifiedTable expected = new QualifiedTable(null, "t_order");
-        assertNotEquals(actual, expected);
-        actual = new QualifiedTable("schema", "t_order");
-        expected = new QualifiedTable("schema", null);
-        assertNotEquals(actual, expected);
+    void assertHashCode() {
+        assertThat(new QualifiedTable("schema", "table").hashCode(), is(new QualifiedTable("SCHEMA", "TABLE").hashCode()));
+        assertThat(new QualifiedTable(null, "table").hashCode(), is(new QualifiedTable(null, "TABLE").hashCode()));
+        assertThat(new QualifiedTable("schema", null).hashCode(), is(new QualifiedTable("SCHEMA", null).hashCode()));
     }
     
     @Test

@@ -19,13 +19,17 @@ rules:
         standard:
           shardingColumn: # 分片列名称
           shardingAlgorithmName: # 分片算法名称
-      keyGenerateStrategy:
-        column: # 自增列名称，缺省表示不使用自增主键生成器
-        keyGeneratorName: # 分布式序列算法名称
   defaultDatabaseStrategy:
     standard:
       shardingColumn: # 分片列名称
       shardingAlgorithmName: # 分片算法名称
+  keyGenerateStrategies:
+    <key_generate_strategy_name> (+): # 分布式序列策略名称
+      keyGenerateType: # 分布式序列策略类型
+      keyGeneratorName: # 分布式序列算法名称
+      logicTable: # 逻辑表名称，keyGenerateType 为 column 时需要配置
+      keyGenerateColumn: # 自增列名称，keyGenerateType 为 column 时需要配置
+      keyGenerateSequence: # 序列名称，keyGenerateType 为 sequence 时需要配置
   shardingAlgorithms:
     <sharding_algorithm_name>: # 分片算法名称
       type: INLINE
@@ -73,13 +77,16 @@ rules:
         standard:
           shardingColumn: order_id
           shardingAlgorithmName: t_order_inline
-      keyGenerateStrategy:
-        column: order_id
-        keyGeneratorName: snowflake
   defaultDatabaseStrategy:
     standard:
       shardingColumn: user_id
       shardingAlgorithmName: database_inline
+  keyGenerateStrategies:
+    t_order_order_id:
+      keyGenerateType: column
+      keyGeneratorName: snowflake
+      logicTable: t_order
+      keyGenerateColumn: order_id
   shardingAlgorithms:
     database_inline:
       type: INLINE
@@ -105,8 +112,6 @@ rules:
         digest-algorithm-name: SHA-1
     assisted_encryptor:
       type: MD5
-    like_encryptor:
-      type: CHAR_DIGEST_LIKE
   tables:
     t_encrypt:
       columns:
@@ -117,9 +122,6 @@ rules:
           assistedQuery:
             name: assisted_query_user
             encryptorName: assisted_encryptor
-          likeQuery:
-            name: like_query_user
-            encryptorName: like_encryptor
         order_id:
           cipher:
             name: order_cipher

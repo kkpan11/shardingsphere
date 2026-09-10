@@ -17,10 +17,14 @@
 
 package org.apache.shardingsphere.infra.util.yaml;
 
+import org.apache.shardingsphere.infra.util.file.SystemResourceFileUtils;
+import org.apache.shardingsphere.infra.util.yaml.fixture.YamlNullCollectionConfigurationFixture;
+import org.apache.shardingsphere.infra.util.yaml.fixture.pojo.YamlConfigurationFixture;
 import org.apache.shardingsphere.infra.util.yaml.fixture.shortcuts.YamlShortcutsConfigurationFixture;
-import org.apache.shardingsphere.test.util.ConfigurationFileUtils;
 import org.junit.jupiter.api.Test;
 import org.yaml.snakeyaml.composer.ComposerException;
+import org.yaml.snakeyaml.constructor.ConstructorException;
+import org.yaml.snakeyaml.constructor.DuplicateKeyException;
 
 import java.io.File;
 import java.io.IOException;
@@ -28,9 +32,11 @@ import java.net.URL;
 import java.util.Arrays;
 import java.util.Properties;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -52,22 +58,22 @@ class YamlEngineTest {
         assertNotNull(url);
         YamlShortcutsConfigurationFixture actual = YamlEngine.unmarshal(new File(url.getFile()), YamlShortcutsConfigurationFixture.class);
         assertNotNull(actual);
-        assertTrue(actual.isEmpty());
+        assertNull(actual.getName());
     }
     
     @Test
     void assertUnmarshalWithYamlBytes() throws IOException {
-        String yamlContent = ConfigurationFileUtils.readFile("yaml/shortcuts-fixture.yaml");
+        String yamlContent = SystemResourceFileUtils.readFile("yaml/shortcuts-fixture.yaml");
         YamlShortcutsConfigurationFixture actual = YamlEngine.unmarshal(yamlContent.getBytes(), YamlShortcutsConfigurationFixture.class);
         assertThat(actual.getName(), is("test"));
     }
     
     @Test
     void assertUnmarshalWithEmptyYamlBytes() throws IOException {
-        String yamlContent = ConfigurationFileUtils.readFile("yaml/empty-config.yaml");
+        String yamlContent = SystemResourceFileUtils.readFile("yaml/empty-config.yaml");
         YamlShortcutsConfigurationFixture actual = YamlEngine.unmarshal(yamlContent.getBytes(), YamlShortcutsConfigurationFixture.class);
         assertNotNull(actual);
-        assertTrue(actual.isEmpty());
+        assertNull(actual.getName());
     }
     
     @Test
@@ -96,6 +102,20 @@ class YamlEngineTest {
     }
     
     @Test
+    void assertUnmarshalWithNullCollections() {
+        String yamlContent = SystemResourceFileUtils.readFile("yaml/null-collections.yaml");
+        YamlNullCollectionConfigurationFixture actual = YamlEngine.unmarshal(yamlContent, YamlNullCollectionConfigurationFixture.class);
+        assertNotNull(actual.getMap());
+        assertTrue(actual.getMap().isEmpty());
+        assertNotNull(actual.getSet());
+        assertTrue(actual.getSet().isEmpty());
+        assertNotNull(actual.getList());
+        assertTrue(actual.getList().isEmpty());
+        assertNotNull(actual.getCollection());
+        assertTrue(actual.getCollection().isEmpty());
+    }
+    
+    @Test
     void assertMarshal() {
         YamlShortcutsConfigurationFixture actual = new YamlShortcutsConfigurationFixture();
         actual.setName("test");
@@ -104,8 +124,25 @@ class YamlEngineTest {
     
     @Test
     void assertUnmarshalInvalidYaml() {
-        String yamlContent = ConfigurationFileUtils.readFile("yaml/accepted-class.yaml");
+        String yamlContent = SystemResourceFileUtils.readFile("yaml/accepted-class.yaml");
         assertThrows(ComposerException.class, () -> YamlEngine.unmarshal(yamlContent, Object.class));
+    }
+    
+    @Test
+    void assertUnmarshalWithDuplicateKeys() {
+        assertThrows(DuplicateKeyException.class, () -> YamlEngine.unmarshal("name: foo" + LINE_SEPARATOR + "name: bar", YamlShortcutsConfigurationFixture.class));
+    }
+    
+    @Test
+    void assertUnmarshalWithBlankMapKey() {
+        ConstructorException actual = assertThrows(ConstructorException.class, () -> YamlEngine.unmarshal("map:" + LINE_SEPARATOR + "  '': value", YamlConfigurationFixture.class));
+        assertThat(actual.getMessage(), containsString("YAML map key cannot be blank."));
+    }
+    
+    @Test
+    void assertUnmarshalWithNullMapKey() {
+        ConstructorException actual = assertThrows(ConstructorException.class, () -> YamlEngine.unmarshal("map:" + LINE_SEPARATOR + "  null: value", YamlConfigurationFixture.class));
+        assertThat(actual.getMessage(), containsString("YAML map key cannot be null."));
     }
     
     @Test

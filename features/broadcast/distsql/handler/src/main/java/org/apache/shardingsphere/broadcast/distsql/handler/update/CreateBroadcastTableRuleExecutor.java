@@ -17,14 +17,15 @@
 
 package org.apache.shardingsphere.broadcast.distsql.handler.update;
 
+import com.cedarsoftware.util.CaseInsensitiveSet;
 import lombok.Setter;
 import org.apache.shardingsphere.broadcast.config.BroadcastRuleConfiguration;
 import org.apache.shardingsphere.broadcast.distsql.statement.CreateBroadcastTableRuleStatement;
 import org.apache.shardingsphere.broadcast.rule.BroadcastRule;
-import org.apache.shardingsphere.infra.exception.kernel.metadata.rule.DuplicateRuleException;
+import org.apache.shardingsphere.distsql.handler.engine.update.rdl.rule.spi.database.type.DatabaseRuleCreateExecutor;
+import org.apache.shardingsphere.infra.exception.ShardingSpherePreconditions;
 import org.apache.shardingsphere.infra.exception.kernel.metadata.resource.storageunit.EmptyStorageUnitException;
-import org.apache.shardingsphere.distsql.handler.engine.update.rdl.rule.spi.database.DatabaseRuleCreateExecutor;
-import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.exception.kernel.metadata.rule.DuplicateRuleException;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 
 import java.util.Collection;
@@ -54,7 +55,7 @@ public final class CreateBroadcastTableRuleExecutor implements DatabaseRuleCreat
     }
     
     private Collection<String> getDuplicatedRuleNames(final CreateBroadcastTableRuleStatement sqlStatement) {
-        Collection<String> result = new HashSet<>(null == rule ? Collections.emptySet() : rule.getTables());
+        Collection<String> result = new CaseInsensitiveSet<>(null == rule ? Collections.emptySet() : rule.getTables());
         result.retainAll(sqlStatement.getTables());
         return result;
     }

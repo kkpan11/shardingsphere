@@ -21,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.shardingsphere.data.pipeline.core.context.PipelineContextKey;
 import org.apache.shardingsphere.data.pipeline.core.exception.job.PipelineJobCreationWithInvalidShardingCountException;
+import org.apache.shardingsphere.data.pipeline.core.exception.job.PipelineJobNotFoundException;
 import org.apache.shardingsphere.data.pipeline.core.job.JobStatus;
 import org.apache.shardingsphere.data.pipeline.core.job.api.PipelineAPIFactory;
 import org.apache.shardingsphere.data.pipeline.core.job.config.PipelineJobConfiguration;
@@ -29,11 +30,13 @@ import org.apache.shardingsphere.data.pipeline.core.job.progress.PipelineJobItem
 import org.apache.shardingsphere.data.pipeline.core.job.type.PipelineJobType;
 import org.apache.shardingsphere.data.pipeline.core.metadata.node.PipelineMetaDataNode;
 import org.apache.shardingsphere.data.pipeline.core.pojo.PipelineJobInfo;
+import org.apache.shardingsphere.data.pipeline.core.pojo.PipelineJobMetaData;
 import org.apache.shardingsphere.data.pipeline.core.registrycenter.repository.PipelineGovernanceFacade;
 import org.apache.shardingsphere.data.pipeline.core.util.PipelineDistributedBarrier;
 import org.apache.shardingsphere.elasticjob.infra.pojo.JobConfigurationPOJO;
+import org.apache.shardingsphere.elasticjob.lite.lifecycle.domain.JobBriefInfo;
 import org.apache.shardingsphere.elasticjob.lite.lifecycle.domain.ShardingInfo;
-import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.exception.ShardingSpherePreconditions;
 import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 import org.apache.shardingsphere.infra.util.datetime.DateTimeFormatterFactory;
 
@@ -52,6 +55,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public final class PipelineJobManager {
     
+    @SuppressWarnings("rawtypes")
     private final PipelineJobType jobType;
     
     /**
@@ -67,8 +71,8 @@ public final class PipelineJobManager {
             log.warn("jobId already exists in registry center, ignore, job id is `{}`", jobId);
             return;
         }
-        governanceFacade.getJobFacade().getJob().create(jobId, jobType.getJobClass());
-        governanceFacade.getJobFacade().getConfiguration().persist(jobId, new PipelineJobConfigurationManager(jobType).convertToJobConfigurationPOJO(jobConfig));
+        governanceFacade.getJobFacade().getJob().create(jobId, jobType.getOption().getJobClass());
+        governanceFacade.getJobFacade().getConfiguration().persist(jobId, new PipelineJobConfigurationManager(jobType.getOption()).convertToJobConfigurationPOJO(jobConfig));
     }
     
     /**
@@ -77,16 +81,18 @@ public final class PipelineJobManager {
      * @param jobId job id
      */
     public void resume(final String jobId) {
-        if (jobType.isIgnoreToStartDisabledJobWhenJobItemProgressIsFinished()) {
-            Optional<? extends PipelineJobItemProgress> jobItemProgress = new PipelineJobItemManager<>(jobType.getYamlJobItemProgressSwapper()).getProgress(jobId, 0);
+        if (jobType.getOption().isIgnoreToStartDisabledJobWhenJobItemProgressIsFinished()) {
+            Optional<? extends PipelineJobItemProgress> jobItemProgress = new PipelineJobItemManager<>(jobType.getOption().getYamlJobItemProgressSwapper()).getProgress(jobId, 0);
             if (jobItemProgress.isPresent() && JobStatus.FINISHED == jobItemProgress.get().getStatus()) {
                 log.info("job status is FINISHED, ignore, jobId={}", jobId);
                 return;
             }
         }
         startCurrentDisabledJob(jobId);
-        jobType.getToBeStartDisabledNextJobType().ifPresent(optional -> startNextDisabledJob(jobId, optional));
-        
+        String toBeStartDisabledNextJobType = jobType.getOption().getToBeStartDisabledNextJobType();
+        if (null != toBeStartDisabledNextJobType) {
+            startNextDisabledJob(jobId, toBeStartDisabledNextJobType);
+        }
     }
     
     private void startCurrentDisabledJob(final String jobId) {
@@ -121,7 +127,10 @@ public final class PipelineJobManager {
      * @param jobId job id
      */
     public void stop(final String jobId) {
-        jobType.getToBeStoppedPreviousJobType().ifPresent(optional -> stopPreviousJob(jobId, optional));
+        String toBeStoppedPreviousJobType = jobType.getOption().getToBeStoppedPreviousJobType();
+        if (null != toBeStoppedPreviousJobType) {
+            stopPreviousJob(jobId, toBeStoppedPreviousJobType);
+        }
         stopCurrentJob(jobId);
     }
     
@@ -142,7 +151,7 @@ public final class PipelineJobManager {
         pipelineDistributedBarrier.unregister(PipelineMetaDataNode.getJobBarrierEnablePath(jobId));
         JobConfigurationPOJO jobConfigPOJO = PipelineJobIdUtils.getElasticJobConfigurationPOJO(jobId);
         jobConfigPOJO.setDisabled(true);
-        jobConfigPOJO.getProps().setProperty("stop_time", LocalDateTime.now().format(DateTimeFormatterFactory.getStandardFormatter()));
+        jobConfigPOJO.getProps().setProperty("stop_time", LocalDateTime.now().format(DateTimeFormatterFactory.getDatetimeFormatter()));
         String barrierPath = PipelineMetaDataNode.getJobBarrierDisablePath(jobId);
         pipelineDistributedBarrier.register(barrierPath, jobConfigPOJO.getShardingTotalCount());
         PipelineAPIFactory.getJobConfigurationAPI(PipelineJobIdUtils.parseContextKey(jobId)).updateJobConfiguration(jobConfigPOJO);
@@ -168,12 +177,27 @@ public final class PipelineJobManager {
      */
     public List<PipelineJobInfo> getJobInfos(final PipelineContextKey contextKey) {
         try {
-            return PipelineAPIFactory.getJobStatisticsAPI(contextKey).getAllJobsBriefInfo().stream()
-                    .filter(each -> !each.getJobName().startsWith("_") && jobType.getType().equals(PipelineJobIdUtils.parseJobType(each.getJobName()).getType()))
-                    .map(each -> jobType.getJobInfo(each.getJobName())).collect(Collectors.toList());
+            return PipelineAPIFactory.getJobStatisticsAPI(contextKey).getAllJobsBriefInfo().stream().filter(this::isValidJob)
+                    .map(this::createJobInfo).filter(Optional::isPresent).map(Optional::get)
+                    .collect(Collectors.toList());
         } catch (final UnsupportedOperationException ex) {
             return Collections.emptyList();
         }
+    }
+    
+    @SuppressWarnings("unchecked")
+    private Optional<PipelineJobInfo> createJobInfo(final JobBriefInfo jobInfo) {
+        try {
+            JobConfigurationPOJO jobConfigPOJO = PipelineJobIdUtils.getElasticJobConfigurationPOJO(jobInfo.getJobName());
+            PipelineJobConfiguration jobConfig = jobType.getOption().getYamlJobConfigurationSwapper().swapToObject(jobConfigPOJO.getJobParameter());
+            return Optional.of(new PipelineJobInfo(new PipelineJobMetaData(jobConfigPOJO), jobType.getJobTarget(jobConfig)));
+        } catch (final PipelineJobNotFoundException ignored) {
+            return Optional.empty();
+        }
+    }
+    
+    private boolean isValidJob(final JobBriefInfo jobInfo) {
+        return !jobInfo.getJobName().startsWith("_") && jobType.getOption().isTransmissionJob() && jobType.getType().equals(PipelineJobIdUtils.parseJobType(jobInfo.getJobName()).getType());
     }
     
     /**

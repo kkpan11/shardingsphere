@@ -17,11 +17,12 @@
 
 package org.apache.shardingsphere.encrypt.metadata;
 
+import org.apache.shardingsphere.database.connector.core.metadata.data.model.ColumnMetaData;
+import org.apache.shardingsphere.database.connector.core.metadata.data.model.SchemaMetaData;
+import org.apache.shardingsphere.database.connector.core.metadata.data.model.TableMetaData;
+import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
 import org.apache.shardingsphere.encrypt.rule.EncryptRule;
 import org.apache.shardingsphere.encrypt.rule.table.EncryptTable;
-import org.apache.shardingsphere.infra.database.core.metadata.data.model.ColumnMetaData;
-import org.apache.shardingsphere.infra.database.core.metadata.data.model.SchemaMetaData;
-import org.apache.shardingsphere.infra.database.core.metadata.data.model.TableMetaData;
 import org.apache.shardingsphere.infra.metadata.database.schema.builder.GenericSchemaBuilderMaterial;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereColumn;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereSchema;
@@ -38,8 +39,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
@@ -50,7 +51,8 @@ class EncryptMetaDataReviseEngineTest {
     @Test
     void assertRevise() {
         Map<String, SchemaMetaData> schemaMetaData = Collections.singletonMap("foo_db", new SchemaMetaData("foo_db", Collections.singleton(createTableMetaData())));
-        Map<String, ShardingSphereSchema> actual = new MetaDataReviseEngine(Collections.singleton(mockEncryptRule())).revise(schemaMetaData, mock(GenericSchemaBuilderMaterial.class));
+        Map<String, ShardingSphereSchema> actual = new MetaDataReviseEngine(Collections.singleton(mockEncryptRule()), mock(DatabaseType.class))
+                .revise(schemaMetaData, mock(GenericSchemaBuilderMaterial.class));
         assertThat(actual.size(), is(1));
         assertTrue(actual.containsKey("foo_db"));
         assertThat(actual.get("foo_db").getAllTables().size(), is(1));

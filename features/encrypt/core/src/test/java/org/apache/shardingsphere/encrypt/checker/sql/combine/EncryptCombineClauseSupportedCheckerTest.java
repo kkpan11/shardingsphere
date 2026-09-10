@@ -20,7 +20,7 @@ package org.apache.shardingsphere.encrypt.checker.sql.combine;
 import org.apache.shardingsphere.encrypt.exception.syntax.UnsupportedEncryptSQLException;
 import org.apache.shardingsphere.encrypt.rewrite.token.generator.fixture.EncryptGeneratorFixtureBuilder;
 import org.apache.shardingsphere.infra.binder.context.statement.SQLStatementContext;
-import org.apache.shardingsphere.infra.binder.context.statement.dml.SelectStatementContext;
+import org.apache.shardingsphere.infra.binder.context.statement.type.dml.SelectStatementContext;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
@@ -50,7 +50,7 @@ class EncryptCombineClauseSupportedCheckerTest {
     @Test
     void assertCheckWithoutEncryptTable() {
         assertDoesNotThrow(() -> new EncryptCombineClauseSupportedChecker()
-                .check(EncryptGeneratorFixtureBuilder.createEncryptRule(), null, null, mockSelectStatementContext("t_order")));
+                .check(EncryptGeneratorFixtureBuilder.createEncryptRule(), null, null, mockSelectStatementContext("t_order_plain")));
     }
     
     @Test

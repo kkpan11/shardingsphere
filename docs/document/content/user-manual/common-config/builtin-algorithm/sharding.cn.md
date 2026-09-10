@@ -5,7 +5,7 @@ weight = 2
 
 ## 背景信息
 
-ShardingSphere 内置提供了多种分片算法，按照类型可以划分为自动分片算法、标准分片算法、复合分片算法和 Hint 分片算法，能够满足用户绝大多数业务场景的需要。此外，考虑到业务场景的复杂性，内置算法也提供了自定义分片算法的方式，用户可以通过编写 Java 代码来完成复杂的分片逻辑。
+ShardingSphere 内置提供了多种分片算法，按照类型可以划分为自动分片算法、标准分片算法、复合分片算法和 Hint 分片算法。用户可以通过实现对应的 SPI 提供自定义分片算法，以完成复杂的分片逻辑。
 需要注意的是，自动分片算法的分片逻辑由 ShardingSphere 自动管理，需要通过配置 autoTables 分片规则进行使用。
 
 ## 参数解释
@@ -18,9 +18,12 @@ ShardingSphere 内置提供了多种分片算法，按照类型可以划分为�
 
 可配置属性：
 
-| *属性名称*         | *数据类型* | *说明* |
-|----------------|--------|------|
-| sharding-count | int    | 分片数量 |
+| *属性名称*          | *数据类型*  | *说明*        | *默认值* |
+|-----------------|---------|-------------|-------|
+| sharding-count  | int     | 分片数量        | -     |
+| start-offset (?) | int     | 提取分片值的起始偏移量 | 0     |
+| stop-offset (?) | int     | 提取分片值的结束偏移量 | 0     |
+| zero-padding (?) | boolean | 是否对分片后缀补零   | false |
 
 
 #### 哈希取模分片算法
@@ -29,9 +32,10 @@ ShardingSphere 内置提供了多种分片算法，按照类型可以划分为�
 
 可配置属性：
 
-| *属性名称*         | *数据类型* | *说明* |
-|----------------|--------|------|
-| sharding-count | int    | 分片数量 |
+| *属性名称*                          | *数据类型*  | *说明*                                                              | *默认值* |
+|---------------------------------|---------|-------------------------------------------------------------------|-------|
+| sharding-count                  | int     | 分片数量                                                              | -     |
+| normalize-numeric-int-range (?) | boolean | 是否将整型范围内的 `Long` 和 `BigInteger` 按 `Integer` 语义统一计算，以保证相同数值跨类型路由一致 | false |
 
 #### 基于分片容量的范围分片算法
 
@@ -75,7 +79,7 @@ Apache ShardingSphere 内置的标准分片算法实现类包括：
 
 使用 `InlineExpressionParser` SPI 的默认实现的 Groovy 的表达式，提供对 SQL 语句中的 `=` 和 `IN` 的分片操作支持，只支持单分片键。
 对于简单的分片算法，可以通过简单的配置使用，从而避免繁琐的 Java 代码开发，如: `t_user_$->{u_id % 8}` 表示 `t_user` 表根据 `u_id` 模 8，而分成 8 张表，表名称为 `t_user_0` 到 `t_user_7`。
-详情请参见[行表达式](/cn/dev-manual/sharding/#implementation-classes)。
+详情请参见[行表达式](/cn/dev-manual/sharding/#inlineexpressionparser)。
 
 类型：INLINE
 
@@ -138,7 +142,7 @@ Apache ShardingSphere 内置的标准分片算法实现类包括：
 
 通过配置分片策略类型和算法类名，实现自定义扩展。
 `CLASS_BASED` 允许向算法类内传入额外的自定义属性，传入的属性可以通过属性名为 `props` 的 `java.util.Properties` 类实例取出。 
-参考 Git 的 `org.apache.shardingsphere.example.extension.sharding.algortihm.classbased.fixture.ClassBasedStandardShardingAlgorithmFixture` 。
+用户可实现对应的分片算法接口，并通过 `algorithmClassName` 配置算法类的全限定类名。
 
 类型：CLASS_BASED
 
@@ -165,26 +169,17 @@ rules:
         standard:
           shardingColumn: order_id
           shardingAlgorithmName: t_order_inline
-      keyGenerateStrategy:
-        column: order_id
-        keyGeneratorName: snowflake
     t_order_item:
       actualDataNodes: ds_${0..1}.t_order_item_${0..1}
       tableStrategy:
         standard:
           shardingColumn: order_id
           shardingAlgorithmName: t_order_item_inline
-      keyGenerateStrategy:
-        column: order_item_id
-        keyGeneratorName: snowflake
     t_account:
       actualDataNodes: ds_${0..1}.t_account_${0..1}
       tableStrategy:
         standard:
           shardingAlgorithmName: t_account_inline
-      keyGenerateStrategy:
-        column: account_id
-        keyGeneratorName: snowflake
   defaultShardingColumn: account_id
   bindingTables:
     - t_order,t_order_item
@@ -194,6 +189,22 @@ rules:
       shardingAlgorithmName: database_inline
   defaultTableStrategy:
     none:
+  keyGenerateStrategies:
+    t_order_order_id:
+      keyGenerateType: column
+      keyGeneratorName: snowflake
+      logicTable: t_order
+      keyGenerateColumn: order_id
+    t_order_item_order_item_id:
+      keyGenerateType: column
+      keyGeneratorName: snowflake
+      logicTable: t_order_item
+      keyGenerateColumn: order_item_id
+    t_account_account_id:
+      keyGenerateType: column
+      keyGeneratorName: snowflake
+      logicTable: t_account
+      keyGenerateColumn: account_id
   
   shardingAlgorithms:
     database_inline:

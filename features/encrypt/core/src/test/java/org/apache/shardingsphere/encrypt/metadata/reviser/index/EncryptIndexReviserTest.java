@@ -17,17 +17,18 @@
 
 package org.apache.shardingsphere.encrypt.metadata.reviser.index;
 
+import org.apache.shardingsphere.database.connector.core.metadata.data.model.IndexMetaData;
 import org.apache.shardingsphere.encrypt.rule.EncryptRule;
 import org.apache.shardingsphere.encrypt.rule.table.EncryptTable;
-import org.apache.shardingsphere.infra.database.core.metadata.data.model.IndexMetaData;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Optional;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -37,13 +38,14 @@ class EncryptIndexReviserTest {
     
     @Test
     void assertReviseWithEmptyColumn() {
-        assertFalse(new EncryptIndexReviser(mock(EncryptTable.class)).revise("foo_tbl", new IndexMetaData("foo_idx"), mock(EncryptRule.class)).isPresent());
+        assertFalse(new EncryptIndexReviser(mock(EncryptTable.class))
+                .revise("foo_tbl", new IndexMetaData("foo_idx"), Collections.emptyList(), Collections.emptyList(), mock(EncryptRule.class)).isPresent());
     }
     
     @Test
     void assertReviseWithColumns() {
         Optional<IndexMetaData> actual = new EncryptIndexReviser(mockEncryptTable())
-                .revise("foo_tbl", new IndexMetaData("foo_idx", Arrays.asList("cipher_col", "assisted_col", "other_col")), mock(EncryptRule.class));
+                .revise("foo_tbl", new IndexMetaData("foo_idx", Arrays.asList("cipher_col", "assisted_col", "other_col")), Collections.emptyList(), Collections.emptyList(), mock(EncryptRule.class));
         assertTrue(actual.isPresent());
         assertThat(actual.get().getName(), is("foo_idx"));
         assertThat(actual.get().getColumns(), is(new LinkedHashSet<>(Arrays.asList("col_1", "col_2", "other_col"))));

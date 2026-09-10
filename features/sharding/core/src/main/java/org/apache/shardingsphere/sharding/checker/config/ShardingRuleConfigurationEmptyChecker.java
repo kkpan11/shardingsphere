@@ -27,8 +27,13 @@ public final class ShardingRuleConfigurationEmptyChecker implements DatabaseRule
     
     @Override
     public boolean isEmpty(final ShardingRuleConfiguration ruleConfig) {
-        return ruleConfig.getTables().isEmpty() && ruleConfig.getAutoTables().isEmpty()
-                && null == ruleConfig.getDefaultDatabaseShardingStrategy() && null == ruleConfig.getDefaultTableShardingStrategy();
+        return ruleConfig.getTables().isEmpty() && ruleConfig.getAutoTables().isEmpty() && ruleConfig.getBindingTableGroups().isEmpty()
+                && null == ruleConfig.getDefaultDatabaseShardingStrategy() && null == ruleConfig.getDefaultTableShardingStrategy()
+                && null == ruleConfig.getDefaultKeyGenerateStrategy() && null == ruleConfig.getDefaultAuditStrategy()
+                && (null == ruleConfig.getDefaultShardingColumn() || ruleConfig.getDefaultShardingColumn().isEmpty())
+                && ruleConfig.getKeyGenerateStrategies().isEmpty()
+                && ruleConfig.getShardingAlgorithms().isEmpty() && ruleConfig.getKeyGenerators().isEmpty()
+                && ruleConfig.getAuditors().isEmpty();
     }
     
     @Override

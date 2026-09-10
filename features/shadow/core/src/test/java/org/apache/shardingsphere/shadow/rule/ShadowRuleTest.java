@@ -18,26 +18,30 @@
 package org.apache.shardingsphere.shadow.rule;
 
 import org.apache.shardingsphere.infra.algorithm.core.config.AlgorithmConfiguration;
+import org.apache.shardingsphere.infra.util.props.PropertiesBuilder;
+import org.apache.shardingsphere.infra.util.props.PropertiesBuilder.Property;
 import org.apache.shardingsphere.shadow.config.ShadowRuleConfiguration;
 import org.apache.shardingsphere.shadow.config.datasource.ShadowDataSourceConfiguration;
 import org.apache.shardingsphere.shadow.config.table.ShadowTableConfiguration;
+import org.apache.shardingsphere.shadow.constant.ShadowOrder;
 import org.apache.shardingsphere.shadow.spi.ShadowOperationType;
-import org.apache.shardingsphere.test.util.PropertiesBuilder;
-import org.apache.shardingsphere.test.util.PropertiesBuilder.Property;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -64,7 +68,7 @@ class ShadowRuleTest {
     }
     
     private Map<String, ShadowTableConfiguration> createTables() {
-        Map<String, ShadowTableConfiguration> result = new LinkedHashMap<>();
+        Map<String, ShadowTableConfiguration> result = new LinkedHashMap<>(2, 1F);
         result.put("foo_tbl", new ShadowTableConfiguration(Collections.singleton("foo_ds_0"), createShadowAlgorithmNames("foo_tbl")));
         result.put("bar_tbl", new ShadowTableConfiguration(Collections.singleton("foo_ds_1"), createShadowAlgorithmNames("bar_tbl")));
         return result;
@@ -83,7 +87,7 @@ class ShadowRuleTest {
     }
     
     private Map<String, AlgorithmConfiguration> createShadowAlgorithms() {
-        Map<String, AlgorithmConfiguration> result = new LinkedHashMap<>();
+        Map<String, AlgorithmConfiguration> result = new LinkedHashMap<>(4, 1F);
         result.put("sql-hint-algorithm", new AlgorithmConfiguration("SQL_HINT", PropertiesBuilder.build(new Property("shadow", Boolean.TRUE.toString()))));
         result.put("foo-id-insert-regex-algorithm", new AlgorithmConfiguration("REGEX_MATCH",
                 PropertiesBuilder.build(new Property("column", "foo_id"), new Property("operation", "insert"), new Property("regex", "[1]"))));
@@ -125,8 +129,12 @@ class ShadowRuleTest {
     }
     
     @Test
-    void assertGetColumnShadowAlgorithms() {
+    void assertGetColumnShadowAlgorithmsWithMatchedColumn() {
         assertThat(rule.getColumnShadowAlgorithms(ShadowOperationType.INSERT, "foo_tbl", "foo_id").size(), is(1));
+    }
+    
+    @Test
+    void assertGetColumnShadowAlgorithmsWithUnmatchedColumn() {
         assertTrue(rule.getColumnShadowAlgorithms(ShadowOperationType.INSERT, "foo_tbl", "bar_id").isEmpty());
     }
     
@@ -141,20 +149,54 @@ class ShadowRuleTest {
     }
     
     @Test
+    void assertGetShadowDataSourceMappingsWithDuplicateTableName() {
+        ShadowRule mergedTableRule = new ShadowRule(createRuleConfigurationWithDuplicateTableName());
+        assertThat(mergedTableRule.getShadowDataSourceMappings("foo_tbl"), is(Collections.singletonMap("prod_ds_1", "shadow_ds_1")));
+    }
+    
+    private ShadowRuleConfiguration createRuleConfigurationWithDuplicateTableName() {
+        ShadowRuleConfiguration result = new ShadowRuleConfiguration();
+        result.setDataSources(createDataSources());
+        result.setTables(createDuplicateTableConfigurations());
+        result.setShadowAlgorithms(createShadowAlgorithms());
+        return result;
+    }
+    
+    private Map<String, ShadowTableConfiguration> createDuplicateTableConfigurations() {
+        ShadowTableConfiguration firstTableConfig = new ShadowTableConfiguration(Collections.singleton("foo_ds_0"), createShadowAlgorithmNames("foo_tbl"));
+        ShadowTableConfiguration secondTableConfig = new ShadowTableConfiguration(Collections.singleton("foo_ds_1"), createShadowAlgorithmNames("bar_tbl"));
+        return new AbstractMap<String, ShadowTableConfiguration>() {
+            
+            @Override
+            public Set<Entry<String, ShadowTableConfiguration>> entrySet() {
+                Set<Entry<String, ShadowTableConfiguration>> result = new LinkedHashSet<>(2, 1F);
+                result.add(new AbstractMap.SimpleEntry<>("foo_tbl", firstTableConfig));
+                result.add(new AbstractMap.SimpleEntry<>("foo_tbl", secondTableConfig));
+                return result;
+            }
+        };
+    }
+    
+    @Test
     void assertGetAllShadowDataSourceMappings() {
-        assertThat(rule.getAllShadowDataSourceMappings().size(), is(2));
-        assertThat(rule.getAllShadowDataSourceMappings().get("prod_ds_0"), is("shadow_ds_0"));
-        assertThat(rule.getAllShadowDataSourceMappings().get("prod_ds_1"), is("shadow_ds_1"));
+        Map<String, String> actual = rule.getAllShadowDataSourceMappings();
+        assertThat(actual.size(), is(2));
+        assertThat(actual.get("prod_ds_0"), is("shadow_ds_0"));
+        assertThat(actual.get("prod_ds_1"), is("shadow_ds_1"));
     }
     
     @Test
     void assertFindProductionDataSourceNameSuccess() {
         assertThat(rule.findProductionDataSourceName("foo_ds_0"), is(Optional.of("prod_ds_0")));
-        assertThat(rule.findProductionDataSourceName("foo_ds_1"), is(Optional.of("prod_ds_1")));
     }
     
     @Test
     void assertFindProductionDataSourceNameFailed() {
         assertFalse(rule.findProductionDataSourceName("foo_ds_2").isPresent());
+    }
+    
+    @Test
+    void assertGetOrder() {
+        assertThat(rule.getOrder(), is(ShadowOrder.ORDER));
     }
 }

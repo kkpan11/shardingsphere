@@ -20,103 +20,113 @@ databaseName: mask_encrypt_sharding
 dataSources:
   mask_encrypt_ds_0:
     url: jdbc:opengauss://opengauss.mask_encrypt_sharding.host:5432/mask_encrypt_ds_0?batchMode=OFF
+    driverClassName: org.opengauss.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   mask_encrypt_ds_1:
     url: jdbc:opengauss://opengauss.mask_encrypt_sharding.host:5432/mask_encrypt_ds_1?batchMode=OFF
+    driverClassName: org.opengauss.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   mask_encrypt_ds_2:
     url: jdbc:opengauss://opengauss.mask_encrypt_sharding.host:5432/mask_encrypt_ds_2?batchMode=OFF
+    driverClassName: org.opengauss.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   mask_encrypt_ds_3:
     url: jdbc:opengauss://opengauss.mask_encrypt_sharding.host:5432/mask_encrypt_ds_3?batchMode=OFF
+    driverClassName: org.opengauss.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   mask_encrypt_ds_4:
     url: jdbc:opengauss://opengauss.mask_encrypt_sharding.host:5432/mask_encrypt_ds_4?batchMode=OFF
+    driverClassName: org.opengauss.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   mask_encrypt_ds_5:
     url: jdbc:opengauss://opengauss.mask_encrypt_sharding.host:5432/mask_encrypt_ds_5?batchMode=OFF
+    driverClassName: org.opengauss.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   mask_encrypt_ds_6:
     url: jdbc:opengauss://opengauss.mask_encrypt_sharding.host:5432/mask_encrypt_ds_6?batchMode=OFF
+    driverClassName: org.opengauss.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   mask_encrypt_ds_7:
     url: jdbc:opengauss://opengauss.mask_encrypt_sharding.host:5432/mask_encrypt_ds_7?batchMode=OFF
+    driverClassName: org.opengauss.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   mask_encrypt_ds_8:
     url: jdbc:opengauss://opengauss.mask_encrypt_sharding.host:5432/mask_encrypt_ds_8?batchMode=OFF
+    driverClassName: org.opengauss.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   mask_encrypt_ds_9:
     url: jdbc:opengauss://opengauss.mask_encrypt_sharding.host:5432/mask_encrypt_ds_9?batchMode=OFF
+    driverClassName: org.opengauss.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
 
 rules:

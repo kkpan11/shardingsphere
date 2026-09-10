@@ -45,6 +45,15 @@ public interface DataNodeRuleAttribute extends RuleAttribute {
     Collection<DataNode> getDataNodesByTableName(String tableName);
     
     /**
+     * Whether data node table names are loaded from storage metadata.
+     *
+     * @return whether data node table names are loaded from storage metadata
+     */
+    default boolean isDataNodeTableNameLoadedFromStorage() {
+        return false;
+    }
+    
+    /**
      * Find first actual table name.
      *
      * @param logicTable logic table name
@@ -76,4 +85,11 @@ public interface DataNodeRuleAttribute extends RuleAttribute {
      * @return actual table name
      */
     Optional<String> findActualTableByCatalog(String catalog, String logicTable);
+    
+    /**
+     * Whether replica based distribution.
+     *
+     * @return is replica based distribution or not
+     */
+    boolean isReplicaBasedDistribution();
 }

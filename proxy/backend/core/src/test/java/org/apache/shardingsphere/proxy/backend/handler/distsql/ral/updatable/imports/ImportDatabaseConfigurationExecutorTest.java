@@ -17,11 +17,14 @@
 
 package org.apache.shardingsphere.proxy.backend.handler.distsql.ral.updatable.imports;
 
-import org.apache.shardingsphere.distsql.statement.ral.updatable.ImportDatabaseConfigurationStatement;
+import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
+import org.apache.shardingsphere.database.exception.core.exception.syntax.database.DatabaseCreateExistsException;
+import org.apache.shardingsphere.distsql.handler.engine.update.DistSQLUpdateExecutor;
+import org.apache.shardingsphere.distsql.statement.type.ral.updatable.ImportDatabaseConfigurationStatement;
 import org.apache.shardingsphere.infra.config.props.ConfigurationProperties;
 import org.apache.shardingsphere.infra.config.props.ConfigurationPropertyKey;
-import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
-import org.apache.shardingsphere.infra.exception.dialect.exception.syntax.database.DatabaseCreateExistsException;
+import org.apache.shardingsphere.infra.config.props.temporary.TemporaryConfigurationProperties;
+import org.apache.shardingsphere.infra.exception.generic.FileIOException;
 import org.apache.shardingsphere.infra.exception.kernel.metadata.MissingRequiredDatabaseException;
 import org.apache.shardingsphere.infra.exception.kernel.metadata.rule.DuplicateRuleException;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
@@ -30,17 +33,22 @@ import org.apache.shardingsphere.infra.metadata.database.resource.unit.StorageUn
 import org.apache.shardingsphere.infra.rule.attribute.datasource.DataSourceMapperRuleAttribute;
 import org.apache.shardingsphere.infra.spi.exception.ServiceProviderNotFoundException;
 import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
+import org.apache.shardingsphere.infra.util.props.PropertiesBuilder;
+import org.apache.shardingsphere.infra.util.props.PropertiesBuilder.Property;
 import org.apache.shardingsphere.mode.manager.ContextManager;
-import org.apache.shardingsphere.test.fixture.jdbc.MockedDataSource;
+import org.apache.shardingsphere.test.infra.fixture.jdbc.MockedDataSource;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import javax.sql.DataSource;
 import java.net.URL;
-import java.sql.SQLException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Properties;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -50,34 +58,13 @@ import static org.mockito.Mockito.when;
 
 class ImportDatabaseConfigurationExecutorTest {
     
-    @Test
-    void assertImportDatabaseExecutorForSharding() throws SQLException {
-        ContextManager contextManager = mockContextManager("sharding_db");
-        assertExecute(contextManager, "/conf/import/database-sharding.yaml");
-    }
+    private final ImportDatabaseConfigurationExecutor executor =
+            (ImportDatabaseConfigurationExecutor) TypedSPILoader.getService(DistSQLUpdateExecutor.class, ImportDatabaseConfigurationStatement.class);
     
-    @Test
-    void assertImportDatabaseExecutorForReadwriteSplitting() throws SQLException {
-        ContextManager contextManager = mockContextManager("readwrite_splitting_db");
-        assertExecute(contextManager, "/conf/import/database-readwrite-splitting.yaml");
-    }
-    
-    @Test
-    void assertImportDatabaseExecutorForEncrypt() throws SQLException {
-        ContextManager contextManager = mockContextManager("encrypt_db");
-        assertExecute(contextManager, "/conf/import/database-encrypt.yaml");
-    }
-    
-    @Test
-    void assertImportDatabaseExecutorForShadow() throws SQLException {
-        ContextManager contextManager = mockContextManager("shadow_db");
-        assertExecute(contextManager, "/conf/import/database-shadow.yaml");
-    }
-    
-    @Test
-    void assertImportDatabaseExecutorForMask() throws SQLException {
-        ContextManager contextManager = mockContextManager("mask_db");
-        assertExecute(contextManager, "/conf/import/database-mask.yaml");
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("importSuccessCases")
+    void assertImportDatabaseExecutor(final String caseName, final String databaseName, final String filePath) {
+        assertExecute(mockContextManager(databaseName), filePath);
     }
     
     @Test
@@ -87,26 +74,35 @@ class ImportDatabaseConfigurationExecutorTest {
         assertThrows(DatabaseCreateExistsException.class, () -> assertExecute(contextManager, "/conf/import/database-sharding.yaml"));
     }
     
-    @Test
-    void assertImportEmptyDatabaseName() {
-        ContextManager contextManager = mockContextManager("sharding_db");
-        assertThrows(MissingRequiredDatabaseException.class, () -> assertExecute(contextManager, "/conf/import/database-empty-database-name.yaml"));
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("importFailureCases")
+    void assertImportFailure(final String caseName, final String databaseName, final String filePath, final Class<? extends Throwable> expected) {
+        assertThrows(expected, () -> assertExecute(mockContextManager(databaseName), filePath));
     }
     
     @Test
-    void assertImportDuplicatedLogicTable() {
-        ContextManager contextManager = mockContextManager("sharding_db");
-        assertThrows(DuplicateRuleException.class, () -> assertExecute(contextManager, "/conf/import/database-duplicated-logic-table.yaml"));
+    void assertImportFileNotFound() {
+        assertThrows(FileIOException.class, () -> executor.executeUpdate(new ImportDatabaseConfigurationStatement("/__not_exist__/database-configuration.yaml"), mock(ContextManager.class)));
     }
     
-    @Test
-    void assertImportInvalidAlgorithm() {
-        ContextManager contextManager = mockContextManager("sharding_db");
-        assertThrows(ServiceProviderNotFoundException.class, () -> assertExecute(contextManager, "/conf/import/database-invalid-algorithm.yaml"));
+    private static Stream<Arguments> importSuccessCases() {
+        return Stream.of(
+                Arguments.of("import sharding", "sharding_db", "/conf/import/database-sharding.yaml"),
+                Arguments.of("import single", "single_db", "/conf/import/database-single.yaml"),
+                Arguments.of("import readwrite splitting", "readwrite_splitting_db", "/conf/import/database-readwrite-splitting.yaml"),
+                Arguments.of("import encrypt", "encrypt_db", "/conf/import/database-encrypt.yaml"),
+                Arguments.of("import shadow", "shadow_db", "/conf/import/database-shadow.yaml"),
+                Arguments.of("import mask", "mask_db", "/conf/import/database-mask.yaml"));
     }
     
-    private void assertExecute(final ContextManager contextManager, final String filePath) throws SQLException {
-        ImportDatabaseConfigurationExecutor executor = new ImportDatabaseConfigurationExecutor();
+    private static Stream<Arguments> importFailureCases() {
+        return Stream.of(
+                Arguments.of("missing database name", "sharding_db", "/conf/import/database-empty-database-name.yaml", MissingRequiredDatabaseException.class),
+                Arguments.of("duplicated logic table", "sharding_db", "/conf/import/database-duplicated-logic-table.yaml", DuplicateRuleException.class),
+                Arguments.of("invalid algorithm", "sharding_db", "/conf/import/database-invalid-algorithm.yaml", ServiceProviderNotFoundException.class));
+    }
+    
+    private void assertExecute(final ContextManager contextManager, final String filePath) {
         URL url = ImportDatabaseConfigurationExecutorTest.class.getResource(filePath);
         assertNotNull(url);
         executor.executeUpdate(new ImportDatabaseConfigurationStatement(url.getPath()), contextManager);
@@ -128,13 +124,9 @@ class ImportDatabaseConfigurationExecutorTest {
         when(database.getRuleMetaData().getAttributes(DataSourceMapperRuleAttribute.class)).thenReturn(Collections.emptyList());
         when(result.getMetaDataContexts().getMetaData().getAllDatabases()).thenReturn(Collections.singleton(database));
         when(result.getMetaDataContexts().getMetaData().getDatabase(databaseName)).thenReturn(database);
-        when(result.getMetaDataContexts().getMetaData().getProps()).thenReturn(new ConfigurationProperties(createProperties()));
-        return result;
-    }
-    
-    private Properties createProperties() {
-        Properties result = new Properties();
-        result.setProperty(ConfigurationPropertyKey.PROXY_FRONTEND_DATABASE_PROTOCOL_TYPE.getKey(), "MySQL");
+        when(result.getMetaDataContexts().getMetaData().getProps()).thenReturn(
+                new ConfigurationProperties(PropertiesBuilder.build(new Property(ConfigurationPropertyKey.PROXY_FRONTEND_DATABASE_PROTOCOL_TYPE.getKey(), "MySQL"))));
+        when(result.getMetaDataContexts().getMetaData().getTemporaryProps()).thenReturn(new TemporaryConfigurationProperties(new Properties()));
         return result;
     }
 }

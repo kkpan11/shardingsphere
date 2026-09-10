@@ -18,15 +18,15 @@
 package org.apache.shardingsphere.sharding.route.engine.condition.engine;
 
 import lombok.RequiredArgsConstructor;
+import org.apache.shardingsphere.database.exception.core.exception.data.InsertColumnsAndValuesMismatchedException;
+import org.apache.shardingsphere.database.exception.core.exception.syntax.table.NoSuchTableException;
 import org.apache.shardingsphere.infra.algorithm.core.context.AlgorithmSQLContext;
 import org.apache.shardingsphere.infra.binder.context.segment.insert.keygen.GeneratedKeyContext;
 import org.apache.shardingsphere.infra.binder.context.segment.insert.values.InsertValueContext;
-import org.apache.shardingsphere.infra.binder.context.statement.dml.InsertStatementContext;
-import org.apache.shardingsphere.infra.binder.context.statement.dml.SelectStatementContext;
-import org.apache.shardingsphere.infra.database.core.type.DatabaseTypeRegistry;
-import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
-import org.apache.shardingsphere.infra.exception.dialect.exception.data.InsertColumnsAndValuesMismatchedException;
-import org.apache.shardingsphere.infra.exception.dialect.exception.syntax.table.NoSuchTableException;
+import org.apache.shardingsphere.infra.binder.context.statement.type.dml.InsertStatementContext;
+import org.apache.shardingsphere.infra.binder.context.statement.type.dml.SelectStatementContext;
+import org.apache.shardingsphere.infra.exception.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.exception.kernel.metadata.SchemaNotFoundException;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereSchema;
 import org.apache.shardingsphere.sharding.route.engine.condition.ExpressionConditionUtils;
@@ -38,6 +38,7 @@ import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.comp
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.simple.LiteralExpressionSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.simple.ParameterMarkerExpressionSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.simple.SimpleExpressionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.value.identifier.IdentifierValue;
 import org.apache.shardingsphere.timeservice.core.rule.TimestampServiceRule;
 
 import java.util.ArrayList;
@@ -91,12 +92,14 @@ public final class InsertClauseShardingConditionEngine {
     }
     
     private void appendMissingShardingConditions(final InsertStatementContext sqlStatementContext, final Collection<String> columnNames, final List<ShardingCondition> shardingConditions) {
-        String defaultSchemaName = new DatabaseTypeRegistry(sqlStatementContext.getDatabaseType()).getDefaultSchemaName(database.getName());
-        ShardingSphereSchema schema = sqlStatementContext.getTablesContext().getSchemaName().map(database::getSchema).orElseGet(() -> database.getSchema(defaultSchemaName));
-        String tableName = sqlStatementContext.getSqlStatement().getTable().map(optional -> optional.getTableName().getIdentifier().getValue())
-                .orElseGet(() -> sqlStatementContext.getTablesContext().getTableNames().iterator().next());
-        ShardingSpherePreconditions.checkState(schema.containsTable(tableName), () -> new NoSuchTableException(tableName));
-        for (String each : schema.getTable(tableName).findColumnNamesIfNotExistedFrom(columnNames)) {
+        Optional<String> schemaName = sqlStatementContext.getTablesContext().getSchemaName();
+        ShardingSphereSchema schema = schemaName.isPresent() ? database.getSchema(schemaName.get()) : database.findDefaultSchema().orElse(null);
+        ShardingSpherePreconditions.checkNotNull(schema, () -> new SchemaNotFoundException(schemaName.orElseGet(database::getDefaultSchemaName)));
+        IdentifierValue tableIdentifier = sqlStatementContext.getSqlStatement().getTable().map(optional -> optional.getTableName().getIdentifier())
+                .orElseGet(() -> new IdentifierValue(sqlStatementContext.getTablesContext().getTableNames().iterator().next()));
+        String tableName = tableIdentifier.getValue();
+        ShardingSpherePreconditions.checkState(schema.containsTable(tableIdentifier), () -> new NoSuchTableException(tableName));
+        for (String each : schema.getTable(tableIdentifier).findColumnNamesIfNotExistedFrom(columnNames)) {
             if (!rule.isGenerateKeyColumn(each, tableName) && rule.findShardingColumn(each, tableName).isPresent()) {
                 appendMissingShardingConditions(tableName, each, shardingConditions);
             }
@@ -164,7 +167,7 @@ public final class InsertClauseShardingConditionEngine {
     
     private List<ShardingCondition> createShardingConditionsWithInsertSelect(final InsertStatementContext sqlStatementContext, final List<Object> params) {
         SelectStatementContext selectStatementContext = sqlStatementContext.getInsertSelectContext().getSelectStatementContext();
-        return new LinkedList<>(new WhereClauseShardingConditionEngine(rule, timestampServiceRule).createShardingConditions(selectStatementContext, params));
+        return new LinkedList<>(new WhereClauseShardingConditionEngine(database, rule, timestampServiceRule).createShardingConditions(selectStatementContext, params));
     }
     
     private void appendGeneratedKeyConditions(final InsertStatementContext sqlStatementContext, final List<ShardingCondition> shardingConditions) {
@@ -172,7 +175,7 @@ public final class InsertClauseShardingConditionEngine {
         String tableName = sqlStatementContext.getSqlStatement().getTable().map(optional -> optional.getTableName().getIdentifier().getValue()).orElse("");
         if (generatedKey.isPresent() && generatedKey.get().isGenerated() && rule.findShardingTable(tableName).isPresent()) {
             String schemaName = sqlStatementContext.getTablesContext().getSchemaName()
-                    .orElseGet(() -> new DatabaseTypeRegistry(sqlStatementContext.getDatabaseType()).getDefaultSchemaName(database.getName()));
+                    .orElseGet(database::getDefaultSchemaName);
             AlgorithmSQLContext algorithmSQLContext = new AlgorithmSQLContext(database.getName(), schemaName, tableName, generatedKey.get().getColumnName());
             generatedKey.get().getGeneratedValues().addAll(rule.generateKeys(algorithmSQLContext, sqlStatementContext.getValueListCount()));
             generatedKey.get().setSupportAutoIncrement(rule.isSupportAutoIncrement(tableName));

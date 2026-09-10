@@ -17,13 +17,13 @@
 
 package org.apache.shardingsphere.mask.algorithm.cover;
 
-import org.apache.shardingsphere.mask.algorithm.parameterized.execute.MaskAlgorithmExecuteArgumentsProvider;
+import org.apache.shardingsphere.infra.util.props.PropertiesBuilder;
+import org.apache.shardingsphere.infra.util.props.PropertiesBuilder.Property;
 import org.apache.shardingsphere.mask.algorithm.parameterized.MaskAlgorithmAssertions;
+import org.apache.shardingsphere.mask.algorithm.parameterized.execute.MaskAlgorithmExecuteArgumentsProvider;
 import org.apache.shardingsphere.mask.algorithm.parameterized.execute.MaskAlgorithmExecuteCaseAssert;
 import org.apache.shardingsphere.mask.algorithm.parameterized.init.MaskAlgorithmInitArgumentsProvider;
 import org.apache.shardingsphere.mask.algorithm.parameterized.init.MaskAlgorithmInitCaseAssert;
-import org.apache.shardingsphere.test.util.PropertiesBuilder;
-import org.apache.shardingsphere.test.util.PropertiesBuilder.Property;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ArgumentsSource;
 
@@ -51,7 +51,13 @@ class KeepFromXToYMaskAlgorithmTest {
         MaskAlgorithmAssertions.assertMask(type, props, plainValue, maskedValue);
     }
     
-    private static class AlgorithmInitArgumentsProvider extends MaskAlgorithmInitArgumentsProvider {
+    @ParameterizedTest(name = "{0}: {1}")
+    @ArgumentsSource(AlgorithmMaskExecuteWithZeroFromXArgumentsProvider.class)
+    void assertMaskWithZeroFromX(final String type, @SuppressWarnings("unused") final String name, final Properties props, final Object plainValue, final Object maskedValue) {
+        MaskAlgorithmAssertions.assertMask(type, props, plainValue, maskedValue);
+    }
+    
+    private static final class AlgorithmInitArgumentsProvider extends MaskAlgorithmInitArgumentsProvider {
         
         AlgorithmInitArgumentsProvider() {
             super("KEEP_FROM_X_TO_Y");
@@ -69,7 +75,7 @@ class KeepFromXToYMaskAlgorithmTest {
         }
     }
     
-    private static class AlgorithmMaskExecuteArgumentsProvider extends MaskAlgorithmExecuteArgumentsProvider {
+    private static final class AlgorithmMaskExecuteArgumentsProvider extends MaskAlgorithmExecuteArgumentsProvider {
         
         AlgorithmMaskExecuteArgumentsProvider() {
             super("KEEP_FROM_X_TO_Y", PropertiesBuilder.build(new Property("from-x", "3"), new Property("to-y", "5"), new Property("replace-char", "*")));
@@ -89,7 +95,7 @@ class KeepFromXToYMaskAlgorithmTest {
         }
     }
     
-    private static class AlgorithmMaskExecuteWithSameXYArgumentsProvider extends MaskAlgorithmExecuteArgumentsProvider {
+    private static final class AlgorithmMaskExecuteWithSameXYArgumentsProvider extends MaskAlgorithmExecuteArgumentsProvider {
         
         AlgorithmMaskExecuteWithSameXYArgumentsProvider() {
             super("KEEP_FROM_X_TO_Y", PropertiesBuilder.build(new Property("from-x", "5"), new Property("to-y", "5"), new Property("replace-char", "*")));
@@ -104,6 +110,21 @@ class KeepFromXToYMaskAlgorithmTest {
                     new MaskAlgorithmExecuteCaseAssert("plain_value_length_equals_from_X_plus_one", "abc123", "*****3"),
                     new MaskAlgorithmExecuteCaseAssert("plain_value_length_less_than_to_Y_plus_one", "abc12", "*****"),
                     new MaskAlgorithmExecuteCaseAssert("plain_value_length_equals_to_Y_plus_one", "abc123", "*****3"));
+        }
+    }
+    
+    private static final class AlgorithmMaskExecuteWithZeroFromXArgumentsProvider extends MaskAlgorithmExecuteArgumentsProvider {
+        
+        AlgorithmMaskExecuteWithZeroFromXArgumentsProvider() {
+            super("KEEP_FROM_X_TO_Y", PropertiesBuilder.build(new Property("from-x", "0"), new Property("to-y", "2"), new Property("replace-char", "*")));
+        }
+        
+        @Override
+        protected Collection<MaskAlgorithmExecuteCaseAssert> getCaseAsserts() {
+            return Arrays.asList(
+                    new MaskAlgorithmExecuteCaseAssert("zero_from_x_normal", "abc123456", "abc******"),
+                    new MaskAlgorithmExecuteCaseAssert("zero_from_x_short", "ab", "ab"),
+                    new MaskAlgorithmExecuteCaseAssert("zero_from_x_empty", "", ""));
         }
     }
 }

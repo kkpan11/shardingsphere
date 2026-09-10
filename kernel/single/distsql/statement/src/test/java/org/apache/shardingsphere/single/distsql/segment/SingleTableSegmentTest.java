@@ -19,8 +19,8 @@ package org.apache.shardingsphere.single.distsql.segment;
 
 import org.junit.jupiter.api.Test;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -29,12 +29,12 @@ class SingleTableSegmentTest {
     
     @Test
     void assertContainsSchema() {
-        assertTrue(new SingleTableSegment("foo_ds", "foo_schema", "foo_tbl").containsSchema());
+        assertTrue(new SingleTableSegment("foo_ds", "foo_schema", "foo_tbl").getSchemaName().isPresent());
     }
     
     @Test
     void assertDoesNotContainSchema() {
-        assertFalse(new SingleTableSegment("foo_ds", "foo_tbl").containsSchema());
+        assertFalse(new SingleTableSegment("foo_ds", "foo_tbl").getSchemaName().isPresent());
     }
     
     @Test

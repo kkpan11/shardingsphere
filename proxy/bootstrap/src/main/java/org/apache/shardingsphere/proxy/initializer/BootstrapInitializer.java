@@ -29,6 +29,7 @@ import org.apache.shardingsphere.mode.manager.builder.ContextManagerBuilderParam
 import org.apache.shardingsphere.proxy.backend.config.ProxyConfiguration;
 import org.apache.shardingsphere.proxy.backend.config.YamlProxyConfiguration;
 import org.apache.shardingsphere.proxy.backend.config.yaml.swapper.YamlProxyConfigurationSwapper;
+import org.apache.shardingsphere.proxy.backend.context.BackendExecutorContext;
 import org.apache.shardingsphere.proxy.backend.context.ProxyContext;
 import org.apache.shardingsphere.proxy.version.ShardingSphereProxyVersion;
 
@@ -51,13 +52,14 @@ public final class BootstrapInitializer {
         ProxyConfiguration proxyConfig = new YamlProxyConfigurationSwapper().swap(yamlConfig);
         ContextManager contextManager = createContextManager(proxyConfig, modeConfig, port);
         ProxyContext.init(contextManager);
+        BackendExecutorContext.getInstance().init();
         ShardingSphereProxyVersion.setVersion(contextManager);
     }
     
     private ContextManager createContextManager(final ProxyConfiguration proxyConfig, final ModeConfiguration modeConfig, final int port) throws SQLException {
         InstanceMetaData instanceMetaData = TypedSPILoader.getService(InstanceMetaDataBuilder.class, "Proxy").build(port, "");
         ContextManagerBuilderParameter param = new ContextManagerBuilderParameter(modeConfig, proxyConfig.getDatabaseConfigurations(), proxyConfig.getGlobalConfiguration().getDataSources(),
-                proxyConfig.getGlobalConfiguration().getRules(), proxyConfig.getGlobalConfiguration().getProperties(), proxyConfig.getGlobalConfiguration().getLabels(), instanceMetaData);
+                proxyConfig.getGlobalConfiguration().getRules(), proxyConfig.getGlobalConfiguration().getProperties(), instanceMetaData);
         return TypedSPILoader.getService(ContextManagerBuilder.class, null == modeConfig ? null : modeConfig.getType()).build(param, new EventBusContext());
     }
 }

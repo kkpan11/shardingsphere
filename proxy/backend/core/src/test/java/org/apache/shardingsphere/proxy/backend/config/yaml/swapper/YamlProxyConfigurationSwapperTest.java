@@ -37,8 +37,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class YamlProxyConfigurationSwapperTest {
@@ -61,10 +61,10 @@ class YamlProxyConfigurationSwapperTest {
         assertThat(dataSource.getUsername(), is("sa"));
         assertThat(dataSource.getPassword(), is(""));
         assertThat(dataSource.getConnectionTimeout(), is(250L));
-        assertThat(dataSource.getIdleTimeout(), is(2L));
-        assertThat(dataSource.getMaxLifetime(), is(3L));
-        assertThat(dataSource.getMaximumPoolSize(), is(4));
-        assertThat(dataSource.getMinimumIdle(), is(5));
+        assertThat(dataSource.getIdleTimeout(), is(30000L));
+        assertThat(dataSource.getMaxLifetime(), is(600000L));
+        assertThat(dataSource.getMaximumPoolSize(), is(5));
+        assertThat(dataSource.getMinimumIdle(), is(4));
         assertTrue(dataSource.isReadOnly());
     }
     

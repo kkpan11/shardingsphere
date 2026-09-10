@@ -17,16 +17,15 @@
 
 package org.apache.shardingsphere.infra.instance;
 
+import com.google.errorprone.annotations.ThreadSafe;
 import lombok.AccessLevel;
 import lombok.Getter;
 import org.apache.shardingsphere.infra.config.mode.ModeConfiguration;
-import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.exception.ShardingSpherePreconditions;
 import org.apache.shardingsphere.infra.instance.workerid.WorkerIdGenerator;
 import org.apache.shardingsphere.infra.state.instance.InstanceState;
 import org.apache.shardingsphere.infra.util.eventbus.EventBusContext;
 
-import javax.annotation.concurrent.ThreadSafe;
-import java.util.Collection;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicReference;
@@ -81,24 +80,6 @@ public final class ComputeNodeInstanceContext {
             instance.switchState(instanceState.get());
         }
         clusterInstanceRegistry.find(instanceId).ifPresent(optional -> optional.switchState(instanceState.get()));
-    }
-    
-    /**
-     * Update instance labels.
-     *
-     * @param instanceId instance ID
-     * @param labels labels
-     */
-    public void updateLabels(final String instanceId, final Collection<String> labels) {
-        if (instance.getMetaData().getId().equals(instanceId)) {
-            updateLabels(instance, labels);
-        }
-        clusterInstanceRegistry.find(instanceId).ifPresent(optional -> updateLabels(optional, labels));
-    }
-    
-    private void updateLabels(final ComputeNodeInstance computeNodeInstance, final Collection<String> labels) {
-        computeNodeInstance.getLabels().clear();
-        computeNodeInstance.getLabels().addAll(labels);
     }
     
     /**

@@ -19,6 +19,7 @@ package org.apache.shardingsphere.infra.config.props.temporary;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import org.apache.shardingsphere.infra.config.props.MetadataIdentifierCaseSensitivity;
 import org.apache.shardingsphere.infra.props.TypedPropertyKey;
 
 import java.util.Arrays;
@@ -40,7 +41,22 @@ public enum TemporaryConfigurationPropertyKey implements TypedPropertyKey {
     /**
      * System schema metadata assembly enabled.
      */
-    SYSTEM_SCHEMA_METADATA_ASSEMBLY_ENABLED("system-schema-metadata-assembly-enabled", String.valueOf(Boolean.TRUE), boolean.class, true);
+    SYSTEM_SCHEMA_METADATA_ASSEMBLY_ENABLED("system-schema-metadata-assembly-enabled", String.valueOf(Boolean.TRUE), boolean.class, true),
+    
+    /**
+     * Proxy meta data collector cron.
+     */
+    PROXY_META_DATA_COLLECTOR_CRON("proxy-meta-data-collector-cron", "0 0 2 * * ?", String.class, false),
+    
+    /**
+     * Instance connection enabled.
+     */
+    INSTANCE_CONNECTION_ENABLED("instance-connection-enabled", String.valueOf(Boolean.FALSE), boolean.class, false),
+    
+    /**
+     * Metadata identifier case sensitivity.
+     */
+    METADATA_IDENTIFIER_CASE_SENSITIVITY("metadata-identifier-case-sensitivity", MetadataIdentifierCaseSensitivity.DATABASE.name(), MetadataIdentifierCaseSensitivity.class, true);
     
     private final String key;
     

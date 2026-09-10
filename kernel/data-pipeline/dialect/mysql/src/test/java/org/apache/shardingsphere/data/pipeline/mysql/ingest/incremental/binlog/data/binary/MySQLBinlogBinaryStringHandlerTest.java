@@ -18,13 +18,13 @@
 package org.apache.shardingsphere.data.pipeline.mysql.ingest.incremental.binlog.data.binary;
 
 import org.apache.shardingsphere.data.pipeline.core.metadata.model.PipelineColumnMetaData;
-import org.apache.shardingsphere.db.protocol.mysql.packet.binlog.row.column.value.string.MySQLBinaryString;
+import org.apache.shardingsphere.database.protocol.mysql.packet.binlog.row.column.value.string.MySQLBinaryString;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Types;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 

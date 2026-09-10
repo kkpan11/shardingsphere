@@ -20,9 +20,11 @@ package org.apache.shardingsphere.test.it.sql.parser.internal.asserts.segment.ta
 import com.google.common.base.Strings;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.column.ColumnSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.ExpressionSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.FunctionSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.xml.XmlTableFunctionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.PivotSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.CollectionTableSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.FunctionTableSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.IndexHintSegment;
@@ -37,8 +39,8 @@ import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.segment.col
 import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.segment.expression.ExpressionAssert;
 import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.segment.identifier.IdentifierValueAssert;
 import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.segment.owner.OwnerAssert;
-import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.dml.impl.MergeStatementAssert;
-import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.dml.impl.SelectStatementAssert;
+import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.dml.standard.type.MergeStatementAssert;
+import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.dml.standard.type.SelectStatementAssert;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.segment.impl.column.ExpectedColumn;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.segment.impl.expr.ExpectedTableFunction;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.segment.impl.table.ExpectedCollectionTable;
@@ -46,6 +48,7 @@ import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.s
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.segment.impl.table.ExpectedHintIndexName;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.segment.impl.table.ExpectedIndexHint;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.segment.impl.table.ExpectedJoinTable;
+import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.segment.impl.table.ExpectedPivot;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.segment.impl.table.ExpectedSimpleTable;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.segment.impl.table.ExpectedSubqueryTable;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.segment.impl.table.ExpectedTable;
@@ -54,9 +57,10 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -111,7 +115,10 @@ public final class TableAssert {
      */
     private static void assertIs(final SQLCaseAssertContext assertContext, final FunctionTableSegment actual, final ExpectedFunctionTable expected) {
         assertTableFunction(assertContext, actual.getTableFunction(), expected.getTableFunction());
-        actual.getAliasName().ifPresent(optional -> assertThat(assertContext.getText("Table function alias assertion error"), optional, is(expected.getTableAlias())));
+        assertThat(assertContext.getText("Table function alias assertion error"), actual.getAliasName().orElse(null), is(expected.getTableAlias()));
+        if (!expected.getColumns().isEmpty()) {
+            ColumnAssert.assertIs(assertContext, actual.getColumns(), expected.getColumns());
+        }
     }
     
     /**
@@ -134,6 +141,7 @@ public final class TableAssert {
             assertFalse(actual.getIndexHintSegments().isEmpty());
             assertIs(assertContext, actual.getIndexHintSegments(), expected.getIndexHints());
         }
+        assertPivot(assertContext, actual.getPivot().orElse(null), expected.getPivot());
         SQLSegmentAssert.assertIs(assertContext, actual, expected);
     }
     
@@ -149,13 +157,23 @@ public final class TableAssert {
     }
     
     private static void assertIs(final SQLCaseAssertContext assertContext, final IndexHintSegment actual, final ExpectedIndexHint expected) {
+        assertThat(assertContext.getText("Index hint start index assertion error: "), actual.getStartIndex(), is(expected.getStartIndex()));
+        assertThat(assertContext.getText("Index hint stop index assertion error: "), actual.getStopIndex(), is(expected.getStopIndex()));
         assertThat(expected.getHintIndexNames().size(), is(actual.getIndexNames().size()));
         Iterator<ExpectedHintIndexName> expectedIndexNameIterator = expected.getHintIndexNames().iterator();
         Iterator<String> actualIndexNameIterator = actual.getIndexNames().iterator();
+        int indexPosition = 0;
         while (expectedIndexNameIterator.hasNext()) {
             ExpectedHintIndexName expectedIndexName = expectedIndexNameIterator.next();
             String actualIndexName = actualIndexNameIterator.next();
             assertThat(assertContext.getText("Index hint name assertion error: "), actualIndexName, is(expectedIndexName.getName()));
+            if (indexPosition < actual.getIndexStartIndices().size() && indexPosition < actual.getIndexStopIndices().size()) {
+                assertThat(assertContext.getText("Index hint name start index assertion error: "),
+                        actual.getIndexStartIndices().get(indexPosition), is(expectedIndexName.getStartIndex()));
+                assertThat(assertContext.getText("Index hint name stop index assertion error: "),
+                        actual.getIndexStopIndices().get(indexPosition), is(expectedIndexName.getStopIndex()));
+            }
+            indexPosition++;
         }
         assertThat(assertContext.getText("Index hint origin text assertion error: "), actual.getOriginText(), is(expected.getOriginText()));
     }
@@ -176,6 +194,23 @@ public final class TableAssert {
             MergeStatementAssert.assertIs(assertContext, actual.getSubquery().getMerge(), expected.getSubquery().getMergeTestCases());
         }
         assertThat(assertContext.getText("Table alias assertion error: "), actual.getAliasName().orElse(null), is(expected.getAlias()));
+        if (!expected.getColumns().isEmpty()) {
+            assertThat(assertContext.getText("Subquery table columns size assertion error: "), actual.getColumns().size(), is(expected.getColumns().size()));
+            int count = 0;
+            for (ColumnSegment each : actual.getColumns()) {
+                ColumnAssert.assertIs(assertContext, each, expected.getColumns().get(count));
+                count++;
+            }
+        }
+        if (!expected.getColumnAliases().isEmpty()) {
+            assertTrue(actual.getAliasSegment().isPresent(), assertContext.getText("Subquery table alias should exist."));
+            assertThat(assertContext.getText("Subquery table column aliases size assertion error: "),
+                    actual.getAliasSegment().get().getColumnAliases().size(), is(expected.getColumnAliases().size()));
+            Iterator<String> expectedIterator = expected.getColumnAliases().iterator();
+            actual.getAliasSegment().get().getColumnAliases()
+                    .forEach(each -> assertThat(assertContext.getText("Subquery table column alias assertion error: "), each.getValue(), is(expectedIterator.next())));
+        }
+        assertPivot(assertContext, actual.getPivot().orElse(null), expected.getPivot());
     }
     
     /**
@@ -197,6 +232,8 @@ public final class TableAssert {
             ColumnAssert.assertIs(assertContext, actual.getUsing().get(count), each);
             count++;
         }
+        assertColumns(assertContext, actual.getLeftQueryPartitionListSegments(), expected.getLeftQueryPartitionColumns(), "Left query partition");
+        assertColumns(assertContext, actual.getRightQueryPartitionListSegments(), expected.getRightQueryPartitionColumns(), "Right query partition");
     }
     
     /**
@@ -227,6 +264,36 @@ public final class TableAssert {
                 actualTables.size(), is(expectedTables.size()));
         for (int i = 0; i < actualTables.size(); i++) {
             assertIs(assertContext, actualTables.get(i), expectedTables.get(i));
+        }
+    }
+    
+    private static void assertPivot(final SQLCaseAssertContext assertContext, final PivotSegment actual, final ExpectedPivot expected) {
+        if (null == expected) {
+            return;
+        }
+        assertNotNull(actual, assertContext.getText("Actual pivot should exist."));
+        SQLSegmentAssert.assertIs(assertContext, actual, expected);
+        assertThat(assertContext.getText("Pivot unpivot assertion error: "), actual.isUnPivot(), is(expected.isUnpivot()));
+        assertThat(assertContext.getText("Pivot XML assertion error: "), actual.isXml(), is(expected.isXml()));
+        assertColumns(assertContext, actual.getPivotAggregationColumns(), expected.getAggregationColumns(), "Pivot aggregation");
+        assertColumns(assertContext, actual.getPivotForColumns(), expected.getForColumns(), "Pivot for");
+        assertColumns(assertContext, actual.getPivotInColumns(), expected.getInColumns(), "Pivot in");
+        if (null != actual.getUnpivotColumns()) {
+            assertColumns(assertContext, actual.getUnpivotColumns(), expected.getUnpivotColumns(), "Unpivot");
+        }
+    }
+    
+    private static void assertColumns(final SQLCaseAssertContext assertContext, final Collection<? extends ExpressionSegment> actual, final Collection<ExpectedColumn> expected,
+                                      final String segmentName) {
+        if (expected.isEmpty()) {
+            return;
+        }
+        assertThat(assertContext.getText(segmentName + " columns size assertion error: "), actual.size(), is(expected.size()));
+        Iterator<? extends ExpressionSegment> actualIterator = actual.iterator();
+        for (ExpectedColumn each : expected) {
+            ExpressionSegment actualExpression = actualIterator.next();
+            assertTrue(actualExpression instanceof ColumnSegment, assertContext.getText(segmentName + " column expression assertion error: "));
+            ColumnAssert.assertIs(assertContext, (ColumnSegment) actualExpression, each);
         }
     }
     

@@ -18,7 +18,6 @@
 package org.apache.shardingsphere.data.pipeline.core.listener;
 
 import lombok.extern.slf4j.Slf4j;
-import org.apache.shardingsphere.data.pipeline.core.context.PipelineContext;
 import org.apache.shardingsphere.data.pipeline.core.context.PipelineContextKey;
 import org.apache.shardingsphere.data.pipeline.core.context.PipelineContextManager;
 import org.apache.shardingsphere.data.pipeline.core.exception.job.PipelineJobNotFoundException;
@@ -27,15 +26,17 @@ import org.apache.shardingsphere.data.pipeline.core.job.id.PipelineJobIdUtils;
 import org.apache.shardingsphere.data.pipeline.core.job.service.PipelineJobManager;
 import org.apache.shardingsphere.data.pipeline.core.job.type.PipelineJobType;
 import org.apache.shardingsphere.data.pipeline.core.metadata.node.PipelineMetaDataNodeWatcher;
+import org.apache.shardingsphere.database.connector.core.DefaultDatabase;
 import org.apache.shardingsphere.elasticjob.infra.listener.ElasticJobListener;
 import org.apache.shardingsphere.elasticjob.infra.pojo.JobConfigurationPOJO;
 import org.apache.shardingsphere.elasticjob.infra.spi.ElasticJobServiceLoader;
 import org.apache.shardingsphere.elasticjob.lite.lifecycle.api.JobConfigurationAPI;
 import org.apache.shardingsphere.elasticjob.lite.lifecycle.domain.JobBriefInfo;
-import org.apache.shardingsphere.infra.database.core.DefaultDatabase;
+import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 import org.apache.shardingsphere.mode.manager.ContextManager;
 import org.apache.shardingsphere.mode.manager.listener.ContextManagerLifecycleListener;
 import org.apache.shardingsphere.mode.manager.listener.ContextManagerLifecycleListenerModeRequired;
+import org.apache.shardingsphere.schedule.spi.CoordinatorRegistryCenterProvider;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -54,8 +55,13 @@ public final class PipelineContextManagerLifecycleListener implements ContextMan
             return;
         }
         PipelineContextKey contextKey = new PipelineContextKey(preSelectedDatabaseName, contextManager.getComputeNodeInstanceContext().getInstance().getMetaData().getType());
-        PipelineContextManager.putContext(contextKey, new PipelineContext(contextManager.getComputeNodeInstanceContext().getModeConfiguration(), contextManager));
-        PipelineMetaDataNodeWatcher.getInstance(contextKey);
+        PipelineContextManager.putContext(contextKey, contextManager);
+        String repositoryType = contextManager.getComputeNodeInstanceContext().getModeConfiguration().getRepository().getType();
+        if (!TypedSPILoader.findService(CoordinatorRegistryCenterProvider.class, repositoryType).isPresent()) {
+            log.warn("Can not resume pipeline jobs because coordinator registry center provider is unavailable for repository type: {}", repositoryType);
+            return;
+        }
+        PipelineMetaDataNodeWatcher.init(contextKey);
         ElasticJobServiceLoader.registerTypedService(ElasticJobListener.class);
         try {
             dispatchEnablePipelineJobStartEvent(contextKey);
@@ -72,14 +78,14 @@ public final class PipelineContextManagerLifecycleListener implements ContextMan
                 .stream().filter(each -> !each.getJobName().startsWith("_")).collect(Collectors.toList());
         log.info("All job names: {}", allJobsBriefInfo.stream().map(JobBriefInfo::getJobName).collect(Collectors.joining(",")));
         for (JobBriefInfo each : allJobsBriefInfo) {
-            PipelineJobType jobType;
+            PipelineJobType<?> jobType;
             try {
                 jobType = PipelineJobIdUtils.parseJobType(each.getJobName());
             } catch (final IllegalArgumentException ex) {
                 log.warn("Parse job type failed, job name: {}, error: {}", each.getJobName(), ex.getMessage());
                 continue;
             }
-            if ("CONSISTENCY_CHECK".equals(jobType.getCode())) {
+            if ("CONSISTENCY_CHECK".equals(jobType.getType())) {
                 continue;
             }
             JobConfigurationPOJO jobConfig;
@@ -99,7 +105,12 @@ public final class PipelineContextManagerLifecycleListener implements ContextMan
     
     @Override
     public void onDestroyed(final ContextManager contextManager) {
-        PipelineContextManager.removeContext(
-                new PipelineContextKey(contextManager.getPreSelectedDatabaseName(), contextManager.getComputeNodeInstanceContext().getInstance().getMetaData().getType()));
+        PipelineContextKey contextKey = new PipelineContextKey(
+                contextManager.getPreSelectedDatabaseName(), contextManager.getComputeNodeInstanceContext().getInstance().getMetaData().getType());
+        try {
+            PipelineAPIFactory.close(contextKey);
+        } finally {
+            PipelineContextManager.removeContext(contextKey);
+        }
     }
 }

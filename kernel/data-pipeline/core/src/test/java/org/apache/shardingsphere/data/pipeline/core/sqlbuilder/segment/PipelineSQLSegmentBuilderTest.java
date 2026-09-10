@@ -17,13 +17,13 @@
 
 package org.apache.shardingsphere.data.pipeline.core.sqlbuilder.segment;
 
-import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
+import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.metadata.database.schema.QualifiedTable;
 import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 import org.junit.jupiter.api.Test;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 class PipelineSQLSegmentBuilderTest {
     
@@ -39,6 +39,18 @@ class PipelineSQLSegmentBuilderTest {
     @Test
     void assertGetUnescapedIdentifier() {
         assertThat(mysqlBuilder.getEscapedIdentifier("SELECT1"), is("`SELECT1`"));
+    }
+    
+    @Test
+    void assertGetEscapedActualIdentifier() {
+        assertThat(postgresqlBuilder.getEscapedActualIdentifier("T_Order"), is("\"T_Order\""));
+        assertThat(postgresqlBuilder.getEscapedActualIdentifier("*"), is("*"));
+    }
+    
+    @Test
+    void assertGetQualifiedActualTableName() {
+        assertThat(postgresqlBuilder.getQualifiedActualTableName("TEST", "T_Order"), is("\"TEST\".\"T_Order\""));
+        assertThat(mysqlBuilder.getQualifiedActualTableName("SHARDING_DB", "T_Order"), is("`T_Order`"));
     }
     
     @Test

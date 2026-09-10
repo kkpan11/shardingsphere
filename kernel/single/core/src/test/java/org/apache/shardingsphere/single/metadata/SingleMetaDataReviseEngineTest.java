@@ -17,10 +17,11 @@
 
 package org.apache.shardingsphere.single.metadata;
 
-import org.apache.shardingsphere.infra.database.core.metadata.data.model.ColumnMetaData;
-import org.apache.shardingsphere.infra.database.core.metadata.data.model.IndexMetaData;
-import org.apache.shardingsphere.infra.database.core.metadata.data.model.SchemaMetaData;
-import org.apache.shardingsphere.infra.database.core.metadata.data.model.TableMetaData;
+import org.apache.shardingsphere.database.connector.core.metadata.data.model.ColumnMetaData;
+import org.apache.shardingsphere.database.connector.core.metadata.data.model.IndexMetaData;
+import org.apache.shardingsphere.database.connector.core.metadata.data.model.SchemaMetaData;
+import org.apache.shardingsphere.database.connector.core.metadata.data.model.TableMetaData;
+import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.metadata.database.schema.builder.GenericSchemaBuilderMaterial;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereColumn;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereIndex;
@@ -37,8 +38,8 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
@@ -49,7 +50,8 @@ class SingleMetaDataReviseEngineTest {
     @Test
     void assertRevise() {
         Map<String, SchemaMetaData> schemaMetaDataMap = Collections.singletonMap("sharding_db", new SchemaMetaData("sharding_db", Collections.singleton(createTableMetaData())));
-        Map<String, ShardingSphereSchema> actual = new MetaDataReviseEngine(Collections.singleton(mock(SingleRule.class))).revise(schemaMetaDataMap, mock(GenericSchemaBuilderMaterial.class));
+        Map<String, ShardingSphereSchema> actual = new MetaDataReviseEngine(Collections.singleton(mock(SingleRule.class)), mock(DatabaseType.class))
+                .revise(schemaMetaDataMap, mock(GenericSchemaBuilderMaterial.class));
         assertThat(actual.size(), is(1));
         assertTrue(actual.containsKey("sharding_db"));
         assertThat(actual.get("sharding_db").getAllTables().size(), is(1));

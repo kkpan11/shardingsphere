@@ -23,23 +23,24 @@ import org.apache.shardingsphere.infra.algorithm.core.exception.AlgorithmInitial
 import org.apache.shardingsphere.infra.datanode.DataNodeInfo;
 import org.apache.shardingsphere.infra.exception.generic.UnsupportedSQLOperationException;
 import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
+import org.apache.shardingsphere.infra.util.props.PropertiesBuilder;
+import org.apache.shardingsphere.infra.util.props.PropertiesBuilder.Property;
 import org.apache.shardingsphere.sharding.api.sharding.standard.PreciseShardingValue;
 import org.apache.shardingsphere.sharding.api.sharding.standard.RangeShardingValue;
 import org.apache.shardingsphere.sharding.exception.algorithm.MismatchedInlineShardingAlgorithmExpressionAndColumnException;
 import org.apache.shardingsphere.sharding.spi.ShardingAlgorithm;
-import org.apache.shardingsphere.test.util.PropertiesBuilder;
-import org.apache.shardingsphere.test.util.PropertiesBuilder.Property;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -78,6 +79,14 @@ class InlineShardingAlgorithmTest {
         assertThat(shardingAlgorithm.doSharding(availableTargetNames, new PreciseShardingValue<>("t_order", "order_id", DATA_NODE_INFO, 0)), is("t_order_0"));
         assertThrows(MismatchedInlineShardingAlgorithmExpressionAndColumnException.class,
                 () -> shardingAlgorithm.doSharding(availableTargetNames, new PreciseShardingValue<>("t_order", "non_existent_column1", DATA_NODE_INFO, 0)));
+    }
+    
+    @Test
+    void assertDoShardingWithMissingMethod() {
+        InlineShardingAlgorithm inlineShardingAlgorithm = (InlineShardingAlgorithm) TypedSPILoader.getService(ShardingAlgorithm.class, "INLINE",
+                PropertiesBuilder.build(new Property("algorithm-expression", "t_order_${order_id.missingMethod()}")));
+        assertThrows(MismatchedInlineShardingAlgorithmExpressionAndColumnException.class,
+                () -> inlineShardingAlgorithm.doSharding(Collections.singleton("t_order_0"), new PreciseShardingValue<>("t_order", "order_id", DATA_NODE_INFO, 0)));
     }
     
     @Test

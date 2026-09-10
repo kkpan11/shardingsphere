@@ -20,6 +20,8 @@ package org.apache.shardingsphere.mode.metadata.manager.resource;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.shardingsphere.infra.config.props.ConfigurationProperties;
+import org.apache.shardingsphere.infra.config.props.temporary.TemporaryConfigurationPropertyKey;
 import org.apache.shardingsphere.infra.datasource.pool.props.domain.DataSourcePoolProperties;
 import org.apache.shardingsphere.infra.instance.ComputeNodeInstanceContext;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
@@ -60,8 +62,9 @@ public final class StorageUnitManager {
         ShardingSphereDatabase database = metaDataContexts.getMetaData().getDatabase(databaseName);
         try {
             closeStaleRules(database);
-            SwitchingResource switchingResource = resourceSwitchManager.switchByRegisterStorageUnit(database.getResourceMetaData(), propsMap);
-            buildNewMetaDataContext(databaseName, switchingResource, true);
+            boolean isInstanceConnectionEnabled = metaDataContexts.getMetaData().getTemporaryProps().<Boolean>getValue(TemporaryConfigurationPropertyKey.INSTANCE_CONNECTION_ENABLED);
+            SwitchingResource switchingResource = resourceSwitchManager.switchByRegisterStorageUnit(database.getResourceMetaData(), propsMap, isInstanceConnectionEnabled);
+            buildNewMetaDataContext(databaseName, switchingResource);
         } catch (final SQLException ex) {
             log.error("Alter database: {} register storage unit failed.", databaseName, ex);
         }
@@ -77,8 +80,9 @@ public final class StorageUnitManager {
         ShardingSphereDatabase database = metaDataContexts.getMetaData().getDatabase(databaseName);
         try {
             closeStaleRules(database);
-            SwitchingResource switchingResource = resourceSwitchManager.switchByAlterStorageUnit(database.getResourceMetaData(), propsMap);
-            buildNewMetaDataContext(databaseName, switchingResource, true);
+            boolean isInstanceConnectionEnabled = metaDataContexts.getMetaData().getTemporaryProps().<Boolean>getValue(TemporaryConfigurationPropertyKey.INSTANCE_CONNECTION_ENABLED);
+            SwitchingResource switchingResource = resourceSwitchManager.switchByAlterStorageUnit(database.getResourceMetaData(), propsMap, isInstanceConnectionEnabled);
+            buildNewMetaDataContext(databaseName, switchingResource);
         } catch (final SQLException ex) {
             log.error("Alter database: {} alter storage unit failed.", databaseName, ex);
         }
@@ -95,28 +99,39 @@ public final class StorageUnitManager {
         try {
             closeStaleRules(database);
             SwitchingResource switchingResource = resourceSwitchManager.switchByUnregisterStorageUnit(database.getResourceMetaData(), Collections.singleton(storageUnitName));
-            buildNewMetaDataContext(databaseName, switchingResource, false);
+            buildNewMetaDataContext(databaseName, switchingResource);
         } catch (final SQLException ex) {
             log.error("Alter database: {} register storage unit failed.", databaseName, ex);
         }
     }
     
-    private void buildNewMetaDataContext(final String databaseName, final SwitchingResource switchingResource, final boolean isLoadSchemasFromRegisterCenter) throws SQLException {
-        MetaDataContexts reloadMetaDataContexts = new MetaDataContextsFactory(metaDataPersistFacade, computeNodeInstanceContext).createBySwitchResource(
-                databaseName, isLoadSchemasFromRegisterCenter, switchingResource, metaDataContexts);
+    private void buildNewMetaDataContext(final String databaseName, final SwitchingResource switchingResource) throws SQLException {
+        MetaDataContexts reloadMetaDataContexts;
+        try {
+            reloadMetaDataContexts = new MetaDataContextsFactory(metaDataPersistFacade, computeNodeInstanceContext).createBySwitchResource(databaseName, switchingResource, metaDataContexts);
+            // CHECKSTYLE:OFF
+        } catch (final RuntimeException ex) {
+            // CHECKSTYLE:ON
+            switchingResource.closeNewDataSources();
+            throw ex;
+        }
         metaDataContexts.update(reloadMetaDataContexts);
-        metaDataContexts.getMetaData().putDatabase(buildDatabase(reloadMetaDataContexts.getMetaData().getDatabase(databaseName)));
+        metaDataContexts.getMetaData().putDatabase(buildDatabase(reloadMetaDataContexts.getMetaData().getDatabase(databaseName), reloadMetaDataContexts.getMetaData().getProps()));
         switchingResource.closeStaleDataSources();
     }
     
-    private ShardingSphereDatabase buildDatabase(final ShardingSphereDatabase originalDatabase) {
+    private ShardingSphereDatabase buildDatabase(final ShardingSphereDatabase originalDatabase, final ConfigurationProperties props) {
         return new ShardingSphereDatabase(
-                originalDatabase.getName(), originalDatabase.getProtocolType(), originalDatabase.getResourceMetaData(), originalDatabase.getRuleMetaData(), buildSchemas(originalDatabase));
+                originalDatabase.getName(), originalDatabase.getProtocolType(), originalDatabase.getResourceMetaData(), originalDatabase.getRuleMetaData(), buildSchemas(originalDatabase), props);
     }
     
     private Collection<ShardingSphereSchema> buildSchemas(final ShardingSphereDatabase originalDatabase) {
-        return originalDatabase.getAllSchemas().stream().map(each -> new ShardingSphereSchema(
-                each.getName(), each.getAllTables(), metaDataPersistFacade.getDatabaseMetaDataFacade().getView().load(originalDatabase.getName(), each.getName()))).collect(Collectors.toList());
+        return originalDatabase.getAllSchemas().stream().map(each -> buildSchema(originalDatabase, each)).collect(Collectors.toList());
+    }
+    
+    private ShardingSphereSchema buildSchema(final ShardingSphereDatabase originalDatabase, final ShardingSphereSchema schema) {
+        return new ShardingSphereSchema(
+                schema.getName(), schema.getProtocolType(), schema.getAllTables(), metaDataPersistFacade.getDatabaseMetaDataFacade().getView().load(originalDatabase.getName(), schema.getName()));
     }
     
     @SneakyThrows(Exception.class)

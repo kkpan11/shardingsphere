@@ -27,17 +27,17 @@ import org.apache.shardingsphere.mask.config.rule.MaskTableRuleConfiguration;
 import org.apache.shardingsphere.mask.rule.MaskRule;
 import org.apache.shardingsphere.mask.yaml.config.rule.YamlMaskColumnRuleConfiguration;
 import org.apache.shardingsphere.mask.yaml.config.rule.YamlMaskTableRuleConfiguration;
-import org.apache.shardingsphere.mode.spi.rule.RuleItemConfigurationChangedProcessor;
 import org.apache.shardingsphere.mode.spi.rule.RuleChangedItemType;
+import org.apache.shardingsphere.mode.spi.rule.RuleItemConfigurationChangedProcessor;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 
-import static org.apache.shardingsphere.test.matcher.ShardingSphereAssertionMatchers.deepEqual;
-import static org.hamcrest.CoreMatchers.is;
+import static org.apache.shardingsphere.test.infra.framework.matcher.ShardingSphereAssertionMatchers.deepEqual;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;

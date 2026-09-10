@@ -40,7 +40,11 @@ showShardingTableNodes
     ;
 
 showShardingKeyGenerators
-    : SHOW SHARDING KEY GENERATORS (FROM databaseName)?
+    : SHOW SHARDING KEY (GENERATOR keyGeneratorName | GENERATORS) (FROM databaseName)?
+    ;
+
+showShardingKeyGenerateStrategies
+    : SHOW SHARDING KEY GENERATE (STRATEGY keyGenerateStrategyName | STRATEGIES) (FROM databaseName)?
     ;
 
 showDefaultShardingStrategy
@@ -77,8 +81,4 @@ countShardingRule
 
 tableRule
     : RULE tableName
-    ;
-
-databaseName
-    : IDENTIFIER_
     ;

@@ -18,19 +18,19 @@
 package org.apache.shardingsphere.infra.algorithm.loadbalancer.weight;
 
 import org.apache.shardingsphere.infra.algorithm.core.exception.AlgorithmInitializationException;
-import org.apache.shardingsphere.infra.algorithm.loadbalancer.core.LoadBalanceAlgorithm;
+import org.apache.shardingsphere.infra.algorithm.loadbalancer.spi.LoadBalanceAlgorithm;
 import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
-import org.apache.shardingsphere.test.util.PropertiesBuilder;
-import org.apache.shardingsphere.test.util.PropertiesBuilder.Property;
+import org.apache.shardingsphere.infra.util.props.PropertiesBuilder;
+import org.apache.shardingsphere.infra.util.props.PropertiesBuilder.Property;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class WeightLoadBalanceAlgorithmTest {
@@ -41,9 +41,15 @@ class WeightLoadBalanceAlgorithmTest {
     }
     
     @Test
-    void assertCheck() {
+    void assertCheckWithUnconfiguredTarget() {
         LoadBalanceAlgorithm loadBalanceAlgorithm = TypedSPILoader.getService(LoadBalanceAlgorithm.class, "WEIGHT", PropertiesBuilder.build(new Property("test_read_ds_1", "5")));
         assertThrows(AlgorithmInitializationException.class, () -> loadBalanceAlgorithm.check("foo_db", Collections.singletonList("test_read_ds_0")));
+    }
+    
+    @Test
+    void assertCheckWithMissingWeight() {
+        LoadBalanceAlgorithm loadBalanceAlgorithm = TypedSPILoader.getService(LoadBalanceAlgorithm.class, "WEIGHT", PropertiesBuilder.build(new Property("test_read_ds_0", "5")));
+        assertThrows(AlgorithmInitializationException.class, () -> loadBalanceAlgorithm.check("foo_db", Arrays.asList("test_read_ds_0", "test_read_ds_1")));
     }
     
     @Test
@@ -63,9 +69,9 @@ class WeightLoadBalanceAlgorithmTest {
     }
     
     private void assertWeightLoadBalance(final LoadBalanceAlgorithm loadBalanceAlgorithm, final List<String> availableTargetNames) {
-        assertThat(loadBalanceAlgorithm.getTargetName("ds", availableTargetNames), notNullValue());
-        assertThat(loadBalanceAlgorithm.getTargetName("ds", availableTargetNames), notNullValue());
-        assertThat(loadBalanceAlgorithm.getTargetName("ds", availableTargetNames), notNullValue());
+        assertNotNull(loadBalanceAlgorithm.getTargetName("ds", availableTargetNames));
+        assertNotNull(loadBalanceAlgorithm.getTargetName("ds", availableTargetNames));
+        assertNotNull(loadBalanceAlgorithm.getTargetName("ds", availableTargetNames));
     }
     
     @Test

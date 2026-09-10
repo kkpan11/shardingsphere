@@ -17,13 +17,14 @@
 
 package org.apache.shardingsphere.mode.metadata.refresher.federation.type;
 
+import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereView;
 import org.apache.shardingsphere.mode.metadata.refresher.federation.FederationMetaDataRefresher;
 import org.apache.shardingsphere.mode.metadata.refresher.util.TableRefreshUtils;
 import org.apache.shardingsphere.mode.persist.service.MetaDataManagerPersistService;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.SimpleTableSegment;
-import org.apache.shardingsphere.sql.parser.statement.core.statement.ddl.AlterViewStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.type.ddl.view.AlterViewStatement;
 
 import java.util.Collection;
 import java.util.LinkedList;
@@ -35,13 +36,14 @@ import java.util.Optional;
 public final class AlterViewFederationMetaDataRefresher implements FederationMetaDataRefresher<AlterViewStatement> {
     
     @Override
-    public void refresh(final MetaDataManagerPersistService metaDataManagerPersistService, final ShardingSphereDatabase database, final String schemaName, final AlterViewStatement sqlStatement) {
-        String viewName = TableRefreshUtils.getTableName(sqlStatement.getView().getTableName().getIdentifier(), sqlStatement.getDatabaseType());
+    public void refresh(final MetaDataManagerPersistService metaDataManagerPersistService,
+                        final DatabaseType databaseType, final ShardingSphereDatabase database, final String schemaName, final AlterViewStatement sqlStatement) {
+        String viewName = TableRefreshUtils.getViewLoadCandidateName(database, sqlStatement.getView().getTableName().getIdentifier());
         Optional<SimpleTableSegment> renameView = sqlStatement.getRenameView();
         Collection<ShardingSphereView> alteredViews = new LinkedList<>();
         Collection<String> droppedViews = new LinkedList<>();
         if (renameView.isPresent()) {
-            String renameViewName = renameView.get().getTableName().getIdentifier().getValue();
+            String renameViewName = TableRefreshUtils.getViewLoadCandidateName(database, renameView.get().getTableName().getIdentifier());
             String originalView = database.getSchema(schemaName).getView(viewName).getViewDefinition();
             alteredViews.add(new ShardingSphereView(renameViewName, originalView));
             droppedViews.add(viewName);

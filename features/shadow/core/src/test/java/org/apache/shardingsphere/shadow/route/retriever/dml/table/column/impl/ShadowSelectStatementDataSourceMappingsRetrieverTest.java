@@ -17,7 +17,7 @@
 
 package org.apache.shardingsphere.shadow.route.retriever.dml.table.column.impl;
 
-import org.apache.shardingsphere.infra.binder.context.statement.dml.SelectStatementContext;
+import org.apache.shardingsphere.infra.binder.context.statement.type.dml.SelectStatementContext;
 import org.apache.shardingsphere.shadow.condition.ShadowColumnCondition;
 import org.apache.shardingsphere.shadow.route.util.ShadowExtractor;
 import org.apache.shardingsphere.sql.parser.statement.core.extractor.ColumnExtractor;
@@ -27,8 +27,8 @@ import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.predicate
 import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.OwnerSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.bound.TableSegmentBoundInfo;
 import org.apache.shardingsphere.sql.parser.statement.core.value.identifier.IdentifierValue;
-import org.apache.shardingsphere.test.mock.AutoMockExtension;
-import org.apache.shardingsphere.test.mock.StaticMockSettings;
+import org.apache.shardingsphere.test.infra.framework.extension.mock.AutoMockExtension;
+import org.apache.shardingsphere.test.infra.framework.extension.mock.StaticMockSettings;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
@@ -37,8 +37,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Optional;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;

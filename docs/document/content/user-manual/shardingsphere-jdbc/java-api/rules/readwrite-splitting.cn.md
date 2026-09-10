@@ -17,7 +17,7 @@ Java API 形式配置的读写分离可以方便的适用于各种场景，不�
 
 | *名称*              | *数据类型*                                                      | *说明*       |
 |-------------------|-------------------------------------------------------------|------------|
-| dataSources (+)   | Collection\<ReadwriteSplittingDataSourceRuleConfiguration\> | 读写数据源配置    |
+| dataSourceGroups (+) | Collection\<ReadwriteSplittingDataSourceGroupRuleConfiguration\> | 读写数据源组配置   |
 | loadBalancers (*) | Map\<String, AlgorithmConfiguration\>                       | 从库负载均衡算法配置 |
 
 ## 主从数据源配置
@@ -26,13 +26,13 @@ Java API 形式配置的读写分离可以方便的适用于各种场景，不�
 
 可配置属性：
 
-| *名称*                               | *数据类型*                         | *说明*                                                                        | *默认值*    |
-|------------------------------------|--------------------------------|-----------------------------------------------------------------------------|----------|
-| name                               | String                         | 读写分离数据源名称                                                                   | -        |
-| writeDataSourceName                | String                         | 写库数据源名称                                                                     | -        |
-| readDataSourceNames                | List\<String\>                 | 读库数据源名称                                                                     | -        |
-| transactionalReadQueryStrategy (?) | TransactionalReadQueryStrategy | 事务内读请求的路由策略，可选值：PRIMARY（路由至主库）、FIXED（同一事务内路由至固定数据源）、DYNAMIC（同一事务内路由至非固定数据源） | DYNAMIC  |
-| loadBalancerName (?)               | String                         | 读库负载均衡算法名称                                                                  | 轮询负载均衡算法 |
+| *名称*                               | *数据类型*                         | *说明*                                                                                                                                       | *默认值*    |
+|------------------------------------|--------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------|----------|
+| name                               | String                         | 读写分离数据源名称                                                                                                                                  | -        |
+| writeDataSourceName                | String                         | 写库数据源名称                                                                                                                                    | -        |
+| readDataSourceNames                | List\<String\>                 | 读库数据源名称                                                                                                                                    | -        |
+| transactionalReadQueryStrategy (?) | TransactionalReadQueryStrategy | 事务内读请求的路由策略，可选值：PRIMARY（路由至主库）、FIXED（同一事务内路由至固定数据源）、DYNAMIC（同一事务内路由至非固定数据源）。 **注意：`FIXED` 和 `DYNAMIC` 需要数据库支持主从强一致同步能力才能使用，例如：openGauss。** | PRIMARY  |
+| loadBalancerName (?)               | String                         | 读库负载均衡算法名称                                                                                                                                 | 轮询负载均衡算法 |
 
 算法类型的详情，请参见[内置负载均衡算法列表](/cn/user-manual/common-config/builtin-algorithm/load-balance)。
 
@@ -46,7 +46,7 @@ Java API 形式配置的读写分离可以方便的适用于各种场景，不�
 
 ```java
 public DataSource getDataSource() throws SQLException {
-        ReadwriteSplittingDataSourceRuleConfiguration dataSourceConfig = new ReadwriteSplittingDataSourceRuleConfiguration(
+        ReadwriteSplittingDataSourceGroupRuleConfiguration dataSourceConfig = new ReadwriteSplittingDataSourceGroupRuleConfiguration(
                 "demo_read_query_ds", "demo_write_ds", Arrays.asList("demo_read_ds_0", "demo_read_ds_1"), "demo_weight_lb");
         Properties algorithmProps = new Properties();
         algorithmProps.setProperty("demo_read_ds_0", "2");

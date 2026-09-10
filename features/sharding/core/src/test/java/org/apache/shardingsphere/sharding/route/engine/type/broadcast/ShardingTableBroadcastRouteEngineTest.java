@@ -17,12 +17,9 @@
 
 package org.apache.shardingsphere.sharding.route.engine.type.broadcast;
 
-import org.apache.groovy.util.Maps;
-import org.apache.shardingsphere.infra.binder.context.statement.SQLStatementContext;
-import org.apache.shardingsphere.infra.binder.context.statement.ddl.DropIndexStatementContext;
-import org.apache.shardingsphere.infra.binder.context.type.IndexAvailable;
-import org.apache.shardingsphere.infra.binder.context.type.TableAvailable;
-import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
+import com.google.common.collect.ImmutableMap;
+import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
+import org.apache.shardingsphere.infra.config.props.ConfigurationProperties;
 import org.apache.shardingsphere.infra.instance.ComputeNodeInstanceContext;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.infra.metadata.database.resource.ResourceMetaData;
@@ -36,22 +33,26 @@ import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 import org.apache.shardingsphere.sharding.api.config.ShardingRuleConfiguration;
 import org.apache.shardingsphere.sharding.api.config.rule.ShardingTableRuleConfiguration;
 import org.apache.shardingsphere.sharding.rule.ShardingRule;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.index.IndexNameSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.index.IndexSegment;
-import org.apache.shardingsphere.test.fixture.jdbc.MockedDataSource;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.SQLStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.attribute.SQLStatementAttributes;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.type.ddl.index.DropIndexStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.value.identifier.IdentifierValue;
+import org.apache.shardingsphere.test.infra.fixture.jdbc.MockedDataSource;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.Optional;
+import java.util.Properties;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.withSettings;
 
 class ShardingTableBroadcastRouteEngineTest {
     
@@ -60,8 +61,7 @@ class ShardingTableBroadcastRouteEngineTest {
     @Test
     void assertRouteForEmptyTable() {
         Collection<String> tableNames = Collections.emptyList();
-        ShardingTableBroadcastRouteEngine shardingTableBroadcastRouteEngine =
-                new ShardingTableBroadcastRouteEngine(mock(ShardingSphereDatabase.class), createSQLStatementContext(tableNames), tableNames);
+        ShardingTableBroadcastRouteEngine shardingTableBroadcastRouteEngine = new ShardingTableBroadcastRouteEngine(mock(ShardingSphereDatabase.class), createSQLStatement(), tableNames);
         RouteContext routeContext = shardingTableBroadcastRouteEngine.route(createShardingRule());
         assertRouteUnitWithoutTables(routeContext);
     }
@@ -69,8 +69,7 @@ class ShardingTableBroadcastRouteEngineTest {
     @Test
     void assertRouteForNormalTable() {
         Collection<String> tableNames = Collections.singletonList("t_order");
-        ShardingTableBroadcastRouteEngine shardingTableBroadcastRouteEngine =
-                new ShardingTableBroadcastRouteEngine(mock(ShardingSphereDatabase.class), createSQLStatementContext(tableNames), tableNames);
+        ShardingTableBroadcastRouteEngine shardingTableBroadcastRouteEngine = new ShardingTableBroadcastRouteEngine(mock(ShardingSphereDatabase.class), createSQLStatement(), tableNames);
         RouteContext routeContext = shardingTableBroadcastRouteEngine.route(createShardingRule());
         assertThat(routeContext.getActualDataSourceNames().size(), is(2));
         assertThat(routeContext.getRouteUnits().size(), is(4));
@@ -84,22 +83,18 @@ class ShardingTableBroadcastRouteEngineTest {
     @Test
     void assertRouteForDropIndexStatement() {
         ShardingSphereTable table = mock(ShardingSphereTable.class);
+        IdentifierValue indexName = new IdentifierValue("t_order");
         when(table.getName()).thenReturn("t_order");
-        when(table.containsIndex("t_order")).thenReturn(true);
+        when(table.containsIndex(indexName)).thenReturn(true);
         ShardingSphereSchema schema = mock(ShardingSphereSchema.class, RETURNS_DEEP_STUBS);
-        when(schema.getName()).thenReturn("foo_db");
         when(schema.getAllTables()).thenReturn(Collections.singleton(table));
         when(schema.getTable(anyString()).containsIndex(anyString())).thenReturn(true);
-        IndexSegment segment = mock(IndexSegment.class, RETURNS_DEEP_STUBS);
-        when(segment.getIndexName().getIdentifier().getValue()).thenReturn("t_order");
-        when(segment.getOwner()).thenReturn(Optional.empty());
-        DropIndexStatementContext sqlStatementContext = mock(DropIndexStatementContext.class, RETURNS_DEEP_STUBS);
-        Collection<String> tableNames = Collections.emptyList();
-        when(sqlStatementContext.getTablesContext().getTableNames()).thenReturn(tableNames);
-        when(sqlStatementContext.getDatabaseType()).thenReturn(databaseType);
-        when(((IndexAvailable) sqlStatementContext).getIndexes()).thenReturn(Collections.singletonList(segment));
-        ShardingSphereDatabase database = new ShardingSphereDatabase("foo_db", databaseType, mock(ResourceMetaData.class), mock(RuleMetaData.class), Collections.singleton(schema));
-        ShardingTableBroadcastRouteEngine shardingTableBroadcastRouteEngine = new ShardingTableBroadcastRouteEngine(database, sqlStatementContext, tableNames);
+        IndexSegment segment = new IndexSegment(0, 0, new IndexNameSegment(0, 0, indexName));
+        DropIndexStatement sqlStatement = DropIndexStatement.builder().databaseType(databaseType).indexes(Collections.singleton(segment)).build();
+        ShardingSphereDatabase database = mock(ShardingSphereDatabase.class);
+        when(database.getDefaultSchemaName()).thenReturn("foo_default_schema");
+        when(database.getSchema("foo_default_schema")).thenReturn(schema);
+        ShardingTableBroadcastRouteEngine shardingTableBroadcastRouteEngine = new ShardingTableBroadcastRouteEngine(database, sqlStatement, Collections.emptyList());
         RouteContext routeContext = shardingTableBroadcastRouteEngine.route(createShardingRule());
         assertThat(routeContext.getActualDataSourceNames().size(), is(2));
         Iterator<RouteUnit> routeUnits = routeContext.getRouteUnits().iterator();
@@ -114,14 +109,10 @@ class ShardingTableBroadcastRouteEngineTest {
         ShardingSphereSchema schema = mock(ShardingSphereSchema.class, RETURNS_DEEP_STUBS);
         when(schema.getName()).thenReturn("foo_db");
         when(schema.getTable(anyString()).containsIndex(anyString())).thenReturn(false);
-        IndexSegment segment = mock(IndexSegment.class, RETURNS_DEEP_STUBS);
-        when(segment.getIndexName().getIdentifier().getValue()).thenReturn("t_order");
-        DropIndexStatementContext sqlStatementContext = mock(DropIndexStatementContext.class, RETURNS_DEEP_STUBS);
-        when(sqlStatementContext.getDatabaseType()).thenReturn(databaseType);
-        Collection<String> tableNames = Collections.emptyList();
-        when(sqlStatementContext.getTablesContext().getTableNames()).thenReturn(tableNames);
-        ShardingSphereDatabase database = new ShardingSphereDatabase("foo_db", databaseType, mock(ResourceMetaData.class), mock(RuleMetaData.class), Collections.singleton(schema));
-        ShardingTableBroadcastRouteEngine shardingTableBroadcastRouteEngine = new ShardingTableBroadcastRouteEngine(database, sqlStatementContext, tableNames);
+        DropIndexStatement sqlStatement = DropIndexStatement.builder().databaseType(databaseType).build();
+        ShardingSphereDatabase database = new ShardingSphereDatabase("foo_db", databaseType, mock(ResourceMetaData.class), mock(RuleMetaData.class), Collections.singleton(schema),
+                new ConfigurationProperties(new Properties()));
+        ShardingTableBroadcastRouteEngine shardingTableBroadcastRouteEngine = new ShardingTableBroadcastRouteEngine(database, sqlStatement, Collections.emptyList());
         RouteContext routeContext = shardingTableBroadcastRouteEngine.route(createShardingRule());
         assertRouteUnitWithoutTables(routeContext);
     }
@@ -129,12 +120,12 @@ class ShardingTableBroadcastRouteEngineTest {
     private ShardingRule createShardingRule() {
         ShardingRuleConfiguration ruleConfig = new ShardingRuleConfiguration();
         ruleConfig.getTables().add(new ShardingTableRuleConfiguration("t_order", "ds${0..1}.t_order_${0..1}"));
-        return new ShardingRule(ruleConfig, Maps.of("ds_0", new MockedDataSource(), "ds_1", new MockedDataSource()), mock(ComputeNodeInstanceContext.class), Collections.emptyList());
+        return new ShardingRule(ruleConfig, ImmutableMap.of("ds_0", new MockedDataSource(), "ds_1", new MockedDataSource()), mock(ComputeNodeInstanceContext.class), Collections.emptyList());
     }
     
-    private SQLStatementContext createSQLStatementContext(final Collection<String> tableNames) {
-        SQLStatementContext result = mock(SQLStatementContext.class, withSettings().extraInterfaces(TableAvailable.class).defaultAnswer(RETURNS_DEEP_STUBS));
-        when(((TableAvailable) result).getTablesContext().getTableNames()).thenReturn(tableNames);
+    private SQLStatement createSQLStatement() {
+        SQLStatement result = mock(SQLStatement.class);
+        when(result.getAttributes()).thenReturn(new SQLStatementAttributes());
         return result;
     }
     

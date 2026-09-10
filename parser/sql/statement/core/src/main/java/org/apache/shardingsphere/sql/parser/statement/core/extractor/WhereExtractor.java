@@ -21,14 +21,17 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.ExpressionSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.subquery.SubquerySegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.predicate.HierarchicalQuerySegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.predicate.WhereSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.JoinTableSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.TableSegment;
-import org.apache.shardingsphere.sql.parser.statement.core.statement.dml.SelectStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.type.dml.SelectStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.type.dml.UpdateStatement;
 
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
+import java.util.Optional;
 
 /**
  * Where extractor.
@@ -46,20 +49,35 @@ public final class WhereExtractor {
         return selectStatement.getFrom().map(WhereExtractor::extractJoinWhereSegments).orElseGet(Collections::emptyList);
     }
     
+    /**
+     * Extract join where segment from update statement.
+     *
+     * @param updateStatement to be extracted update statement
+     * @return extracted join where segments
+     */
+    public static Collection<WhereSegment> extractJoinWhereSegments(final UpdateStatement updateStatement) {
+        return extractJoinWhereSegments(updateStatement.getTable());
+    }
+    
     private static Collection<WhereSegment> extractJoinWhereSegments(final TableSegment tableSegment) {
-        if (!(tableSegment instanceof JoinTableSegment) || null == ((JoinTableSegment) tableSegment).getCondition()) {
+        if (!(tableSegment instanceof JoinTableSegment)) {
             return Collections.emptyList();
         }
         JoinTableSegment joinTableSegment = (JoinTableSegment) tableSegment;
         Collection<WhereSegment> result = new LinkedList<>();
-        result.add(generateWhereSegment(joinTableSegment));
+        if (null != joinTableSegment.getCondition()) {
+            result.add(generateWhereSegment(joinTableSegment));
+        }
         result.addAll(extractJoinWhereSegments(joinTableSegment.getLeft()));
         result.addAll(extractJoinWhereSegments(joinTableSegment.getRight()));
         return result;
     }
     
     private static WhereSegment generateWhereSegment(final JoinTableSegment joinTableSegment) {
-        ExpressionSegment expressionSegment = joinTableSegment.getCondition();
+        return generateWhereSegment(joinTableSegment.getCondition());
+    }
+    
+    private static WhereSegment generateWhereSegment(final ExpressionSegment expressionSegment) {
         return new WhereSegment(expressionSegment.getStartIndex(), expressionSegment.getStopIndex(), expressionSegment);
     }
     
@@ -73,7 +91,30 @@ public final class WhereExtractor {
         Collection<WhereSegment> result = new LinkedList<>();
         for (SubquerySegment each : SubqueryExtractor.extractSubquerySegments(selectStatement, false)) {
             each.getSelect().getWhere().ifPresent(result::add);
+            result.addAll(extractHierarchicalQueryWhereSegments(each.getSelect()));
             result.addAll(extractJoinWhereSegments(each.getSelect()));
+        }
+        return result;
+    }
+    
+    /**
+     * Extract hierarchical query where segments from select statement.
+     *
+     * @param selectStatement to be extracted select statement
+     * @return extracted hierarchical query where segments
+     */
+    public static Collection<WhereSegment> extractHierarchicalQueryWhereSegments(final SelectStatement selectStatement) {
+        Optional<HierarchicalQuerySegment> hierarchicalQuery = selectStatement.getHierarchicalQuery();
+        return hierarchicalQuery.isPresent() ? extractHierarchicalQueryWhereSegments(hierarchicalQuery.get()) : Collections.emptyList();
+    }
+    
+    private static Collection<WhereSegment> extractHierarchicalQueryWhereSegments(final HierarchicalQuerySegment hierarchicalQuerySegment) {
+        Collection<WhereSegment> result = new LinkedList<>();
+        if (null != hierarchicalQuerySegment.getStartWith()) {
+            result.add(generateWhereSegment(hierarchicalQuerySegment.getStartWith()));
+        }
+        if (null != hierarchicalQuerySegment.getConnectBy()) {
+            result.add(generateWhereSegment(hierarchicalQuerySegment.getConnectBy()));
         }
         return result;
     }

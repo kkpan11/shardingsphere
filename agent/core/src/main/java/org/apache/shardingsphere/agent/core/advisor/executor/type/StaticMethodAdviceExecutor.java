@@ -28,8 +28,8 @@ import net.bytebuddy.implementation.bind.annotation.RuntimeType;
 import net.bytebuddy.implementation.bind.annotation.SuperCall;
 import net.bytebuddy.matcher.ElementMatchers;
 import org.apache.shardingsphere.agent.api.advice.TargetAdviceMethod;
-import org.apache.shardingsphere.agent.api.plugin.AgentPluginEnable;
 import org.apache.shardingsphere.agent.api.advice.type.StaticMethodAdvice;
+import org.apache.shardingsphere.agent.api.plugin.AgentPluginEnable;
 import org.apache.shardingsphere.agent.core.advisor.executor.AdviceExecutor;
 
 import java.lang.reflect.Method;
@@ -60,7 +60,7 @@ public final class StaticMethodAdviceExecutor implements AdviceExecutor {
      * @return return value of target invocation
      */
     @RuntimeType
-    @SneakyThrows
+    @SneakyThrows(Throwable.class)
     public Object advice(@Origin final Class<?> klass, @Origin final Method method, @AllArguments final Object[] args, @SuperCall final Callable<?> callable) {
         adviceBefore(klass, method, args);
         Object result = null;
@@ -89,7 +89,7 @@ public final class StaticMethodAdviceExecutor implements AdviceExecutor {
             // CHECKSTYLE:OFF
         } catch (final Throwable ex) {
             // CHECKSTYLE:ON
-            LOGGER.log(Level.SEVERE, "Failed to execute the pre-method of method `{0}` in class `{1}`, {2}.", new String[]{method.getName(), klass.getClass().getName(), ex.getMessage()});
+            LOGGER.log(Level.SEVERE, "Failed to execute the pre-method of method `{0}` in class `{1}`, {2}.", new String[]{method.getName(), klass.getName(), ex.getMessage()});
         }
     }
     
@@ -105,7 +105,7 @@ public final class StaticMethodAdviceExecutor implements AdviceExecutor {
             // CHECKSTYLE:OFF
         } catch (final Throwable ignored) {
             // CHECKSTYLE:ON
-            LOGGER.log(Level.SEVERE, "Failed to execute the error handler of method `{0}` in class `{1}`, {2}.", new String[]{method.getName(), klass.getClass().getName(), ex.getMessage()});
+            LOGGER.log(Level.SEVERE, "Failed to execute the error handler of method `{0}` in class `{1}`, {2}.", new String[]{method.getName(), klass.getName(), ex.getMessage()});
         }
     }
     
@@ -121,7 +121,7 @@ public final class StaticMethodAdviceExecutor implements AdviceExecutor {
             // CHECKSTYLE:OFF
         } catch (final Throwable ex) {
             // CHECKSTYLE:ON
-            LOGGER.log(Level.SEVERE, "Failed to execute the post-method of method `{0}` in class `{1}` {2}.", new String[]{method.getName(), klass.getClass().getName(), ex.getMessage()});
+            LOGGER.log(Level.SEVERE, "Failed to execute the post-method of method `{0}` in class `{1}` {2}.", new String[]{method.getName(), klass.getName(), ex.getMessage()});
         }
     }
     

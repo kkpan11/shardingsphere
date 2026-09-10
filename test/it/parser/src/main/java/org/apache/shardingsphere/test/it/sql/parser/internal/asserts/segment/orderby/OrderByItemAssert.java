@@ -37,8 +37,8 @@ import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.s
 
 import java.util.Collection;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -120,6 +120,10 @@ public final class OrderByItemAssert {
     private static void assertIndexOrderByItem(final SQLCaseAssertContext assertContext,
                                                final IndexOrderByItemSegment actual, final ExpectedIndexOrderByItem expected, final String type) {
         assertThat(assertContext.getText(String.format("%s item index assertion error: ", type)), actual.getColumnIndex(), is(expected.getIndex()));
+        if (null != expected.getColumnBound()) {
+            assertTrue(actual.getBoundColumn().isPresent(), assertContext.getText("Actual bound column should exist."));
+            ColumnBoundAssert.assertIs(assertContext, actual.getBoundColumn().get().getColumnBoundInfo(), expected.getColumnBound());
+        }
         SQLSegmentAssert.assertIs(assertContext, actual, expected);
     }
     

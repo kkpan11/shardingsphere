@@ -36,15 +36,12 @@ rules:
       tableStrategy: 
         hint:
           shardingAlgorithmName: core_hint_fixture
-    t_order: 
+    t_order:
       actualDataNodes: ds_${0..1}.t_order_${0..1}
-      tableStrategy: 
+      tableStrategy:
         standard:
           shardingColumn: order_id
           shardingAlgorithmName: table_inline
-      keyGenerateStrategy:
-        column: order_id
-        keyGeneratorName: snowflake
     t_order_item:
       actualDataNodes: ds_${0..1}.t_order_item_${0..1}
       tableStrategy:
@@ -68,6 +65,16 @@ rules:
     auditorNames:
     - sharding_key_required_auditor
     allowHintDisable: true
+  keyGenerateStrategies:
+    t_order:
+      keyGenerateType: column
+      keyGeneratorName: snowflake
+      logicTable: t_order
+      keyGenerateColumn: id
+    id_sequence:
+      keyGenerateType: sequence
+      keyGeneratorName: snowflake
+      keyGenerateSequence: sequence_name
 
   shardingAlgorithms:
     core_standard_fixture:
@@ -92,10 +99,3 @@ rules:
   auditors:
     sharding_key_required_auditor:
       type: DML_SHARDING_CONDITIONS
-
-  shardingCache:
-    allowedMaxSqlLength: 512
-    routeCache:
-      softValues: true
-      initialCapacity: 65536
-      maximumSize: 262144

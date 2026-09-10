@@ -20,12 +20,12 @@ package org.apache.shardingsphere.sharding.algorithm.sharding.datetime;
 import com.google.common.collect.Range;
 import org.apache.shardingsphere.infra.datanode.DataNodeInfo;
 import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
+import org.apache.shardingsphere.infra.util.props.PropertiesBuilder;
+import org.apache.shardingsphere.infra.util.props.PropertiesBuilder.Property;
 import org.apache.shardingsphere.sharding.api.sharding.standard.PreciseShardingValue;
 import org.apache.shardingsphere.sharding.api.sharding.standard.RangeShardingValue;
 import org.apache.shardingsphere.sharding.exception.data.InvalidDatetimeFormatException;
 import org.apache.shardingsphere.sharding.spi.ShardingAlgorithm;
-import org.apache.shardingsphere.test.util.PropertiesBuilder;
-import org.apache.shardingsphere.test.util.PropertiesBuilder.Property;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -33,10 +33,11 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Properties;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -70,6 +71,25 @@ class AutoIntervalShardingAlgorithmTest {
         List<String> availableTargetNames = Arrays.asList("t_order_0", "t_order_1", "t_order_2", "t_order_3", "t_order_4", "t_order_5");
         assertThat(shardingAlgorithm.doSharding(availableTargetNames,
                 new PreciseShardingValue<>("t_order", "create_time", DATA_NODE_INFO, "2021-01-01 00:00:02")), is("t_order_5"));
+    }
+    
+    @Test
+    void assertDoShardingWithCommaDecimalDefaultLocale() {
+        Locale defaultLocale = Locale.getDefault();
+        Locale.setDefault(Locale.GERMANY);
+        try {
+            List<String> availableTargetNames = Arrays.asList("t_order_0", "t_order_1", "t_order_2", "t_order_3", "t_order_4");
+            assertThat(shardingAlgorithm.doSharding(availableTargetNames,
+                    new PreciseShardingValue<>("t_order", "create_time", DATA_NODE_INFO, "2020-01-01 00:00:01")), is("t_order_1"));
+            Collection<String> actual = shardingAlgorithm.doSharding(availableTargetNames,
+                    new RangeShardingValue<>("t_order", "create_time", DATA_NODE_INFO, Range.closed("2020-01-01 00:00:04", "2020-01-01 00:00:10")));
+            assertThat(actual.size(), is(3));
+            assertTrue(actual.contains("t_order_1"));
+            assertTrue(actual.contains("t_order_2"));
+            assertTrue(actual.contains("t_order_3"));
+        } finally {
+            Locale.setDefault(defaultLocale);
+        }
     }
     
     @Test

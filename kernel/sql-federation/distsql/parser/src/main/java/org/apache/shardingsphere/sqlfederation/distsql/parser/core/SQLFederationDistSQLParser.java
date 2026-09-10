@@ -20,9 +20,9 @@ package org.apache.shardingsphere.sqlfederation.distsql.parser.core;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.TokenStream;
 import org.apache.shardingsphere.distsql.parser.autogen.SQLFederationDistSQLStatementParser;
-import org.apache.shardingsphere.sql.parser.api.parser.SQLParser;
 import org.apache.shardingsphere.sql.parser.api.ASTNode;
-import org.apache.shardingsphere.sql.parser.core.ParseASTNode;
+import org.apache.shardingsphere.sql.parser.api.parser.SQLParser;
+import org.apache.shardingsphere.sql.parser.engine.core.ParseASTNode;
 
 /**
  * SQL parser for SQL federation DistSQL.

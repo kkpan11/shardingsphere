@@ -19,12 +19,11 @@ package org.apache.shardingsphere.encrypt.rewrite.token.generator.predicate;
 
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
-import org.apache.shardingsphere.encrypt.rewrite.aware.EncryptConditionsAware;
 import org.apache.shardingsphere.encrypt.rewrite.condition.EncryptCondition;
 import org.apache.shardingsphere.encrypt.rule.EncryptRule;
 import org.apache.shardingsphere.infra.annotation.HighFrequencyInvocation;
 import org.apache.shardingsphere.infra.binder.context.statement.SQLStatementContext;
-import org.apache.shardingsphere.infra.binder.context.statement.dml.InsertStatementContext;
+import org.apache.shardingsphere.infra.binder.context.statement.type.dml.InsertStatementContext;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.infra.rewrite.sql.token.common.generator.CollectionSQLTokenGenerator;
 import org.apache.shardingsphere.infra.rewrite.sql.token.common.generator.aware.ParametersAware;
@@ -39,27 +38,26 @@ import java.util.List;
 @HighFrequencyInvocation
 @RequiredArgsConstructor
 @Setter
-public final class EncryptInsertPredicateValueTokenGenerator implements CollectionSQLTokenGenerator<SQLStatementContext>, ParametersAware, EncryptConditionsAware {
+public final class EncryptInsertPredicateValueTokenGenerator implements CollectionSQLTokenGenerator<InsertStatementContext>, ParametersAware {
     
     private final EncryptRule rule;
     
     private final ShardingSphereDatabase database;
     
-    private List<Object> parameters;
+    private final Collection<EncryptCondition> encryptConditions;
     
-    private Collection<EncryptCondition> encryptConditions;
+    private List<Object> parameters;
     
     @Override
     public boolean isGenerateSQLToken(final SQLStatementContext sqlStatementContext) {
         return sqlStatementContext instanceof InsertStatementContext && null != ((InsertStatementContext) sqlStatementContext).getInsertSelectContext()
-                && !((InsertStatementContext) sqlStatementContext).getInsertSelectContext().getSelectStatementContext().getWhereSegments().isEmpty();
+                && !((InsertStatementContext) sqlStatementContext).getInsertSelectContext().getSelectStatementContext().getWhereSegments().isEmpty() && !encryptConditions.isEmpty();
     }
     
     @Override
-    public Collection<SQLToken> generateSQLTokens(final SQLStatementContext sqlStatementContext) {
-        EncryptPredicateValueTokenGenerator generator = new EncryptPredicateValueTokenGenerator(rule, database);
+    public Collection<SQLToken> generateSQLTokens(final InsertStatementContext sqlStatementContext) {
+        EncryptPredicateValueTokenGenerator generator = new EncryptPredicateValueTokenGenerator(rule, database, encryptConditions);
         generator.setParameters(parameters);
-        generator.setEncryptConditions(encryptConditions);
-        return generator.generateSQLTokens(((InsertStatementContext) sqlStatementContext).getInsertSelectContext().getSelectStatementContext());
+        return generator.generateSQLTokens(sqlStatementContext.getInsertSelectContext().getSelectStatementContext());
     }
 }

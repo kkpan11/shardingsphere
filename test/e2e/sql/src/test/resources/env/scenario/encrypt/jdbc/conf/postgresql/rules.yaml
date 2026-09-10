@@ -20,13 +20,14 @@ databaseName: encrypt
 dataSources:
   encrypt:
     url: jdbc:postgresql://postgresql.encrypt.host:5432/encrypt?ssl=on&sslmode=prefer
+    driverClassName: org.postgresql.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
 
 rules:
@@ -41,7 +42,7 @@ rules:
           aes-key-value: 123456abc
           digest-algorithm-name: SHA-1
       like_encryptor:
-        type: IT.ENCRYPT.LIKE.FIXTURE
+        type: E2E.ENCRYPT.LIKE.FIXTURE
         props:
           mask: 4093
     tables:

@@ -17,43 +17,59 @@
 
 package org.apache.shardingsphere.mode.metadata.refresher.federation;
 
-import lombok.RequiredArgsConstructor;
+import lombok.AllArgsConstructor;
 import org.apache.shardingsphere.infra.binder.context.statement.SQLStatementContext;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 import org.apache.shardingsphere.mode.metadata.refresher.util.SchemaRefreshUtils;
 import org.apache.shardingsphere.mode.persist.service.MetaDataManagerPersistService;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.type.ddl.view.AlterViewStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.type.ddl.view.CreateViewStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.type.ddl.view.DropViewStatement;
+
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Optional;
 
 /**
  * Federation meta data refresh engine.
  */
-@RequiredArgsConstructor
+@AllArgsConstructor
 public final class FederationMetaDataRefreshEngine {
     
-    private final MetaDataManagerPersistService metaDataManagerPersistService;
+    private static final Collection<Class<?>> SUPPORTED_REFRESH_TYPES = new HashSet<>(Arrays.asList(CreateViewStatement.class, AlterViewStatement.class, DropViewStatement.class));
     
-    private final ShardingSphereDatabase database;
+    private final SQLStatementContext sqlStatementContext;
     
     /**
      * Whether to need refresh meta data.
      *
-     * @param sqlStatementContext SQL statement context
      * @return is need refresh meta data or not
      */
-    public boolean isNeedRefresh(final SQLStatementContext sqlStatementContext) {
-        Class<?> sqlStatementClass = sqlStatementContext.getSqlStatement().getClass().getSuperclass();
-        return TypedSPILoader.findService(FederationMetaDataRefresher.class, sqlStatementClass).isPresent();
+    public boolean isNeedRefresh() {
+        return SUPPORTED_REFRESH_TYPES.contains(sqlStatementContext.getSqlStatement().getClass());
     }
     
     /**
      * Refresh federation meta data.
      *
-     * @param sqlStatementContext SQL statement context
+     * @param metaDataManagerPersistService meta data manager persist service
+     * @param database database
      */
-    @SuppressWarnings("unchecked")
-    public void refresh(final SQLStatementContext sqlStatementContext) {
-        Class<?> sqlStatementClass = sqlStatementContext.getSqlStatement().getClass().getSuperclass();
-        TypedSPILoader.findService(FederationMetaDataRefresher.class, sqlStatementClass).ifPresent(
-                optional -> optional.refresh(metaDataManagerPersistService, database, SchemaRefreshUtils.getSchemaName(database, sqlStatementContext), sqlStatementContext.getSqlStatement()));
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void refresh(final MetaDataManagerPersistService metaDataManagerPersistService, final ShardingSphereDatabase database) {
+        Optional<FederationMetaDataRefresher> refresher = findFederationMetaDataRefresher();
+        if (!refresher.isPresent()) {
+            return;
+        }
+        refresher.get().refresh(metaDataManagerPersistService, sqlStatementContext.getSqlStatement().getDatabaseType(),
+                database, SchemaRefreshUtils.getActualSchemaName(database, sqlStatementContext), sqlStatementContext.getSqlStatement());
+    }
+    
+    @SuppressWarnings("rawtypes")
+    private Optional<FederationMetaDataRefresher> findFederationMetaDataRefresher() {
+        Optional<FederationMetaDataRefresher> refresher = TypedSPILoader.findService(FederationMetaDataRefresher.class, sqlStatementContext.getSqlStatement().getClass());
+        return refresher.isPresent() ? refresher : TypedSPILoader.findService(FederationMetaDataRefresher.class, sqlStatementContext.getSqlStatement().getClass().getSuperclass());
     }
 }

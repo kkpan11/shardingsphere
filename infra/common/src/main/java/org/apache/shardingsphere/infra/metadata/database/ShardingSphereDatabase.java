@@ -19,14 +19,26 @@ package org.apache.shardingsphere.infra.metadata.database;
 
 import lombok.AccessLevel;
 import lombok.Getter;
+import org.apache.shardingsphere.database.connector.core.metadata.database.enums.QuoteCharacter;
+import org.apache.shardingsphere.database.connector.core.metadata.identifier.IdentifierScope;
+import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
+import org.apache.shardingsphere.database.connector.core.type.DatabaseTypeRegistry;
+import org.apache.shardingsphere.infra.config.props.ConfigurationProperties;
 import org.apache.shardingsphere.infra.config.rule.RuleConfiguration;
-import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
+import org.apache.shardingsphere.infra.config.rule.decorator.RuleConfigurationDecorator;
+import org.apache.shardingsphere.infra.exception.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.exception.kernel.metadata.resource.storageunit.MissingRequiredStorageUnitsException;
 import org.apache.shardingsphere.infra.metadata.database.resource.ResourceMetaData;
 import org.apache.shardingsphere.infra.metadata.database.rule.RuleMetaData;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereSchema;
-import org.apache.shardingsphere.infra.metadata.identifier.ShardingSphereIdentifier;
+import org.apache.shardingsphere.infra.metadata.identifier.DatabaseIdentifierContext;
+import org.apache.shardingsphere.infra.metadata.identifier.DatabaseIdentifierContextFactory;
+import org.apache.shardingsphere.infra.metadata.identifier.IdentifierIndex;
 import org.apache.shardingsphere.infra.rule.ShardingSphereRule;
 import org.apache.shardingsphere.infra.rule.attribute.datanode.MutableDataNodeRuleAttribute;
+import org.apache.shardingsphere.infra.rule.attribute.datasource.DataSourceMapperRuleAttribute;
+import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
+import org.apache.shardingsphere.sql.parser.statement.core.value.identifier.IdentifierValue;
 
 import javax.sql.DataSource;
 import java.util.Collection;
@@ -34,7 +46,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -49,18 +61,39 @@ public final class ShardingSphereDatabase {
     
     private final ResourceMetaData resourceMetaData;
     
-    private final RuleMetaData ruleMetaData;
+    private volatile RuleMetaData ruleMetaData;
+    
+    private final DatabaseIdentifierContext identifierContext;
     
     @Getter(AccessLevel.NONE)
-    private final Map<ShardingSphereIdentifier, ShardingSphereSchema> schemas;
+    private final IdentifierIndex<ShardingSphereSchema> schemaIndex;
     
+    /**
+     * Construct database with protocol-aware identifier rules.
+     *
+     * @param name database name
+     * @param protocolType protocol type
+     * @param resourceMetaData resource meta data
+     * @param ruleMetaData rule meta data
+     * @param schemas schemas
+     * @param props configuration properties
+     */
     public ShardingSphereDatabase(final String name, final DatabaseType protocolType, final ResourceMetaData resourceMetaData,
-                                  final RuleMetaData ruleMetaData, final Collection<ShardingSphereSchema> schemas) {
+                                  final RuleMetaData ruleMetaData, final Collection<ShardingSphereSchema> schemas, final ConfigurationProperties props) {
+        this(name, protocolType, resourceMetaData, ruleMetaData, schemas, DatabaseIdentifierContextFactory.create(protocolType, resourceMetaData, props));
+    }
+    
+    private ShardingSphereDatabase(final String name, final DatabaseType protocolType, final ResourceMetaData resourceMetaData,
+                                   final RuleMetaData ruleMetaData, final Collection<ShardingSphereSchema> schemas, final DatabaseIdentifierContext identifierContext) {
         this.name = name;
         this.protocolType = protocolType;
         this.resourceMetaData = resourceMetaData;
         this.ruleMetaData = ruleMetaData;
-        this.schemas = new ConcurrentHashMap<>(schemas.stream().collect(Collectors.toMap(each -> new ShardingSphereIdentifier(each.getName()), each -> each)));
+        this.identifierContext = identifierContext;
+        schemaIndex = new IdentifierIndex<>(identifierContext, IdentifierScope.SCHEMA);
+        Map<String, ShardingSphereSchema> schemaMap = createSchemaMap(schemas);
+        schemaMap.values().forEach(this::refreshSchemaIdentifierContext);
+        schemaIndex.rebuild(schemaMap);
     }
     
     /**
@@ -69,7 +102,17 @@ public final class ShardingSphereDatabase {
      * @return all schemas
      */
     public Collection<ShardingSphereSchema> getAllSchemas() {
-        return schemas.values();
+        return schemaIndex.getAll();
+    }
+    
+    /**
+     * Find schema.
+     *
+     * @param schemaName schema name
+     * @return schema
+     */
+    private Optional<ShardingSphereSchema> findSchema(final IdentifierValue schemaName) {
+        return schemaIndex.find(schemaName);
     }
     
     /**
@@ -79,7 +122,17 @@ public final class ShardingSphereDatabase {
      * @return contains schema from database or not
      */
     public boolean containsSchema(final String schemaName) {
-        return schemas.containsKey(new ShardingSphereIdentifier(schemaName));
+        return containsSchema(new IdentifierValue(schemaName, QuoteCharacter.NONE));
+    }
+    
+    /**
+     * Judge contains schema from database or not.
+     *
+     * @param schemaName schema name
+     * @return contains schema from database or not
+     */
+    public boolean containsSchema(final IdentifierValue schemaName) {
+        return findSchema(schemaName).isPresent();
     }
     
     /**
@@ -89,7 +142,17 @@ public final class ShardingSphereDatabase {
      * @return schema
      */
     public ShardingSphereSchema getSchema(final String schemaName) {
-        return schemas.get(new ShardingSphereIdentifier(schemaName));
+        return getSchema(new IdentifierValue(schemaName, QuoteCharacter.NONE));
+    }
+    
+    /**
+     * Get schema.
+     *
+     * @param schemaName schema name
+     * @return schema
+     */
+    public ShardingSphereSchema getSchema(final IdentifierValue schemaName) {
+        return findSchema(schemaName).orElse(null);
     }
     
     /**
@@ -98,7 +161,8 @@ public final class ShardingSphereDatabase {
      * @param schema schema
      */
     public void addSchema(final ShardingSphereSchema schema) {
-        schemas.put(new ShardingSphereIdentifier(schema.getName()), schema);
+        refreshSchemaIdentifierContext(schema);
+        schemaIndex.put(schema.getName(), schema);
     }
     
     /**
@@ -107,7 +171,11 @@ public final class ShardingSphereDatabase {
      * @param schemaName schema name
      */
     public void dropSchema(final String schemaName) {
-        schemas.remove(new ShardingSphereIdentifier(schemaName));
+        ShardingSphereSchema schema = getSchema(schemaName);
+        if (null == schema) {
+            return;
+        }
+        schemaIndex.remove(schema.getName());
     }
     
     /**
@@ -129,6 +197,39 @@ public final class ShardingSphereDatabase {
     }
     
     /**
+     * Add data node and publish new rule meta data snapshot.
+     *
+     * @param dataSourceName data source name
+     * @param schemaName schema name
+     * @param tableName table name
+     * @return whether rule meta data changed
+     */
+    public synchronized boolean putDataNode(final String dataSourceName, final String schemaName, final String tableName) {
+        RuleMetaData newRuleMetaData = ruleMetaData.copyAndPutDataNode(dataSourceName, schemaName, tableName);
+        if (newRuleMetaData == ruleMetaData) {
+            return false;
+        }
+        ruleMetaData = newRuleMetaData;
+        return true;
+    }
+    
+    /**
+     * Remove data node and publish new rule meta data snapshot.
+     *
+     * @param schemaName schema name
+     * @param tableName table name
+     * @return whether rule meta data changed
+     */
+    public synchronized boolean removeDataNode(final String schemaName, final String tableName) {
+        RuleMetaData newRuleMetaData = ruleMetaData.copyAndRemoveDataNode(schemaName, tableName);
+        if (newRuleMetaData == ruleMetaData) {
+            return false;
+        }
+        ruleMetaData = newRuleMetaData;
+        return true;
+    }
+    
+    /**
      * Reload rules.
      */
     public synchronized void reloadRules() {
@@ -142,7 +243,84 @@ public final class ShardingSphereDatabase {
                     .collect(Collectors.toMap(Entry::getKey, entry -> entry.getValue().getDataSource(), (oldValue, currentValue) -> oldValue, LinkedHashMap::new));
             rules.add(optional.getAttributes().getAttribute(MutableDataNodeRuleAttribute.class).reloadRule(ruleConfig, name, dataSources, rules));
         });
-        ruleMetaData.getRules().clear();
-        ruleMetaData.getRules().addAll(rules);
+        ruleMetaData = new RuleMetaData(rules);
+    }
+    
+    /**
+     * Check storage units existed.
+     *
+     * @param storageUnitNames storage unit names
+     */
+    public void checkStorageUnitsExisted(final Collection<String> storageUnitNames) {
+        Collection<String> notExistedDataSources = resourceMetaData.getNotExistedDataSources(storageUnitNames);
+        Collection<String> logicDataSources = ruleMetaData.getAttributes(DataSourceMapperRuleAttribute.class).stream()
+                .flatMap(each -> each.getDataSourceMapper().keySet().stream()).collect(Collectors.toSet());
+        notExistedDataSources.removeIf(logicDataSources::contains);
+        ShardingSpherePreconditions.checkMustEmpty(notExistedDataSources, () -> new MissingRequiredStorageUnitsException(name, notExistedDataSources));
+    }
+    
+    /**
+     * Refresh identifier context.
+     *
+     * @param props configuration properties
+     */
+    public synchronized void refreshIdentifierContext(final ConfigurationProperties props) {
+        DatabaseIdentifierContextFactory.refresh(identifierContext, protocolType, resourceMetaData, props);
+        Map<String, ShardingSphereSchema> schemaMap = new LinkedHashMap<>(schemaIndex.size(), 1F);
+        schemaIndex.getAll().forEach(each -> {
+            refreshSchemaIdentifierContext(each);
+            schemaMap.put(each.getName(), each);
+        });
+        schemaIndex.rebuild(schemaMap);
+    }
+    
+    /**
+     * Decorate rule configuration.
+     *
+     * @param ruleConfig rule configuration
+     * @return decorated rule configuration
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public RuleConfiguration decorateRuleConfiguration(final RuleConfiguration ruleConfig) {
+        Optional<RuleConfigurationDecorator> decorator = TypedSPILoader.findService(RuleConfigurationDecorator.class, ruleConfig.getClass());
+        if (!decorator.isPresent()) {
+            return ruleConfig;
+        }
+        Map<String, DataSource> dataSources = resourceMetaData.getStorageUnits().entrySet().stream()
+                .collect(Collectors.toMap(Entry::getKey, entry -> entry.getValue().getDataSource(), (oldValue, currentValue) -> oldValue, LinkedHashMap::new));
+        return decorator.get().decorate(name, dataSources, ruleMetaData.getRules(), ruleConfig);
+    }
+    
+    private void refreshSchemaIdentifierContext(final ShardingSphereSchema schema) {
+        schema.refreshIdentifierContext(identifierContext);
+    }
+    
+    private Map<String, ShardingSphereSchema> createSchemaMap(final Collection<ShardingSphereSchema> schemas) {
+        return schemas.stream().collect(Collectors.toMap(ShardingSphereSchema::getName, each -> each, (oldValue, currentValue) -> currentValue,
+                () -> new LinkedHashMap<>(schemas.size(), 1F)));
+    }
+    
+    /**
+     * Get default schema name.
+     *
+     * @return default schema name
+     */
+    public String getDefaultSchemaName() {
+        String defaultSchemaIdentifier = getDefaultSchemaIdentifier();
+        return findSchema(new IdentifierValue(defaultSchemaIdentifier)).map(ShardingSphereSchema::getName).orElse(defaultSchemaIdentifier);
+    }
+    
+    private String getDefaultSchemaIdentifier() {
+        return new DatabaseTypeRegistry(protocolType).getDialectDatabaseMetaData().getSchemaOption().getDefaultSchema()
+                .orElseGet(() -> identifierContext.normalizeProtocol(IdentifierScope.SCHEMA, new IdentifierValue(name)));
+    }
+    
+    /**
+     * Find default schema.
+     *
+     * @return default schema
+     */
+    public Optional<ShardingSphereSchema> findDefaultSchema() {
+        return findSchema(new IdentifierValue(getDefaultSchemaIdentifier()));
     }
 }

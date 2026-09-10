@@ -17,12 +17,12 @@
 
 package org.apache.shardingsphere.sharding.merge.dql.orderby;
 
-import org.apache.shardingsphere.infra.database.core.metadata.database.enums.NullsOrderType;
+import org.apache.shardingsphere.database.connector.core.metadata.database.enums.NullsOrderType;
 import org.apache.shardingsphere.sql.parser.statement.core.enums.OrderDirection;
 import org.junit.jupiter.api.Test;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 class CompareUtilsTest {
     

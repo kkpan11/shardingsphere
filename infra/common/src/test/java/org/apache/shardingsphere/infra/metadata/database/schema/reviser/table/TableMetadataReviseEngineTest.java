@@ -17,9 +17,9 @@
 
 package org.apache.shardingsphere.infra.metadata.database.schema.reviser.table;
 
-import org.apache.shardingsphere.infra.database.core.metadata.data.model.ColumnMetaData;
-import org.apache.shardingsphere.infra.database.core.metadata.data.model.IndexMetaData;
-import org.apache.shardingsphere.infra.database.core.metadata.data.model.TableMetaData;
+import org.apache.shardingsphere.database.connector.core.metadata.data.model.ColumnMetaData;
+import org.apache.shardingsphere.database.connector.core.metadata.data.model.IndexMetaData;
+import org.apache.shardingsphere.database.connector.core.metadata.data.model.TableMetaData;
 import org.apache.shardingsphere.infra.metadata.database.schema.reviser.MetaDataReviseEntry;
 import org.apache.shardingsphere.infra.rule.ShardingSphereRule;
 import org.junit.jupiter.api.BeforeEach;
@@ -62,8 +62,9 @@ class TableMetadataReviseEngineTest<T extends ShardingSphereRule> {
     void assertGetRevisedTableName() {
         TableNameReviser tableNameReviser = mock(TableNameReviser.class);
         TableMetaData originalMetaData = new TableMetaData("originalTableName", new LinkedList<>(), null, null);
+        originalMetaData.setStorageUnitName("ds_0");
         when(metaDataReviseEntry.getTableNameReviser()).thenReturn(Optional.of(tableNameReviser));
-        when(tableNameReviser.revise(anyString(), eq(rule))).thenReturn("revisedTableName");
+        when(tableNameReviser.revise(anyString(), eq(rule), eq("ds_0"))).thenReturn("revisedTableName");
         TableMetaData revisedMetaData = engine.revise(originalMetaData);
         assertThat(revisedMetaData.getName(), is("revisedTableName"));
     }

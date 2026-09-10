@@ -18,7 +18,7 @@
 package org.apache.shardingsphere.sharding.route.engine.condition.generator.impl;
 
 import com.google.common.collect.Range;
-import org.apache.shardingsphere.sharding.route.engine.condition.Column;
+import org.apache.shardingsphere.infra.metadata.database.schema.HashColumn;
 import org.apache.shardingsphere.sharding.route.engine.condition.value.RangeShardingConditionValue;
 import org.apache.shardingsphere.sharding.route.engine.condition.value.ShardingConditionValue;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.column.ColumnSegment;
@@ -44,9 +44,9 @@ import java.util.LinkedList;
 import java.util.Optional;
 import java.util.Properties;
 
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.isA;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -56,7 +56,7 @@ class ConditionValueBetweenOperatorGeneratorTest {
     
     private final ConditionValueBetweenOperatorGenerator generator = new ConditionValueBetweenOperatorGenerator();
     
-    private final Column column = new Column("id", "tbl");
+    private final HashColumn column = new HashColumn("id", "tbl", false);
     
     private final TimestampServiceRule timestampServiceRule = new TimestampServiceRule(new TimestampServiceRuleConfiguration("System", new Properties()));
     
@@ -126,7 +126,6 @@ class ConditionValueBetweenOperatorGeneratorTest {
     void assertGenerateNowConditionValue() {
         Calendar calendar = Calendar.getInstance();
         calendar.add(Calendar.DATE, 1);
-        final Date after = calendar.getTime();
         ExpressionSegment betweenSegment = new CommonExpressionSegment(0, 0, "now()");
         ExpressionSegment andSegment = new CommonExpressionSegment(0, 0, "now()");
         BetweenExpression value = new BetweenExpression(0, 0, null, betweenSegment, andSegment, false);
@@ -135,6 +134,7 @@ class ConditionValueBetweenOperatorGeneratorTest {
         RangeShardingConditionValue<Date> rangeShardingConditionValue = (RangeShardingConditionValue<Date>) shardingConditionValue.get();
         assertThat(rangeShardingConditionValue.getColumnName(), is(column.getName()));
         assertThat(rangeShardingConditionValue.getTableName(), is(column.getTableName()));
+        Date after = calendar.getTime();
         assertTrue(rangeShardingConditionValue.getValueRange().upperEndpoint().before(after));
         assertTrue(rangeShardingConditionValue.getParameterMarkerIndexes().isEmpty());
     }
@@ -148,7 +148,7 @@ class ConditionValueBetweenOperatorGeneratorTest {
         BetweenExpression predicate = new BetweenExpression(0, 0, left, between, and, false);
         Optional<ShardingConditionValue> actual = generator.generate(predicate, column, Arrays.asList(1, 2), timestampServiceRule);
         assertTrue(actual.isPresent());
-        assertThat(actual.get(), instanceOf(RangeShardingConditionValue.class));
+        assertThat(actual.get(), isA(RangeShardingConditionValue.class));
         RangeShardingConditionValue<Integer> conditionValue = (RangeShardingConditionValue<Integer>) actual.get();
         assertThat(conditionValue.getTableName(), is("tbl"));
         assertThat(conditionValue.getColumnName(), is("id"));

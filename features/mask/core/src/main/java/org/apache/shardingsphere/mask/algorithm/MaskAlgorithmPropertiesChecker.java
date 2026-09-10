@@ -20,7 +20,7 @@ package org.apache.shardingsphere.mask.algorithm;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.apache.shardingsphere.infra.algorithm.core.exception.AlgorithmInitializationException;
-import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.exception.ShardingSpherePreconditions;
 import org.apache.shardingsphere.mask.spi.MaskAlgorithm;
 
 import java.util.Properties;
@@ -68,6 +68,24 @@ public final class MaskAlgorithmPropertiesChecker {
         try {
             int integerValue = Integer.parseInt(props.getProperty(propKey));
             ShardingSpherePreconditions.checkState(integerValue > 0, () -> new AlgorithmInitializationException(algorithm, "%s must be a positive integer.", propKey));
+        } catch (final NumberFormatException ex) {
+            throw new AlgorithmInitializationException(algorithm, "%s must be a valid integer number", propKey);
+        }
+    }
+    
+    /**
+     * check not negative integer.
+     *
+     * @param props properties to be checked
+     * @param propKey properties key to be checked
+     * @param algorithm mask algorithm
+     * @throws AlgorithmInitializationException algorithm initialization exception
+     */
+    public static void checkNotNegativeInteger(final Properties props, final String propKey, final MaskAlgorithm<?, ?> algorithm) {
+        checkRequired(props, propKey, algorithm);
+        try {
+            int integerValue = Integer.parseInt(props.getProperty(propKey));
+            ShardingSpherePreconditions.checkState(integerValue >= 0, () -> new AlgorithmInitializationException(algorithm, "%s must be a not negative integer.", propKey));
         } catch (final NumberFormatException ex) {
             throw new AlgorithmInitializationException(algorithm, "%s must be a valid integer number", propKey);
         }

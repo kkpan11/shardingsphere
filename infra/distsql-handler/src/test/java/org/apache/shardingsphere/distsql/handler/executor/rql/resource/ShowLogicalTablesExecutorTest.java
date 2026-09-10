@@ -17,15 +17,16 @@
 
 package org.apache.shardingsphere.distsql.handler.executor.rql.resource;
 
-import org.apache.shardingsphere.distsql.statement.rql.resource.ShowLogicalTablesStatement;
-import org.apache.shardingsphere.infra.database.core.metadata.database.enums.TableType;
-import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
+import org.apache.shardingsphere.database.connector.core.metadata.database.enums.TableType;
+import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
+import org.apache.shardingsphere.distsql.statement.type.rql.resource.ShowLogicalTablesStatement;
 import org.apache.shardingsphere.infra.merge.result.impl.local.LocalDataQueryResultRow;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereSchema;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereTable;
 import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 import org.apache.shardingsphere.mode.manager.ContextManager;
+import org.apache.shardingsphere.sql.parser.statement.core.value.identifier.IdentifierValue;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,8 +39,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -57,7 +58,7 @@ class ShowLogicalTablesExecutorTest {
         when(database.getName()).thenReturn("foo_db");
         when(database.getProtocolType()).thenReturn(TypedSPILoader.getService(DatabaseType.class, "FIXTURE"));
         ShardingSphereSchema schema = mock(ShardingSphereSchema.class);
-        when(database.getSchema("foo_db")).thenReturn(schema);
+        when(database.getSchema(new IdentifierValue("foo_db"))).thenReturn(schema);
         Collection<ShardingSphereTable> tables = Arrays.asList(mockShardingSphereTable("t_order"), mockShardingSphereTable("t_order_item"));
         when(schema.getAllTables()).thenReturn(tables);
         executor.setDatabase(database);

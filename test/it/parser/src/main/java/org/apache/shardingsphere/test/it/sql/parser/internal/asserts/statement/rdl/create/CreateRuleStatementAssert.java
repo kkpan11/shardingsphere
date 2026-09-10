@@ -20,27 +20,31 @@ package org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.apache.shardingsphere.broadcast.distsql.statement.CreateBroadcastTableRuleStatement;
-import org.apache.shardingsphere.distsql.statement.rdl.rule.database.type.CreateRuleStatement;
+import org.apache.shardingsphere.distsql.statement.type.rdl.rule.database.type.CreateRuleStatement;
 import org.apache.shardingsphere.encrypt.distsql.statement.CreateEncryptRuleStatement;
 import org.apache.shardingsphere.mask.distsql.statement.CreateMaskRuleStatement;
 import org.apache.shardingsphere.readwritesplitting.distsql.statement.CreateReadwriteSplittingRuleStatement;
 import org.apache.shardingsphere.shadow.distsql.statement.CreateDefaultShadowAlgorithmStatement;
 import org.apache.shardingsphere.shadow.distsql.statement.CreateShadowRuleStatement;
 import org.apache.shardingsphere.sharding.distsql.statement.CreateDefaultShardingStrategyStatement;
+import org.apache.shardingsphere.sharding.distsql.statement.CreateShardingKeyGenerateStrategyStatement;
+import org.apache.shardingsphere.sharding.distsql.statement.CreateShardingKeyGeneratorStatement;
 import org.apache.shardingsphere.sharding.distsql.statement.CreateShardingTableReferenceRuleStatement;
 import org.apache.shardingsphere.sharding.distsql.statement.CreateShardingTableRuleStatement;
 import org.apache.shardingsphere.single.distsql.statement.rdl.SetDefaultSingleTableStorageUnitStatement;
 import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.SQLCaseAssertContext;
-import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.rdl.create.impl.CreateBroadcastTableRuleStatementAssert;
-import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.rdl.create.impl.CreateDefaultShadowAlgorithmStatementAssert;
-import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.rdl.create.impl.CreateDefaultShardingStrategyStatementAssert;
-import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.rdl.create.impl.CreateEncryptRuleStatementAssert;
-import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.rdl.create.impl.CreateMaskRuleStatementAssert;
-import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.rdl.create.impl.CreateReadwriteSplittingRuleStatementAssert;
-import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.rdl.create.impl.CreateShadowRuleStatementAssert;
-import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.rdl.create.impl.CreateShardingTableReferenceRuleStatementAssert;
-import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.rdl.create.impl.CreateShardingTableRuleStatementAssert;
-import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.rdl.create.impl.SetDefaultSingleTableStorageUnitStatementAssert;
+import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.rdl.create.type.CreateBroadcastTableRuleStatementAssert;
+import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.rdl.create.type.CreateDefaultShadowAlgorithmStatementAssert;
+import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.rdl.create.type.CreateDefaultShardingStrategyStatementAssert;
+import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.rdl.create.type.CreateEncryptRuleStatementAssert;
+import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.rdl.create.type.CreateMaskRuleStatementAssert;
+import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.rdl.create.type.CreateReadwriteSplittingRuleStatementAssert;
+import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.rdl.create.type.CreateShadowRuleStatementAssert;
+import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.rdl.create.type.CreateShardingKeyGenerateStrategyStatementAssert;
+import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.rdl.create.type.CreateShardingKeyGeneratorStatementAssert;
+import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.rdl.create.type.CreateShardingTableReferenceRuleStatementAssert;
+import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.rdl.create.type.CreateShardingTableRuleStatementAssert;
+import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.rdl.create.type.SetDefaultSingleTableStorageUnitStatementAssert;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.SQLParserTestCase;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.statement.rdl.rule.encrypt.CreateEncryptRuleStatementTestCase;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.statement.rdl.rule.mask.CreateMaskRuleStatementTestCase;
@@ -49,6 +53,8 @@ import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.s
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.statement.rdl.rule.shadow.CreateShadowRuleStatementTestCase;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.statement.rdl.rule.sharding.CreateBroadcastTableRuleStatementTestCase;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.statement.rdl.rule.sharding.CreateDefaultShardingStrategyStatementTestCase;
+import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.statement.rdl.rule.sharding.CreateShardingKeyGenerateStrategyStatementTestCase;
+import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.statement.rdl.rule.sharding.CreateShardingKeyGeneratorStatementTestCase;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.statement.rdl.rule.sharding.CreateShardingTableReferenceRuleStatementTestCase;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.statement.rdl.rule.single.SetDefaultSingleTableStorageUnitStatementTestCase;
 
@@ -66,7 +72,12 @@ public final class CreateRuleStatementAssert {
      * @param expected expected create rule statement test case
      */
     public static void assertIs(final SQLCaseAssertContext assertContext, final CreateRuleStatement actual, final SQLParserTestCase expected) {
-        if (actual instanceof CreateEncryptRuleStatement) {
+        if (actual instanceof CreateShardingKeyGeneratorStatement || expected instanceof CreateShardingKeyGeneratorStatementTestCase) {
+            CreateShardingKeyGeneratorStatementAssert.assertIs(assertContext, (CreateShardingKeyGeneratorStatement) actual, (CreateShardingKeyGeneratorStatementTestCase) expected);
+        } else if (actual instanceof CreateShardingKeyGenerateStrategyStatement || expected instanceof CreateShardingKeyGenerateStrategyStatementTestCase) {
+            CreateShardingKeyGenerateStrategyStatementAssert.assertIs(
+                    assertContext, (CreateShardingKeyGenerateStrategyStatement) actual, (CreateShardingKeyGenerateStrategyStatementTestCase) expected);
+        } else if (actual instanceof CreateEncryptRuleStatement) {
             CreateEncryptRuleStatementAssert.assertIs(assertContext, (CreateEncryptRuleStatement) actual, (CreateEncryptRuleStatementTestCase) expected);
         } else if (actual instanceof CreateReadwriteSplittingRuleStatement) {
             CreateReadwriteSplittingRuleStatementAssert.assertIs(assertContext, (CreateReadwriteSplittingRuleStatement) actual, (CreateReadwriteSplittingRuleStatementTestCase) expected);

@@ -18,17 +18,18 @@
 package org.apache.shardingsphere.encrypt.distsql.handler.update;
 
 import lombok.Setter;
-import org.apache.shardingsphere.distsql.handler.engine.update.rdl.rule.spi.database.DatabaseRuleAlterExecutor;
+import org.apache.shardingsphere.distsql.handler.engine.update.rdl.rule.spi.database.type.DatabaseRuleAlterExecutor;
 import org.apache.shardingsphere.distsql.handler.required.DistSQLExecutorCurrentRuleRequired;
 import org.apache.shardingsphere.distsql.segment.AlgorithmSegment;
 import org.apache.shardingsphere.encrypt.config.EncryptRuleConfiguration;
+import org.apache.shardingsphere.encrypt.config.rule.EncryptTableRuleConfiguration;
 import org.apache.shardingsphere.encrypt.distsql.handler.converter.EncryptRuleStatementConverter;
 import org.apache.shardingsphere.encrypt.distsql.segment.EncryptRuleSegment;
 import org.apache.shardingsphere.encrypt.distsql.statement.AlterEncryptRuleStatement;
 import org.apache.shardingsphere.encrypt.rule.EncryptRule;
 import org.apache.shardingsphere.encrypt.spi.EncryptAlgorithm;
 import org.apache.shardingsphere.infra.algorithm.core.config.AlgorithmConfiguration;
-import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.exception.ShardingSpherePreconditions;
 import org.apache.shardingsphere.infra.exception.kernel.metadata.rule.InvalidRuleConfigurationException;
 import org.apache.shardingsphere.infra.exception.kernel.metadata.rule.MissingRequiredRuleException;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
@@ -38,6 +39,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -102,7 +104,12 @@ public final class AlterEncryptRuleExecutor implements DatabaseRuleAlterExecutor
     
     @Override
     public EncryptRuleConfiguration buildToBeDroppedRuleConfiguration(final EncryptRuleConfiguration toBeAlteredRuleConfig) {
-        Collection<String> unusedEncryptor = UnusedAlgorithmFinder.findUnusedEncryptor(rule.getConfiguration());
+        Collection<String> toBeAlteredTableNames = toBeAlteredRuleConfig.getLogicTableNames();
+        Collection<EncryptTableRuleConfiguration> toBeCheckedTables = new LinkedList<>(rule.getConfiguration().getTables());
+        toBeCheckedTables.removeIf(each -> toBeAlteredTableNames.contains(each.getName()));
+        toBeCheckedTables.addAll(toBeAlteredRuleConfig.getTables());
+        EncryptRuleConfiguration toBeCheckedRuleConfig = new EncryptRuleConfiguration(toBeCheckedTables, rule.getConfiguration().getEncryptors());
+        Collection<String> unusedEncryptor = UnusedAlgorithmFinder.findUnusedEncryptor(toBeCheckedRuleConfig);
         Map<String, AlgorithmConfiguration> toBeDroppedEncryptors = new HashMap<>(unusedEncryptor.size(), 1F);
         unusedEncryptor.forEach(each -> toBeDroppedEncryptors.put(each, rule.getConfiguration().getEncryptors().get(each)));
         return new EncryptRuleConfiguration(Collections.emptyList(), toBeDroppedEncryptors);

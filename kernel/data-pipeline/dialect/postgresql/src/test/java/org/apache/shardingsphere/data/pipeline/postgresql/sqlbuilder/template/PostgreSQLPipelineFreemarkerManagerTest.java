@@ -21,13 +21,17 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.regex.Pattern;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class PostgreSQLPipelineFreemarkerManagerTest {
+    
+    private static final Pattern PATTERN = Pattern.compile("\\s+");
     
     @Test
     void assertGetSQLByDefaultVersion() {
@@ -41,7 +45,56 @@ class PostgreSQLPipelineFreemarkerManagerTest {
         Map<String, Object> dataModel = new HashMap<>(2, 1F);
         dataModel.put("tid", 1);
         dataModel.put("tname", "foo_tb l");
-        String actual = PostgreSQLPipelineFreemarkerManager.getSQLByVersion(dataModel, "component/table/%s/get_columns_for_table.ftl", 10, 0);
-        assertNotNull(actual);
+        assertNotNull(PostgreSQLPipelineFreemarkerManager.getSQLByVersion(dataModel, "component/table/%s/get_columns_for_table.ftl", 10, 0));
+    }
+    
+    @Test
+    void assertGetTableIdSQLWithActualIdentifiers() {
+        Map<String, Object> dataModel = new HashMap<>(2, 1F);
+        dataModel.put("schemaName", "UPPER_SCHEMA");
+        dataModel.put("tableName", "UPPER_TABLE");
+        String actual = PostgreSQLPipelineFreemarkerManager.getSQLByVersion(dataModel, "component/table/%s/get_table_id.ftl", 12, 0);
+        String expected = "\nSELECT (pg_catalog.quote_ident('UPPER_SCHEMA') || '.' || pg_catalog.quote_ident('UPPER_TABLE'))::REGCLASS::OID AS tid;\n";
+        assertThat(actual, is(expected));
+    }
+    
+    @Test
+    void assertCreateTableTemplateRendersNormalizedSequenceNumbers() {
+        Map<String, Object> dataModel = new LinkedHashMap<>(8, 1F);
+        dataModel.put("schema", "public");
+        dataModel.put("name", "t_order");
+        dataModel.put("columns", Collections.singletonList(getColumn()));
+        dataModel.put("primary_key", Collections.emptyList());
+        dataModel.put("unique_constraint", Collections.emptyList());
+        dataModel.put("foreign_key", Collections.emptyList());
+        dataModel.put("check_constraint", Collections.emptyList());
+        dataModel.put("exclude_constraint", Collections.emptyList());
+        dataModel.put("coll_inherits", Collections.emptyList());
+        dataModel.put("autovacuum_enabled", "x");
+        dataModel.put("toast_autovacuum_enabled", "x");
+        dataModel.put("autovacuum_custom", false);
+        dataModel.put("toast_autovacuum", false);
+        dataModel.put("add_vacuum_settings_in_sql", false);
+        String sql = PostgreSQLPipelineFreemarkerManager.getSQLByVersion(dataModel, "component/table/%s/create.ftl", 12, 0);
+        String compactSql = PATTERN.matcher(sql).replaceAll("");
+        String expectedSql = "CREATETABLEIFNOTEXISTSpublic.t_order(idintegerNOTNULLGENERATEDALWAYSASIDENTITY(INCREMENT1START1MINVALUE1MAXVALUE2147483647CACHE1))";
+        assertThat(compactSql, is(expectedSql));
+    }
+    
+    private static Map<String, Object> getColumn() {
+        Map<String, Object> result = new LinkedHashMap<>(16, 1F);
+        result.put("name", "id");
+        result.put("cltype", "int4");
+        result.put("displaytypname", "integer");
+        result.put("attnotnull", true);
+        result.put("attidentity", "a");
+        result.put("colconstype", "i");
+        result.put("seqincrement", 1L);
+        result.put("seqstart", 1L);
+        result.put("seqmin", 1L);
+        result.put("seqmax", 2147483647L);
+        result.put("seqcache", 1L);
+        result.put("seqcycle", false);
+        return result;
     }
 }

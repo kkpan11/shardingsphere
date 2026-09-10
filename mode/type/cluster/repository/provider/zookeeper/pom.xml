@@ -21,7 +21,7 @@
     <parent>
         <groupId>org.apache.shardingsphere</groupId>
         <artifactId>shardingsphere-cluster-mode-repository-provider</artifactId>
-        <version>5.5.3-SNAPSHOT</version>
+        <version>5.5.4-SNAPSHOT</version>
     </parent>
     <artifactId>shardingsphere-cluster-mode-repository-zookeeper</artifactId>
     <name>${project.artifactId}</name>
@@ -37,12 +37,15 @@
             <artifactId>shardingsphere-cluster-mode-core</artifactId>
             <version>${project.version}</version>
         </dependency>
-        
         <dependency>
             <groupId>org.apache.shardingsphere</groupId>
-            <artifactId>shardingsphere-test-util</artifactId>
+            <artifactId>shardingsphere-schedule-core</artifactId>
             <version>${project.version}</version>
-            <scope>test</scope>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.apache.shardingsphere.elasticjob</groupId>
+            <artifactId>elasticjob-registry-center-zookeeper-curator</artifactId>
         </dependency>
         
         <dependency>

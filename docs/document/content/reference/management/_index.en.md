@@ -18,35 +18,32 @@ namespace
    ├     ├     ├──versions  
    ├     ├     ├     ├──0       
    ├──props                                              # Properties configuration
-   ├     ├──active_verison                                     
+   ├     ├──active_version
    ├     ├──versions  
    ├     ├     ├──0                  
    ├──metadata                                           # Metadata configuration
    ├     ├──${databaseName} 
    ├     ├     ├──data_sources                          
    ├     ├     ├     ├──units 							 # Storage unit configuration
-   ├     ├     ├     ├    ├──${dataSourceName}                        
-   ├     ├     ├     ├    ├     ├──active_verison             # Active version                                 
+   ├     ├     ├     ├    ├──${storageUnitName}
+   ├     ├     ├     ├    ├     ├──active_version             # Active version
    ├     ├     ├     ├    ├     ├──versions                   # version list
    ├     ├     ├     ├    ├     ├     ├──0
    ├     ├     ├     ├    ├──...   
    ├     ├     ├     ├──nodes 							 # Storage node configuration
-   ├     ├     ├     ├    ├──${dataSourceName}                        
-   ├     ├     ├     ├    ├     ├──active_verison             # Active version                                 
-   ├     ├     ├     ├    ├     ├──versions                   # version list
-   ├     ├     ├     ├    ├     ├     ├──0
+   ├     ├     ├     ├    ├──${storageNodeName}
    ├     ├     ├     ├    ├──...                             
    ├     ├     ├──schemas                                # Schema list
    ├     ├     ├     ├──${schemaName}                    
    ├     ├     ├     ├     ├──tables                     # Table configuration
    ├     ├     ├     ├     ├     ├──${tableName}         
-   ├     ├     ├     ├     ├     ├     ├──active_verison # Active version                                 
+   ├     ├     ├     ├     ├     ├     ├──active_version # Active version
    ├     ├     ├     ├     ├     ├     ├──versions       # version list
    ├     ├     ├     ├     ├     ├     ├     ├──0
    ├     ├     ├     ├     ├     ├──...  
    ├     ├     ├     ├     ├──views                      # View configuration
    ├     ├     ├     ├     ├     ├──${viewName}
-   ├     ├     ├     ├     ├     ├     ├──active_verison # Active version                           
+   ├     ├     ├     ├     ├     ├     ├──active_version # Active version
    ├     ├     ├     ├     ├     ├     ├──versions       # version list
    ├     ├     ├     ├     ├     ├     ├     ├──0
    ├     ├     ├     ├     ├     ├──...  
@@ -54,19 +51,19 @@ namespace
    ├     ├     ├     ├──sharding
    ├     ├     ├     ├     ├──algorithms
    ├     ├     ├     ├     ├     ├──${algorithmName}     # algorithm name
-   ├     ├     ├     ├     ├     ├     ├──active_verison # Active version                           
+   ├     ├     ├     ├     ├     ├     ├──active_version # Active version
    ├     ├     ├     ├     ├     ├     ├──versions       # version list
    ├     ├     ├     ├     ├     ├     ├     ├──0
    ├     ├     ├     ├     ├     ├──...
    ├     ├     ├     ├     ├──key_generators
    ├     ├     ├     ├     ├     ├──${keyGeneratorName}  # keyGenerator name
-   ├     ├     ├     ├     ├     ├     ├──active_verison # Active version                           
+   ├     ├     ├     ├     ├     ├     ├──active_version # Active version
    ├     ├     ├     ├     ├     ├     ├──versions       # version list
    ├     ├     ├     ├     ├     ├     ├     ├──0
    ├     ├     ├     ├     ├     ├──...         
    ├     ├     ├     ├     ├──tables
    ├     ├     ├     ├     ├     ├──${tableName}         # logic table name
-   ├     ├     ├     ├     ├     ├     ├──active_verison # Active version                           
+   ├     ├     ├     ├     ├     ├     ├──active_version # Active version
    ├     ├     ├     ├     ├     ├     ├──versions       # version list
    ├     ├     ├     ├     ├     ├     ├     ├──0
    ├     ├     ├     ├     ├     ├──...          
@@ -88,20 +85,16 @@ namespace
    ├    ├     ├──show_process_list_trigger
    ├    ├     ├     ├──process_id:UUID
    ├    ├     ├     ├──....
-   ├    ├     ├──labels                      
-   ├    ├     ├     ├──UUID
-   ├    ├     ├     ├──....               
    ├    ├──qualified_data_sources                       
    ├    ├     ├──${databaseName.groupName.dataSourceName}
    ├    ├     ├──${databaseName.groupName.dataSourceName}
    ├──statistics
-   ├    ├──shardingsphere
-   ├    ├     ├──schemas
-   ├    ├     ├     ├──shardingsphere
-   ├    ├     ├     ├     ├──tables             # system tables
-   ├    ├     ├     ├     ├     ├──sharding_table_statistics    # sharding statistics table
-   ├    ├     ├     ├     ├     ├     ├──8a2dcb0d97c3d86ef77b3d4651a1d7d0  # md5
-   ├    ├     ├     ├     ├     ├──cluster_information    # cluster information table
+   ├    ├──databases
+   ├    ├     ├──shardingsphere
+   ├    ├     ├     ├──schemas
+   ├    ├     ├     ├     ├──shardingsphere
+   ├    ├     ├     ├     ├     ├──tables # system tables
+   ├    ├     ├     ├     ├     ├   ├──cluster_information    # cluster information table
 ```
 
 ### /rules
@@ -144,31 +137,9 @@ ds_0:
   poolName: HikariPool-1
 ```
 
-### /metadata/${databaseName}/data_sources/nodes/ds_0/versions/0
-
-Database connection pools, whose properties (e.g. HikariCP) are to be configured by the user.
-
-```yaml
-ds_0:
-  initializationFailTimeout: 1
-  validationTimeout: 5000
-  maxLifetime: 1800000
-  leakDetectionThreshold: 0
-  minimumIdle: 1
-  password: root
-  idleTimeout: 60000
-  jdbcUrl: jdbc:mysql://127.0.0.1:3306/ds_0?serverTimezone=UTC&useSSL=false
-  dataSourceClassName: com.zaxxer.hikari.HikariDataSource
-  maximumPoolSize: 50
-  connectionTimeout: 30000
-  username: root
-  poolName: HikariPool-1
-```
-
-
 ### /metadata/${databaseName}/rules/sharding/tables/t_order/versions/0
 
-Sharding configuration。
+Persisted content of the sharding table metadata node, not the user-facing rule YAML format.
 
 ```yaml
 actualDataNodes: ds_${0..1}.t_order_${0..1}
@@ -180,14 +151,22 @@ databaseStrategy:
   standard:
     shardingAlgorithmName: t_order_database_inline
     shardingColumn: user_id
-keyGenerateStrategy:
-  column: another_id
-  keyGeneratorName: t_order_snowflake
 logicTable: t_order
 tableStrategy:
   standard:
     shardingAlgorithmName: t_order_table_inline
     shardingColumn: order_id
+```
+
+### /metadata/${databaseName}/rules/sharding/key_generate_strategies/t_order_another_id/versions/0
+
+Persisted content of the sharding key generate strategy metadata node.
+
+```yaml
+keyGenerateType: column
+keyGeneratorName: t_order_snowflake
+logicTable: t_order
+keyGenerateColumn: another_id
 ```
 
 ### /metadata/${databaseName}/schemas/${schemaName}/tables/t_order/versions/0
@@ -202,14 +181,14 @@ columns:                                  # Columns
     dataType: 0
     generated: false
     name: id
-    primaryKey: trues
+    primaryKey: true
   order_id:
     caseSensitive: false
     dataType: 0
     generated: false
     name: order_id
     primaryKey: false
-indexs:                                   # Index
+indexes:                                  # Index
   t_user_order_id_index:                  # Index name
     name: t_user_order_id_index
 ```

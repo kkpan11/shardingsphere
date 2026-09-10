@@ -17,7 +17,7 @@
 
 package org.apache.shardingsphere.sharding.rewrite.token.pojo;
 
-import org.apache.shardingsphere.infra.binder.context.statement.ddl.CursorStatementContext;
+import org.apache.shardingsphere.infra.binder.context.statement.type.ddl.CursorStatementContext;
 import org.apache.shardingsphere.infra.route.context.RouteMapper;
 import org.apache.shardingsphere.infra.route.context.RouteUnit;
 import org.apache.shardingsphere.sharding.rule.ShardingRule;
@@ -27,8 +27,8 @@ import org.junit.jupiter.api.Test;
 import java.util.Collection;
 import java.util.Collections;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;

@@ -19,15 +19,22 @@ package org.apache.shardingsphere.driver.jdbc.adapter;
 
 import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.shardingsphere.database.connector.core.metadata.database.metadata.DialectDatabaseMetaData;
+import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
+import org.apache.shardingsphere.database.connector.core.type.DatabaseTypeRegistry;
 import org.apache.shardingsphere.driver.jdbc.adapter.executor.ForceExecuteTemplate;
 import org.apache.shardingsphere.driver.jdbc.core.connection.ShardingSphereConnection;
 import org.apache.shardingsphere.driver.jdbc.core.statement.StatementManager;
-import org.apache.shardingsphere.infra.database.core.metadata.database.metadata.DialectDatabaseMetaData;
-import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
-import org.apache.shardingsphere.infra.database.core.type.DatabaseTypeRegistry;
-import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.exception.ShardingSpherePreconditions;
 import org.apache.shardingsphere.infra.metadata.ShardingSphereMetaData;
+import org.apache.shardingsphere.infra.session.connection.transaction.TransactionConnectionContext;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.SQLStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.type.tcl.CommitStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.type.tcl.RollbackStatement;
+import org.apache.shardingsphere.transaction.util.AutoCommitUtils;
 
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLWarning;
@@ -38,6 +45,7 @@ import java.util.Collection;
  * Adapter for {@code Statement}.
  */
 @Getter
+@Slf4j
 public abstract class AbstractStatementAdapter extends WrapperAdapter implements Statement {
     
     @Getter(AccessLevel.NONE)
@@ -49,9 +57,36 @@ public abstract class AbstractStatementAdapter extends WrapperAdapter implements
     
     private int fetchDirection;
     
+    private int maxRows;
+    
     private boolean closeOnCompletion;
     
     private boolean closed;
+    
+    protected final void handleAutoCommitBeforeExecution(final SQLStatement sqlStatement, final ShardingSphereConnection connection) throws SQLException {
+        checkAllowedSQLStatementWhenTransactionFailed(sqlStatement, connection);
+        if (AutoCommitUtils.isNeedStartTransaction(sqlStatement)) {
+            connection.beginTransactionIfNeededWhenAutoCommitFalse();
+        }
+    }
+    
+    private void checkAllowedSQLStatementWhenTransactionFailed(final SQLStatement sqlStatement, final ShardingSphereConnection connection) throws SQLException {
+        TransactionConnectionContext transactionContext = connection.getDatabaseConnectionManager().getConnectionContext().getTransactionContext();
+        if (!transactionContext.isExceptionOccur()) {
+            return;
+        }
+        DatabaseType databaseType = connection.getContextManager().getMetaDataContexts().getMetaData().getDatabase(connection.getCurrentDatabaseName()).getProtocolType();
+        if (new DatabaseTypeRegistry(databaseType).getDialectDatabaseMetaData().getTransactionOption().isAllowCommitAndRollbackOnlyWhenTransactionFailed()) {
+            ShardingSpherePreconditions.checkState(sqlStatement instanceof CommitStatement || sqlStatement instanceof RollbackStatement,
+                    () -> new SQLFeatureNotSupportedException("Current transaction is aborted, commands ignored until end of transaction block."));
+        }
+    }
+    
+    protected final void handleAutoCommitAfterExecution(final ShardingSphereConnection connection) throws SQLException {
+        if (connection.getAutoCommit() && !connection.hasRegisteredStatementManagers()) {
+            connection.getDatabaseConnectionManager().clearCachedConnections();
+        }
+    }
     
     protected final void handleExceptionInTransaction(final ShardingSphereConnection connection, final ShardingSphereMetaData metaData) {
         if (connection.getDatabaseConnectionManager().getConnectionContext().getTransactionContext().isInTransaction()) {
@@ -108,12 +143,13 @@ public abstract class AbstractStatementAdapter extends WrapperAdapter implements
     // TODO Confirm MaxRows for multiple databases is need special handle. eg: 10 statements maybe MaxRows / 10
     @Override
     public final int getMaxRows() throws SQLException {
-        return getRoutedStatements().isEmpty() ? -1 : getRoutedStatements().iterator().next().getMaxRows();
+        return getRoutedStatements().isEmpty() ? maxRows : getRoutedStatements().iterator().next().getMaxRows();
     }
     
     @SuppressWarnings({"unchecked", "rawtypes"})
     @Override
     public final void setMaxRows(final int max) throws SQLException {
+        maxRows = max;
         getMethodInvocationRecorder().record("setMaxRows", statement -> statement.setMaxRows(max));
         forceExecuteTemplate.execute((Collection) getRoutedStatements(), statement -> statement.setMaxRows(max));
     }
@@ -210,18 +246,77 @@ public abstract class AbstractStatementAdapter extends WrapperAdapter implements
     public final void clearWarnings() {
     }
     
-    @SuppressWarnings({"unchecked", "rawtypes"})
     @Override
     public final void close() throws SQLException {
         closed = true;
         try {
-            forceExecuteTemplate.execute((Collection) getRoutedStatements(), Statement::close);
-            closeExecutor();
-            if (null != getStatementManager()) {
-                getStatementManager().close();
-            }
+            safeCloseRoutedStatements();
+            safeCloseExecutor();
+            safeCloseAndUnregisterStatementManager();
         } finally {
             getRoutedStatements().clear();
+        }
+    }
+    
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private void safeCloseRoutedStatements() {
+        try {
+            forceExecuteTemplate.execute((Collection) getRoutedStatements(), Statement::close);
+            // CHECKSTYLE:OFF
+        } catch (final Exception ex) {
+            // CHECKSTYLE:ON
+            log.warn("Close routed statements failed", ex);
+        }
+    }
+    
+    private void safeCloseExecutor() {
+        try {
+            closeExecutor();
+            // CHECKSTYLE:OFF
+        } catch (final Exception ex) {
+            // CHECKSTYLE:ON
+            log.warn("Close executor failed", ex);
+        }
+    }
+    
+    private void safeCloseAndUnregisterStatementManager() {
+        StatementManager statementManager = getStatementManager();
+        if (null == statementManager) {
+            return;
+        }
+        safeCloseStatementManager(statementManager);
+        try {
+            Connection connection = getConnection();
+            if (!(connection instanceof ShardingSphereConnection)) {
+                return;
+            }
+            ShardingSphereConnection logicalConnection = (ShardingSphereConnection) connection;
+            logicalConnection.unregisterStatementManager(statementManager);
+            safeHandleAutoCommitAfterExecution(logicalConnection);
+            // CHECKSTYLE:OFF
+        } catch (final Exception ex) {
+            // CHECKSTYLE:ON
+            log.warn("Close and unregister statement manager failed", ex);
+        }
+    }
+    
+    private void safeCloseStatementManager(final StatementManager statementManager) {
+        try {
+            statementManager.close();
+            // CHECKSTYLE:OFF
+        } catch (final Exception ex) {
+            // CHECKSTYLE:ON
+            log.warn("Close manager failed", ex);
+        }
+    }
+    
+    private void safeHandleAutoCommitAfterExecution(final ShardingSphereConnection logicalConnection) {
+        try {
+            handleAutoCommitAfterExecution(logicalConnection);
+            // CHECKSTYLE:OFF
+        } catch (final Exception ex) {
+            // CHECKSTYLE:ON
+            log.warn("Handle auto commit after execution failed", ex);
         }
     }
     

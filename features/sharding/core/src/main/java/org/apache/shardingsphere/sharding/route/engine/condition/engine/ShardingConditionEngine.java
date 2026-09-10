@@ -19,7 +19,7 @@ package org.apache.shardingsphere.sharding.route.engine.condition.engine;
 
 import lombok.RequiredArgsConstructor;
 import org.apache.shardingsphere.infra.binder.context.statement.SQLStatementContext;
-import org.apache.shardingsphere.infra.binder.context.statement.dml.InsertStatementContext;
+import org.apache.shardingsphere.infra.binder.context.statement.type.dml.InsertStatementContext;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.infra.metadata.database.rule.RuleMetaData;
 import org.apache.shardingsphere.sharding.route.engine.condition.ShardingCondition;
@@ -51,6 +51,6 @@ public final class ShardingConditionEngine {
         TimestampServiceRule timestampServiceRule = globalRuleMetaData.getSingleRule(TimestampServiceRule.class);
         return sqlStatementContext instanceof InsertStatementContext
                 ? new InsertClauseShardingConditionEngine(database, shardingRule, timestampServiceRule).createShardingConditions((InsertStatementContext) sqlStatementContext, params)
-                : new WhereClauseShardingConditionEngine(shardingRule, timestampServiceRule).createShardingConditions(sqlStatementContext, params);
+                : new WhereClauseShardingConditionEngine(database, shardingRule, timestampServiceRule).createShardingConditions(sqlStatementContext, params);
     }
 }

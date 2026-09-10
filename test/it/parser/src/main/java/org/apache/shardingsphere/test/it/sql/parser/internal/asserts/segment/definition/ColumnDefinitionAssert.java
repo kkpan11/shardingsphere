@@ -26,8 +26,8 @@ import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.segment.gen
 import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.segment.table.TableAssert;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.segment.impl.definition.ExpectedColumnDefinition;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
@@ -60,8 +60,20 @@ public final class ColumnDefinitionAssert {
         TableAssert.assertIs(assertContext, actual.getReferencedTables(), expected.getReferencedTables());
         assertThat(assertContext.getText("Column definition start index assertion error: "), actual.getStartIndex(), is(expected.getStartIndex()));
         assertThat(assertContext.getText("Column definition stop index assertion error: "), actual.getStopIndex(), is(expected.getStopIndex()));
-        if (expected.isNotNull()) {
-            assertThat(assertContext.getText("Column definition not null assertion error: "), actual.isNotNull(), is(expected.isNotNull()));
+        if (null != expected.getNotNull()) {
+            assertThat(assertContext.getText("Column definition not null assertion error: "), actual.isNotNull(), is(expected.getNotNull()));
+        }
+        if (null != expected.getComment()) {
+            assertNotNull(actual.getComment(), assertContext.getText("Column definition comment should exist."));
+            assertThat(assertContext.getText("Column definition comment assertion error: "), actual.getComment(), is(expected.getComment().getText()));
+        } else {
+            assertNull(actual.getComment(), assertContext.getText("Column definition comment should not exist."));
+        }
+        if (null != expected.getAggType()) {
+            assertNotNull(actual.getAggType(), assertContext.getText("Column definition agg type should exist."));
+            assertThat(assertContext.getText("Column definition agg type assertion error: "), actual.getAggType(), is(expected.getAggType()));
+        } else {
+            assertNull(actual.getAggType(), assertContext.getText("Column definition agg type should not exist."));
         }
     }
     

@@ -52,6 +52,9 @@
                                     <parameter>
                                         <column name="VARIABLE_VALUE" start-index="122" stop-index="135" />
                                     </parameter>
+                                    <parameter start-index="138" stop-index="145">
+                                        <data-type value="UNSIGNED" start-index="138" stop-index="145"/>
+                                    </parameter>
                                 </function>
                             </left>
                             <operator>&gt;</operator>
@@ -71,6 +74,72 @@
                 <function function-name="mysqltest1.f1()" alias="creation_date" start-index="7" stop-index="21" text="mysqltest1.f1()" />
             </expression-projection>
         </projections>
+    </select>
+
+    <select sql-case-id="select_where_is_true_doris">
+        <from>
+            <simple-table name="t_order" start-index="14" stop-index="20" />
+        </from>
+        <projections distinct-row="false" start-index="7" stop-index="7">
+            <shorthand-projection start-index="7" stop-index="7" />
+        </projections>
+        <where start-index="22" stop-index="39">
+            <expr>
+                <binary-operation-expression start-index="28" stop-index="39">
+                    <left>
+                        <column name="flag" start-index="28" stop-index="31" />
+                    </left>
+                    <operator>IS</operator>
+                    <right>
+                        <literal-expression value="TRUE" start-index="36" stop-index="39" />
+                    </right>
+                </binary-operation-expression>
+            </expr>
+        </where>
+    </select>
+
+    <select sql-case-id="select_where_is_false_doris">
+        <from>
+            <simple-table name="t_order" start-index="14" stop-index="20" />
+        </from>
+        <projections distinct-row="false" start-index="7" stop-index="7">
+            <shorthand-projection start-index="7" stop-index="7" />
+        </projections>
+        <where start-index="22" stop-index="40">
+            <expr>
+                <binary-operation-expression start-index="28" stop-index="40">
+                    <left>
+                        <column name="flag" start-index="28" stop-index="31" />
+                    </left>
+                    <operator>IS</operator>
+                    <right>
+                        <literal-expression value="FALSE" start-index="36" stop-index="40" />
+                    </right>
+                </binary-operation-expression>
+            </expr>
+        </where>
+    </select>
+
+    <select sql-case-id="select_where_is_nan_oracle">
+        <from>
+            <simple-table name="t_order" start-index="14" stop-index="20" />
+        </from>
+        <projections distinct-row="false" start-index="7" stop-index="7">
+            <shorthand-projection start-index="7" stop-index="7" />
+        </projections>
+        <where start-index="22" stop-index="38">
+            <expr>
+                <binary-operation-expression start-index="28" stop-index="38">
+                    <left>
+                        <column name="flag" start-index="28" stop-index="31" />
+                    </left>
+                    <operator>IS</operator>
+                    <right>
+                        <literal-expression value="NAN" start-index="36" stop-index="38" />
+                    </right>
+                </binary-operation-expression>
+            </expr>
+        </where>
     </select>
 
     <select sql-case-id="select_case_when_with_mul_condition">
@@ -225,6 +294,67 @@
                 <owner name="o" start-index="60" stop-index="60" />
             </column-item>
         </order-by>
+    </select>
+
+    <select sql-case-id="select_with_oracle_unary_expression_projection">
+        <from>
+            <simple-table name="t_user" start-index="80" stop-index="85" />
+        </from>
+        <projections start-index="7" stop-index="73">
+            <column-projection name="user_id" start-index="7" stop-index="13" />
+            <expression-projection text="+user_id" alias="positive_user_id" start-index="16" stop-index="43">
+                <expr>
+                    <unary-operation-expression text="+user_id" start-index="16" stop-index="23">
+                        <operator>+</operator>
+                        <expr>
+                            <column name="user_id" start-index="17" stop-index="23" />
+                        </expr>
+                    </unary-operation-expression>
+                </expr>
+            </expression-projection>
+            <expression-projection text="-user_id" alias="negative_user_id" start-index="46" stop-index="73">
+                <expr>
+                    <unary-operation-expression text="-user_id" start-index="46" stop-index="53">
+                        <operator>-</operator>
+                        <expr>
+                            <column name="user_id" start-index="47" stop-index="53" />
+                        </expr>
+                    </unary-operation-expression>
+                </expr>
+            </expression-projection>
+        </projections>
+    </select>
+
+    <select sql-case-id="select_oracle_full_width_arithmetic_and_concat">
+        <from>
+            <simple-table name="dual" start-index="44" stop-index="47" />
+        </from>
+        <projections start-index="7" stop-index="37">
+            <expression-projection text="3 － 1" start-index="7" stop-index="11" />
+            <expression-projection text="2 ＊ 3" start-index="14" stop-index="18" />
+            <expression-projection text="4 ／ 2" start-index="21" stop-index="25" />
+            <expression-projection text="'A' ｜｜ 'B'" start-index="28" stop-index="37" />
+        </projections>
+    </select>
+
+    <select sql-case-id="select_oracle_full_width_comparison">
+        <from>
+            <simple-table name="dual" start-index="100" stop-index="103" />
+        </from>
+        <projections start-index="7" stop-index="93">
+            <expression-projection text="" start-index="7" stop-index="93" />
+        </projections>
+    </select>
+
+    <select sql-case-id="select_oracle_full_width_qualified_shorthand_projection">
+        <from>
+            <simple-table name="t_order" alias="t" start-index="16" stop-index="24" />
+        </from>
+        <projections start-index="7" stop-index="9">
+            <shorthand-projection start-index="7" stop-index="9">
+                <owner name="t" start-index="7" stop-index="7" />
+            </shorthand-projection>
+        </projections>
     </select>
 
     <select sql-case-id="select_with_encode_function">
@@ -557,6 +687,27 @@
                 </binary-operation-expression>
             </expr>
         </where>
+    </select>
+
+    <select sql-case-id="select_concat_pipe_with_table">
+        <projections start-index="7" stop-index="16">
+            <expression-projection text="'a' || 'b'" start-index="7" stop-index="16">
+                <expr>
+                    <binary-operation-expression start-index="7" stop-index="16">
+                        <left>
+                            <literal-expression value="a" start-index="7" stop-index="9" />
+                        </left>
+                        <operator>||</operator>
+                        <right>
+                            <literal-expression value="b" start-index="14" stop-index="16" />
+                        </right>
+                    </binary-operation-expression>
+                </expr>
+            </expression-projection>
+        </projections>
+        <from>
+            <simple-table name="t_order" start-index="23" stop-index="29" />
+        </from>
     </select>
 
     <select sql-case-id="select_where_with_expr_with_xor" parameters="1,2">
@@ -1013,30 +1164,33 @@
                     </left>
                     <operator>&gt;</operator>
                     <right>
-                        <subquery start-index="49" stop-index="98">
-                            <select>
-                                <from start-index="69" stop-index="80">
-                                    <simple-table name="t_order_item" start-index="69" stop-index="80" />
-                                </from>
-                                <projections distinct-row="false" start-index="57" stop-index="62">
-                                    <column-projection name="status" start-index="57" stop-index="62" />
-                                </projections>
-                                <where start-index="82" stop-index="97">
-                                    <expr>
-                                        <binary-operation-expression start-index="88" stop-index="97">
-                                            <left>
-                                                <column name="status" start-index="88" stop-index="93" />
-                                            </left>
-                                            <operator>&gt;</operator>
-                                            <right>
-                                                <literal-expression value="1" start-index="97" stop-index="97" />
-                                                <parameter-marker-expression parameter-index="0" start-index="97" stop-index="97" />
-                                            </right>
-                                        </binary-operation-expression>
-                                    </expr>
-                                </where>
-                            </select>
-                        </subquery>
+                        <quantify-subquery-expression>
+                            <operator>ALL</operator>
+                            <subquery start-index="49" stop-index="98">
+                                <select>
+                                    <from start-index="69" stop-index="80">
+                                        <simple-table name="t_order_item" start-index="69" stop-index="80" />
+                                    </from>
+                                    <projections distinct-row="false" start-index="57" stop-index="62">
+                                        <column-projection name="status" start-index="57" stop-index="62" />
+                                    </projections>
+                                    <where start-index="82" stop-index="97">
+                                        <expr>
+                                            <binary-operation-expression start-index="88" stop-index="97">
+                                                <left>
+                                                    <column name="status" start-index="88" stop-index="93" />
+                                                </left>
+                                                <operator>&gt;</operator>
+                                                <right>
+                                                    <literal-expression value="1" start-index="97" stop-index="97" />
+                                                    <parameter-marker-expression parameter-index="0" start-index="97" stop-index="97" />
+                                                </right>
+                                            </binary-operation-expression>
+                                        </expr>
+                                    </where>
+                                </select>
+                            </subquery>
+                        </quantify-subquery-expression>
                     </right>
                 </binary-operation-expression>
             </expr>
@@ -1212,6 +1366,34 @@
     </select>
 
     <select sql-case-id="select_where_with_predicate_with_not_like">
+        <from start-index="14" stop-index="20">
+            <simple-table name="t_order" start-index="14" stop-index="20" />
+        </from>
+        <projections distinct-row="false" start-index="7" stop-index="7">
+            <shorthand-projection start-index="7" stop-index="7" />
+        </projections>
+        <where start-index="22" stop-index="55">
+            <expr>
+                <binary-operation-expression start-index="28" stop-index="55">
+                    <left>
+                        <column name="status" start-index="28" stop-index="41">
+                            <owner name="t_order" start-index="28" stop-index="34" />
+                        </column>
+                    </left>
+                    <operator>NOT LIKE</operator>
+                    <right>
+                        <list-expression start-index="52" stop-index="55">
+                            <items>
+                                <literal-expression value="1%" start-index="52" stop-index="55" />
+                            </items>
+                        </list-expression>
+                    </right>
+                </binary-operation-expression>
+            </expr>
+        </where>
+    </select>
+
+    <select sql-case-id="select_where_with_predicate_with_not_like_sql92">
         <from start-index="14" stop-index="20">
             <simple-table name="t_order" start-index="14" stop-index="20" />
         </from>
@@ -1604,14 +1786,12 @@
                     </left>
                     <operator>+</operator>
                     <right>
-                        <function function-name="INTERVAL" text="INTERVAL" start-index="47" stop-index="54" >
-                            <parameter>
+                        <interval-expression value="interval" start-index="47" stop-index="54" >
+                            <value>
                                 <literal-expression value="1" start-index="56" stop-index="56" />
-                            </parameter>
-                            <parameter>
-                                <literal-expression value="SECOND" start-index="58" stop-index="63" />
-                            </parameter>
-                        </function>
+                            </value>
+                            <interval-unit>SECOND</interval-unit>
+                        </interval-expression>
                     </right>
                 </binary-operation-expression>
             </expr>
@@ -1635,14 +1815,12 @@
                     </left>
                     <operator>-</operator>
                     <right>
-                        <function function-name="INTERVAL" text="INTERVAL" start-index="47" stop-index="54" >
-                            <parameter>
-                                <literal-expression value="1" start-index="56" stop-index="56" />
-                            </parameter>
-                            <parameter>
-                                <literal-expression value="SECOND" start-index="58" stop-index="63" />
-                            </parameter>
-                        </function>
+                        <interval-expression value="interval" start-index="47" stop-index="54" >
+                            <value start-index="56" stop-index="56">
+                                <literal-expression value="1" start-index="56" stop-index="56"/>
+                            </value>
+                            <interval-unit>SECOND</interval-unit>
+                        </interval-expression>
                     </right>
                 </binary-operation-expression>
             </expr>
@@ -1731,7 +1909,7 @@
             </expr>
         </where>
     </select>
-    
+
     <select sql-case-id="select_where_with_simple_expr_with_variable">
         <from start-index="14" stop-index="20">
             <simple-table name="t_order" start-index="14" stop-index="20" />
@@ -1854,9 +2032,14 @@
         </projections>
         <where start-index="22" stop-index="50">
             <expr>
-                <column name="order_id" start-index="35" stop-index="50">
-                    <owner name="t_order" start-index="35" stop-index="41" />
-                </column>
+                <unary-operation-expression text="BINARY t_order.order_id" start-index="28" stop-index="50">
+                    <operator>BINARY</operator>
+                    <expr>
+                        <column name="order_id" start-index="35" stop-index="50">
+                            <owner name="t_order" start-index="35" stop-index="41" />
+                        </column>
+                    </expr>
+                </unary-operation-expression>
             </expr>
         </where>
     </select>
@@ -1878,8 +2061,13 @@
                     </left>
                     <operator>=</operator>
                     <right>
-                        <parameter-marker-expression parameter-index="0" start-index="54" stop-index="54" />
-                        <literal-expression value="1" start-index="54" stop-index="54" />
+                        <unary-operation-expression text="BINARY ?" start-index="47" stop-index="54">
+                            <operator>BINARY</operator>
+                            <expr>
+                                <parameter-marker-expression parameter-index="0" start-index="54" stop-index="54" />
+                                <literal-expression value="1" start-index="54" stop-index="54" />
+                            </expr>
+                        </unary-operation-expression>
                     </right>
                 </binary-operation-expression>
             </expr>
@@ -2109,7 +2297,7 @@
             </expr>
         </where>
     </select>
-    
+
     <select sql-case-id="select_where_with_simple_expr_with_json_contains_and_limit" parameters="1, 0, 1">
         <projections start-index="7" stop-index="28">
             <column-projection name="id" start-index="7" stop-index="8"/>
@@ -2408,6 +2596,18 @@
         </projections>
     </select>
 
+    <select sql-case-id="select_safe_equal">
+        <projections start-index="7" stop-index="13">
+            <expression-projection text="1 &lt;=&gt; 1" start-index="7" stop-index="13" />
+        </projections>
+    </select>
+
+    <select sql-case-id="select_string_concat_with_double_bar">
+        <projections start-index="7" stop-index="16">
+            <expression-projection text="'a' || 'b'" start-index="7" stop-index="16" />
+        </projections>
+    </select>
+
     <select sql-case-id="select_with_abs_function">
         <from>
             <simple-table name="t_order" start-index="19" stop-index="25" />
@@ -2463,7 +2663,7 @@
             </expression-item>
         </order-by>
     </select>
-    
+
     <select sql-case-id="select_with_insert_function">
         <from>
             <simple-table name="t_order" start-index="50" stop-index="56" />
@@ -2616,7 +2816,7 @@
             </expression-projection>
         </projections>
     </select>
-    
+
     <select sql-case-id="select_with_collate_with_marker" parameters="latin1_bin">
         <projections start-index="7" stop-index="7">
             <shorthand-projection start-index="7" stop-index="7" />
@@ -2634,6 +2834,28 @@
                 </collate-expression>
             </expr>
         </where>
+    </select>
+
+    <select sql-case-id="select_returning_expression">
+        <projections start-index="7" stop-index="33">
+            <expression-projection text="'$.a'RETURNINGVARCHAR" start-index="7" stop-index="33">
+                <expr>
+                    <list-expression start-index="7" stop-index="33">
+                        <items>
+                            <literal-expression value="'$.a'" start-index="7" stop-index="11" />
+                        </items>
+                        <items>
+                            <literal-expression value="RETURNING" start-index="13" stop-index="21" />
+                        </items>
+                        <items>
+                            <data-type value="VARCHAR" start-index="23" stop-index="33">
+                                <data-type-length precision="10" start-index="31" stop-index="32" />
+                            </data-type>
+                        </items>
+                    </list-expression>
+                </expr>
+            </expression-projection>
+        </projections>
     </select>
 
     <select sql-case-id="select_age_for_postgres">
@@ -2684,7 +2906,7 @@
             <simple-table name="t_order_item" start-index="51" stop-index="62" />
         </from>
     </select>
-    
+
     <select sql-case-id="select_dbms_logmnr_mine_value_regular_function">
         <projections start-index="7" stop-index="63">
             <expression-projection text="DBMS_LOGMNR.MINE_VALUE(UNDO_VALUE, 'HR.EMPLOYEES.SALARY')" start-index="7" stop-index="63">
@@ -2700,7 +2922,7 @@
             <simple-table name="V$LOGMNR_CONTENTS" start-index="70" stop-index="86" />
         </from>
     </select>
-    
+
     <select sql-case-id="select_interval_day_to_second_expression">
         <projections start-index="7" stop-index="50">
             <expression-projection text="(SYSTIMESTAMP - order_date) DAY(9) TO SECOND" start-index="7" stop-index="50">
@@ -2724,7 +2946,7 @@
             <simple-table name="orders" start-index="57" stop-index="62" />
         </from>
     </select>
-    
+
     <select sql-case-id="select_feature_function">
         <projections start-index="7" stop-index="45">
             <expression-projection text="FEATURE_VALUE(nmf_sh_sample, 3 USING *)" start-index="7" stop-index="45">
@@ -2735,7 +2957,7 @@
             <simple-table name="nmf_sh_sample_apply_prepared" start-index="52" stop-index="79" />
         </from>
     </select>
-    
+
     <select sql-case-id="select_cluster_function">
         <projections start-index="7" stop-index="55">
             <expression-projection text="CLUSTER_PROBABILITY(km_sh_clus_sample, 2 USING *)" start-index="7" stop-index="55">
@@ -2744,6 +2966,17 @@
         </projections>
         <from>
             <simple-table name="mining_data_apply_v" start-index="62" stop-index="80" />
+        </from>
+    </select>
+
+    <select sql-case-id="select_cluster_set_function">
+        <projections start-index="7" stop-index="52">
+            <expression-projection text="CLUSTER_SET(km_sh_clus_sample, 2, 0.1 USING *)" start-index="7" stop-index="52">
+                <function function-name="CLUSTER_SET" text="CLUSTER_SET(km_sh_clus_sample, 2, 0.1 USING *)" />
+            </expression-projection>
+        </projections>
+        <from>
+            <simple-table name="mining_data_apply_v" start-index="59" stop-index="77" />
         </from>
     </select>
 
@@ -2799,7 +3032,7 @@
             <column-item name="customer_id" order-direction="ASC" start-index="116" stop-index="126"/>
         </order-by>
     </select>
-    
+
     <select sql-case-id="select_collect_expression">
         <projections start-index="7" stop-index="92">
             <expression-projection text="CAST(COLLECT(warehouse_name ORDER BY warehouse_name) AS warehouse_name_t)" alias="Warehouses" start-index="7" stop-index="92" literal-start-index="7" literal-stop-index="92">
@@ -2826,7 +3059,7 @@
             <simple-table start-index="99" stop-index="108" name="warehouses" />
         </from>
     </select>
-    
+
     <select sql-case-id="select_expr_dot_expr">
         <projections start-index="7" stop-index="43">
             <expression-projection start-index="7" stop-index="43" text="DBURIType('/HR/DEPARTMENTS').getXML()">
@@ -2845,7 +3078,7 @@
             <simple-table start-index="50" stop-index="53" name="DUAL" />
         </from>
     </select>
-    
+
     <select sql-case-id="select_arrow_symbol_in_function">
         <projections start-index="7" stop-index="103">
             <expression-projection start-index="7" stop-index="103" text="DECODE(DBMS_COMPRESSION.GET_COMPRESSION_TYPE(ownname => 'HR'), 'No Compression')" alias="compression_type">
@@ -2856,7 +3089,7 @@
             <simple-table start-index="110" stop-index="113" name="DUAL" />
         </from>
     </select>
-    
+
     <select sql-case-id="select_prediction_probability_function">
         <projections start-index="7" stop-index="73">
             <expression-projection start-index="7" stop-index="73" text="PREDICTION_PROBABILITY(dt_sh_clas_sample, 1 USING *)" alias="cust_card_prob">
@@ -2880,7 +3113,7 @@
             </expr>
         </where>
     </select>
-    
+
     <select sql-case-id="select_prediction_set_function">
         <projections start-index="7" stop-index="63">
             <expression-projection start-index="7" stop-index="63" text="PREDICTION_SET(dt_sh_clas_sample COST MODEL USING *)" alias="pset">
@@ -2904,7 +3137,7 @@
             </expr>
         </where>
     </select>
-    
+
     <select sql-case-id="select_cursor_function">
         <projections start-index="7" stop-index="100">
             <expression-projection start-index="7" stop-index="100" text="CURSOR(SELECTsalary,commission_pctFROMemployeeseWHEREe.department_id=d.department_id)">
@@ -2915,7 +3148,7 @@
             <simple-table name="departments" alias="d" start-index="107" stop-index="119" />
         </from>
     </select>
-    
+
     <select sql-case-id="select_prediction_bounds_function">
         <projections start-index="7" stop-index="13">
             <column-projection name="cust_id" start-index="7" stop-index="13" />
@@ -2945,7 +3178,7 @@
             </expr>
         </where>
     </select>
-    
+
     <select sql-case-id="select_prediction_function">
         <projections start-index="7" stop-index="17">
             <column-projection name="cust_gender" start-index="7" stop-index="17" />
@@ -2990,7 +3223,7 @@
             </expr>
         </where>
     </select>
-    
+
     <select sql-case-id="select_predict_by_function">
         <projections start-index="7" stop-index="56">
             <expression-projection start-index="7" stop-index="56" text="PREDICT BY point_kmeans (FEATURES position)" alias="pos" />
@@ -3013,7 +3246,44 @@
             </subquery-table>
         </from>
     </select>
-    
+
+    <select sql-case-id="select_nchar_literal_oracle">
+        <projections start-index="7" stop-index="12">
+            <expression-projection text="abc" start-index="7" stop-index="12">
+                <expr>
+                    <literal-expression value="abc" start-index="7" stop-index="12" />
+                </expr>
+            </expression-projection>
+        </projections>
+        <from>
+            <simple-table name="dual" start-index="19" stop-index="22" />
+        </from>
+    </select>
+
+    <select sql-case-id="select_datetime_escape_literal_oracle">
+        <projections start-index="7" stop-index="32">
+            <expression-projection text="{ts '2020-01-01 10:00:00'}" start-index="7" stop-index="32">
+                <expr>
+                    <literal-expression value="2020-01-01 10:00:00" start-index="7" stop-index="32" />
+                </expr>
+            </expression-projection>
+        </projections>
+        <from>
+            <simple-table name="dual" start-index="39" stop-index="42" />
+        </from>
+    </select>
+
+    <select sql-case-id="select_nested_attribute_oracle">
+        <projections start-index="7" stop-index="20">
+            <column-projection name="c.address.city" start-index="7" stop-index="20">
+                <owner name="c" start-index="7" stop-index="7" />
+            </column-projection>
+        </projections>
+        <from>
+            <simple-table name="contacts" alias="c" start-index="27" stop-index="36" />
+        </from>
+    </select>
+
     <select sql-case-id="select_inet_function">
         <projections start-index="7" stop-index="55">
             <expression-projection start-index="7" stop-index="55" alias="RESULT" text="inet '192.168.1.5' = inet '192.168.1.5'">
@@ -3029,7 +3299,7 @@
             </expression-projection>
         </projections>
     </select>
-    
+
     <select sql-case-id="select_inet_function_with_inet_operator">
         <projections start-index="7" stop-index="57">
             <expression-projection start-index="7" stop-index="57" alias="RESULT" text="inet '192.168.1.5' &lt;&lt;= inet '192.168.1.5'">
@@ -3045,7 +3315,7 @@
             </expression-projection>
         </projections>
     </select>
-    
+
     <select sql-case-id="select_ts_rewrite_function">
         <projections start-index="7" stop-index="62">
             <expression-projection start-index="7" stop-index="62" text="ts_rewrite('a &amp; b'::tsquery, 'a'::tsquery, 'c'::tsquery)">
@@ -3053,7 +3323,7 @@
             </expression-projection>
         </projections>
     </select>
-    
+
     <select sql-case-id="select_int_2_function">
         <projections start-index="7" stop-index="16">
             <expression-projection start-index="7" stop-index="16" text="int2(25.3)">
@@ -3061,7 +3331,7 @@
             </expression-projection>
         </projections>
     </select>
-    
+
     <select sql-case-id="select_elem_contained_by_range_function">
         <projections start-index="7" stop-index="53">
             <expression-projection start-index="7" stop-index="53" text="elem_contained_by_range('2', numrange(1.1,2.2))">
@@ -3069,7 +3339,7 @@
             </expression-projection>
         </projections>
     </select>
-    
+
     <select sql-case-id="select_int8range">
         <projections start-index="7" stop-index="50">
             <expression-projection start-index="7" stop-index="50" text="int8range(5,15) * int8range(10,20)" alias="RESULT">
@@ -3085,7 +3355,7 @@
             </expression-projection>
         </projections>
     </select>
-    
+
     <select sql-case-id="select_int4range">
         <projections start-index="7" stop-index="48">
             <expression-projection start-index="7" stop-index="48" text="int4range(2,4) &lt;@ int4range(1,7)" alias="RESULT">
@@ -3101,7 +3371,7 @@
             </expression-projection>
         </projections>
     </select>
-    
+
     <select sql-case-id="select_lower_inf_function">
         <projections start-index="7" stop-index="43">
             <expression-projection start-index="7" stop-index="43" text="lower_inf('(,)'::daterange)" alias="RESULT">
@@ -3109,7 +3379,7 @@
             </expression-projection>
         </projections>
     </select>
-    
+
     <select sql-case-id="select_tsquery">
         <projections start-index="7" stop-index="24">
             <expression-projection start-index="7" stop-index="24" text="'super:*'::tsquery">
@@ -3125,7 +3395,7 @@
             </expression-projection>
         </projections>
     </select>
-    
+
     <select sql-case-id="select_abbrev_function">
         <projections start-index="7" stop-index="42">
             <expression-projection start-index="7" stop-index="42" text="abbrev(cidr '10.1.0.0/16')" alias="RESULT">
@@ -3133,7 +3403,7 @@
             </expression-projection>
         </projections>
     </select>
-    
+
     <select sql-case-id="select_set_masklen_function">
         <projections start-index="7" stop-index="55">
             <expression-projection start-index="7" stop-index="55" text="set_masklen('192.168.1.0/24'::cidr, 16)" alias="RESULT">
@@ -3141,7 +3411,7 @@
             </expression-projection>
         </projections>
     </select>
-    
+
     <select sql-case-id="select_text_inet_function">
         <projections start-index="7" stop-index="40">
             <expression-projection start-index="7" stop-index="40" text="text(inet '192.168.1.5')" alias="RESULT">
@@ -3149,7 +3419,7 @@
             </expression-projection>
         </projections>
     </select>
-    
+
     <select sql-case-id="select_trunc_function">
         <projections start-index="7" stop-index="50">
             <expression-projection start-index="7" stop-index="50" text="trunc(macaddr '12:34:56:78:90:ab')" alias="RESULT">
@@ -3193,21 +3463,486 @@
                     </binary-operation-expression>
                 </expr>
             </expression-projection>
-            <expression-projection start-index="67" stop-index="212" alias="max_size" text="CASEdf.max_sizeWHEN0THEN'Autogrowth is off.'WHEN-1THEN'Autogrowth is on.'ELSE'Log file grows to a maximum size of 2 TB.'END">
+            <expression-projection start-index="67" stop-index="212" alias="max_size" text="CASE df.max_size WHEN 0 THEN 'Autogrowth is off.' WHEN -1 THEN 'Autogrowth is on.' ELSE 'Log file grows to a maximum size of 2 TB.' END">
                 <expr>
-                    <common-expression literal-text="CASEdf.max_sizeWHEN0THEN'Autogrowth is off.'WHEN-1THEN'Autogrowth is on.'ELSE'Log file grows to a maximum size of 2 TB.'END" start-index="78" stop-index="212"/>
+                    <case-when-expression start-index="78" stop-index="212">
+                        <case-expr>
+                            <column name="max_size" start-index="83" stop-index="93">
+                                <owner name="df" start-index="83" stop-index="84" />
+                            </column>
+                        </case-expr>
+                        <when-exprs>
+                            <literal-expression value="0" start-index="100" stop-index="100" />
+                        </when-exprs>
+                        <then-exprs>
+                            <literal-expression value="Autogrowth is off." start-index="107" stop-index="126" />
+                        </then-exprs>
+                        <when-exprs>
+                            <literal-expression value="-1" start-index="133" stop-index="134" />
+                        </when-exprs>
+                        <then-exprs>
+                            <literal-expression value="Autogrowth is on." start-index="141" stop-index="159" />
+                        </then-exprs>
+                        <else-expr>
+                            <literal-expression value="Log file grows to a maximum size of 2 TB." start-index="166" stop-index="208" />
+                        </else-expr>
+                    </case-when-expression>
                 </expr>
             </expression-projection>
-            <expression-projection start-index="215" stop-index="407" alias="growth_value" text="CASEWHENdf.growth=0THENdf.growthWHENdf.growth>0ANDdf.is_percent_growth=0THENdf.growth*1.0/128.0WHENdf.growth>0ANDdf.is_percent_growth=1THENdf.growthEND">
+            <expression-projection start-index="215" stop-index="407" alias="growth_value" text="CASE WHEN df.growth = 0 THEN df.growth WHEN df.growth > 0 AND df.is_percent_growth = 0 THEN df.growth*1.0/128.0 WHEN df.growth > 0 AND df.is_percent_growth = 1 THEN df.growth END">
                 <expr>
-                    <common-expression literal-text="CASEWHENdf.growth=0THENdf.growthWHENdf.growth>0ANDdf.is_percent_growth=0THENdf.growth*1.0/128.0WHENdf.growth>0ANDdf.is_percent_growth=1THENdf.growthEND" start-index="230" stop-index="407"/>
+                    <case-when-expression start-index="230" stop-index="407">
+                        <when-exprs>
+                            <binary-operation-expression start-index="240" stop-index="252">
+                                <left>
+                                    <column name="growth" start-index="240" stop-index="248">
+                                        <owner name="df" start-index="240" stop-index="241" />
+                                    </column>
+                                </left>
+                                <operator>=</operator>
+                                <right>
+                                    <literal-expression value="0" start-index="252" stop-index="252" />
+                                </right>
+                            </binary-operation-expression>
+                        </when-exprs>
+                        <then-exprs>
+                            <column name="growth" start-index="259" stop-index="267">
+                                <owner name="df" start-index="259" stop-index="260" />
+                            </column>
+                        </then-exprs>
+                        <when-exprs>
+                            <binary-operation-expression start-index="274" stop-index="315">
+                                <left>
+                                    <binary-operation-expression start-index="274" stop-index="286">
+                                        <left>
+                                            <column name="growth" start-index="274" stop-index="282">
+                                                <owner name="df" start-index="274" stop-index="275" />
+                                            </column>
+                                        </left>
+                                        <operator>&gt;</operator>
+                                        <right>
+                                            <literal-expression value="0" start-index="286" stop-index="286" />
+                                        </right>
+                                    </binary-operation-expression>
+                                </left>
+                                <operator>AND</operator>
+                                <right>
+                                    <binary-operation-expression start-index="292" stop-index="315">
+                                        <left>
+                                            <column name="is_percent_growth" start-index="292" stop-index="311">
+                                                <owner name="df" start-index="292" stop-index="293" />
+                                            </column>
+                                        </left>
+                                        <operator>=</operator>
+                                        <right>
+                                            <literal-expression value="0" start-index="315" stop-index="315" />
+                                        </right>
+                                    </binary-operation-expression>
+                                </right>
+                            </binary-operation-expression>
+                        </when-exprs>
+                        <then-exprs>
+                            <binary-operation-expression start-index="322" stop-index="340">
+                                <left>
+                                    <binary-operation-expression start-index="322" stop-index="334">
+                                        <left>
+                                            <column name="growth" start-index="322" stop-index="330">
+                                                <owner name="df" start-index="322" stop-index="323" />
+                                            </column>
+                                        </left>
+                                        <operator>*</operator>
+                                        <right>
+                                            <literal-expression value="1.0" start-index="332" stop-index="334" />
+                                        </right>
+                                    </binary-operation-expression>
+                                </left>
+                                <operator>/</operator>
+                                <right>
+                                    <literal-expression value="128.0" start-index="336" stop-index="340" />
+                                </right>
+                            </binary-operation-expression>
+                        </then-exprs>
+                        <when-exprs>
+                            <binary-operation-expression start-index="347" stop-index="388">
+                                <left>
+                                    <binary-operation-expression start-index="347" stop-index="359">
+                                        <left>
+                                            <column name="growth" start-index="347" stop-index="355">
+                                                <owner name="df" start-index="347" stop-index="348" />
+                                            </column>
+                                        </left>
+                                        <operator>&gt;</operator>
+                                        <right>
+                                            <literal-expression value="0" start-index="359" stop-index="359" />
+                                        </right>
+                                    </binary-operation-expression>
+                                </left>
+                                <operator>AND</operator>
+                                <right>
+                                    <binary-operation-expression start-index="365" stop-index="388">
+                                        <left>
+                                            <column name="is_percent_growth" start-index="365" stop-index="384">
+                                                <owner name="df" start-index="365" stop-index="366" />
+                                            </column>
+                                        </left>
+                                        <operator>=</operator>
+                                        <right>
+                                            <literal-expression value="1" start-index="388" stop-index="388" />
+                                        </right>
+                                    </binary-operation-expression>
+                                </right>
+                            </binary-operation-expression>
+                        </when-exprs>
+                        <then-exprs>
+                            <column name="growth" start-index="395" stop-index="403">
+                                <owner name="df" start-index="395" stop-index="396" />
+                            </column>
+                        </then-exprs>
+                    </case-when-expression>
                 </expr>
             </expression-projection>
-            <expression-projection start-index="410" stop-index="644" alias="growth_increment_unit" text="CASEWHENdf.growth=0THEN'Size is fixed.'WHENdf.growth>0ANDdf.is_percent_growth=0THEN'Growth value is MB.'WHENdf.growth>0ANDdf.is_percent_growth=1THEN'Growth value is a percentage.'END">
+            <expression-projection start-index="410" stop-index="644" alias="growth_increment_unit" text="CASE WHEN df.growth = 0 THEN 'Size is fixed.' WHEN df.growth > 0 AND df.is_percent_growth = 0  THEN 'Growth value is MB.' WHEN df.growth > 0 AND df.is_percent_growth = 1  THEN 'Growth value is a percentage.' END">
                 <expr>
-                    <common-expression literal-text="CASEWHENdf.growth=0THEN'Size is fixed.'WHENdf.growth>0ANDdf.is_percent_growth=0THEN'Growth value is MB.'WHENdf.growth>0ANDdf.is_percent_growth=1THEN'Growth value is a percentage.'END" start-index="434" stop-index="644"/>
+                    <case-when-expression start-index="434" stop-index="644">
+                        <when-exprs>
+                            <binary-operation-expression start-index="444" stop-index="456">
+                                <left>
+                                    <column name="growth" start-index="444" stop-index="452">
+                                        <owner name="df" start-index="444" stop-index="445" />
+                                    </column>
+                                </left>
+                                <operator>=</operator>
+                                <right>
+                                    <literal-expression value="0" start-index="456" stop-index="456" />
+                                </right>
+                            </binary-operation-expression>
+                        </when-exprs>
+                        <then-exprs>
+                            <literal-expression value="Size is fixed." start-index="463" stop-index="478" />
+                        </then-exprs>
+                        <when-exprs>
+                            <binary-operation-expression start-index="485" stop-index="526">
+                                <left>
+                                    <binary-operation-expression start-index="485" stop-index="497">
+                                        <left>
+                                            <column name="growth" start-index="485" stop-index="493">
+                                                <owner name="df" start-index="485" stop-index="486" />
+                                            </column>
+                                        </left>
+                                        <operator>&gt;</operator>
+                                        <right>
+                                            <literal-expression value="0" start-index="497" stop-index="497" />
+                                        </right>
+                                    </binary-operation-expression>
+                                </left>
+                                <operator>AND</operator>
+                                <right>
+                                    <binary-operation-expression start-index="503" stop-index="526">
+                                        <left>
+                                            <column name="is_percent_growth" start-index="503" stop-index="522">
+                                                <owner name="df" start-index="503" stop-index="504" />
+                                            </column>
+                                        </left>
+                                        <operator>=</operator>
+                                        <right>
+                                            <literal-expression value="0" start-index="526" stop-index="526" />
+                                        </right>
+                                    </binary-operation-expression>
+                                </right>
+                            </binary-operation-expression>
+                        </when-exprs>
+                        <then-exprs>
+                            <literal-expression value="Growth value is MB." start-index="534" stop-index="554" />
+                        </then-exprs>
+                        <when-exprs>
+                            <binary-operation-expression start-index="561" stop-index="602">
+                                <left>
+                                    <binary-operation-expression start-index="561" stop-index="573">
+                                        <left>
+                                            <column name="growth" start-index="561" stop-index="569">
+                                                <owner name="df" start-index="561" stop-index="562" />
+                                            </column>
+                                        </left>
+                                        <operator>&gt;</operator>
+                                        <right>
+                                            <literal-expression value="0" start-index="573" stop-index="573" />
+                                        </right>
+                                    </binary-operation-expression>
+                                </left>
+                                <operator>AND</operator>
+                                <right>
+                                    <binary-operation-expression start-index="579" stop-index="602">
+                                        <left>
+                                            <column name="is_percent_growth" start-index="579" stop-index="598">
+                                                <owner name="df" start-index="579" stop-index="580" />
+                                            </column>
+                                        </left>
+                                        <operator>=</operator>
+                                        <right>
+                                            <literal-expression value="1" start-index="602" stop-index="602" />
+                                        </right>
+                                    </binary-operation-expression>
+                                </right>
+                            </binary-operation-expression>
+                        </when-exprs>
+                        <then-exprs>
+                            <literal-expression value="Growth value is a percentage." start-index="610" stop-index="640" />
+                        </then-exprs>
+                    </case-when-expression>
                 </expr>
             </expression-projection>
         </projections>
+    </select>
+
+    <select sql-case-id="select_where_equal_any_subquery_mysql">
+        <from start-index="14" stop-index="20">
+            <simple-table name="t_order" start-index="14" stop-index="20" />
+        </from>
+        <projections distinct-row="false" start-index="7" stop-index="7">
+            <shorthand-projection start-index="7" stop-index="7" />
+        </projections>
+        <where start-index="22" stop-index="67">
+            <expr>
+                <binary-operation-expression start-index="28" stop-index="67">
+                    <left>
+                        <column name="amount" start-index="28" stop-index="33" />
+                    </left>
+                    <operator>=</operator>
+                    <right>
+                        <quantify-subquery-expression>
+                            <operator>ANY</operator>
+                            <subquery start-index="41" stop-index="67">
+                                <select>
+                                    <projections distinct-row="false" start-index="49" stop-index="53">
+                                        <column-projection name="price" start-index="49" stop-index="53" />
+                                    </projections>
+                                    <from start-index="55" stop-index="66">
+                                        <simple-table name="t_price" start-index="60" stop-index="66" />
+                                    </from>
+                                </select>
+                            </subquery>
+                        </quantify-subquery-expression>
+                    </right>
+                </binary-operation-expression>
+            </expr>
+        </where>
+    </select>
+
+    <select sql-case-id="select_where_not_equal_all_subquery_mysql">
+        <from start-index="14" stop-index="20">
+            <simple-table name="t_order" start-index="14" stop-index="20" />
+        </from>
+        <projections distinct-row="false" start-index="7" stop-index="7">
+            <shorthand-projection start-index="7" stop-index="7" />
+        </projections>
+        <where start-index="22" stop-index="68">
+            <expr>
+                <binary-operation-expression start-index="28" stop-index="68">
+                    <left>
+                        <column name="amount" start-index="28" stop-index="33" />
+                    </left>
+                    <operator>&lt;&gt;</operator>
+                    <right>
+                        <quantify-subquery-expression>
+                            <operator>ALL</operator>
+                            <subquery start-index="42" stop-index="68">
+                                <select>
+                                    <projections distinct-row="false" start-index="50" stop-index="54">
+                                        <column-projection name="price" start-index="50" stop-index="54" />
+                                    </projections>
+                                    <from start-index="56" stop-index="67">
+                                        <simple-table name="t_price" start-index="61" stop-index="67" />
+                                    </from>
+                                </select>
+                            </subquery>
+                        </quantify-subquery-expression>
+                    </right>
+                </binary-operation-expression>
+            </expr>
+        </where>
+    </select>
+
+    <select sql-case-id="select_where_with_safe_equal_parameter_mysql" parameters="1">
+        <from start-index="14" stop-index="20">
+            <simple-table name="t_order" start-index="14" stop-index="20" />
+        </from>
+        <projections distinct-row="false" start-index="7" stop-index="7">
+            <shorthand-projection start-index="7" stop-index="7" />
+        </projections>
+        <where start-index="22" stop-index="39">
+            <expr>
+                <binary-operation-expression start-index="28" stop-index="39">
+                    <left>
+                        <column name="status" start-index="28" stop-index="33" />
+                    </left>
+                    <operator>&lt;=&gt;</operator>
+                    <right>
+                        <parameter-marker-expression parameter-index="0" start-index="39" stop-index="39" />
+                    </right>
+                </binary-operation-expression>
+            </expr>
+        </where>
+    </select>
+
+    <select sql-case-id="select_where_equal_all_subquery_mysql">
+        <from start-index="14" stop-index="20">
+            <simple-table name="t_order" start-index="14" stop-index="20" />
+        </from>
+        <projections distinct-row="false" start-index="7" stop-index="7">
+            <shorthand-projection start-index="7" stop-index="7" />
+        </projections>
+        <where start-index="22" stop-index="67">
+            <expr>
+                <binary-operation-expression start-index="28" stop-index="67">
+                    <left>
+                        <column name="amount" start-index="28" stop-index="33" />
+                    </left>
+                    <operator>=</operator>
+                    <right>
+                        <quantify-subquery-expression>
+                            <operator>ALL</operator>
+                            <subquery start-index="41" stop-index="67">
+                                <select>
+                                    <projections distinct-row="false" start-index="49" stop-index="53">
+                                        <column-projection name="price" start-index="49" stop-index="53" />
+                                    </projections>
+                                    <from start-index="55" stop-index="66">
+                                        <simple-table name="t_price" start-index="60" stop-index="66" />
+                                    </from>
+                                </select>
+                            </subquery>
+                        </quantify-subquery-expression>
+                    </right>
+                </binary-operation-expression>
+            </expr>
+        </where>
+    </select>
+
+    <select sql-case-id="select_hex_literal_oracle">
+        <projections start-index="7" stop-index="9">
+            <expression-projection text="0x1" start-index="7" stop-index="9">
+                <expr>
+                    <common-expression text="0x1" start-index="7" stop-index="9" />
+                </expr>
+            </expression-projection>
+        </projections>
+        <from>
+            <simple-table name="dual" start-index="16" stop-index="19" />
+        </from>
+    </select>
+
+    <select sql-case-id="select_bit_literal_oracle">
+        <projections start-index="7" stop-index="11">
+            <expression-projection text="0b101" start-index="7" stop-index="11">
+                <expr>
+                    <common-expression text="0b101" start-index="7" stop-index="11" />
+                </expr>
+            </expression-projection>
+        </projections>
+        <from>
+            <simple-table name="dual" start-index="18" stop-index="21" />
+        </from>
+    </select>
+
+    <select sql-case-id="select_binary_prefix_oracle">
+        <projections start-index="7" stop-index="16">
+            <column-projection name="col" start-index="14" stop-index="16" />
+        </projections>
+        <from>
+            <simple-table name="dual" start-index="23" stop-index="26" />
+        </from>
+    </select>
+
+    <select sql-case-id="select_interval_day_to_second_precision_oracle">
+        <projections start-index="7" stop-index="53">
+            <expression-projection text="(SYSTIMESTAMP - order_date) DAY(2) TO SECOND(3)" start-index="7" stop-index="53">
+                <function>
+                    <interval-expression start-index="8" stop-index="53">
+                        <left>
+                            <column name="SYSTIMESTAMP" start-index="8" stop-index="19" />
+                        </left>
+                        <operator>-</operator>
+                        <right>
+                            <column name="order_date" start-index="23" stop-index="32" />
+                        </right>
+                        <interval-day-to-second-expr start-index="35" stop-index="53">
+                            <day>DAY</day>
+                            <to>TO</to>
+                            <second>SECOND</second>
+                            <leading-field-precision>2</leading-field-precision>
+                            <fractional-second-precision>3</fractional-second-precision>
+                        </interval-day-to-second-expr>
+                    </interval-expression>
+                </function>
+            </expression-projection>
+        </projections>
+        <from>
+            <simple-table name="orders" start-index="60" stop-index="65" />
+        </from>
+    </select>
+
+    <select sql-case-id="select_interval_year_to_month_precision_oracle">
+        <projections start-index="7" stop-index="47">
+            <expression-projection text="(hire_date - start_date) YEAR(3) TO MONTH" start-index="7" stop-index="47">
+                <function>
+                    <interval-expression start-index="8" stop-index="47">
+                        <left>
+                            <column name="hire_date" start-index="8" stop-index="16" />
+                        </left>
+                        <operator>-</operator>
+                        <right>
+                            <column name="start_date" start-index="20" stop-index="29" />
+                        </right>
+                        <interval-year-to-month-expr start-index="32" stop-index="47">
+                            <year>YEAR</year>
+                            <to>TO</to>
+                            <month>MONTH</month>
+                            <leading-field-precision>3</leading-field-precision>
+                        </interval-year-to-month-expr>
+                    </interval-expression>
+                </function>
+            </expression-projection>
+        </projections>
+        <from>
+            <simple-table name="employees" start-index="54" stop-index="62" />
+        </from>
+    </select>
+
+    <select sql-case-id="select_window_funnel_doris">
+        <projections start-index="7" stop-index="63">
+            <column-projection name="k" start-index="7" stop-index="7" />
+            <expression-projection text="WINDOW_FUNNEL(300, 'default', v, k = 'login')" start-index="10" stop-index="63" alias="level">
+                <expr>
+                    <function function-name="WINDOW_FUNNEL" start-index="10" stop-index="54" text="WINDOW_FUNNEL(300, 'default', v, k = 'login')">
+                        <parameter>
+                            <literal-expression start-index="24" stop-index="26" value="300" />
+                        </parameter>
+                        <parameter>
+                            <literal-expression start-index="29" stop-index="37" value="default" />
+                        </parameter>
+                        <parameter>
+                            <column name="v" start-index="40" stop-index="40" />
+                        </parameter>
+                        <parameter>
+                            <binary-operation-expression start-index="43" stop-index="53">
+                                <left>
+                                    <column name="k" start-index="43" stop-index="43" />
+                                </left>
+                                <operator>=</operator>
+                                <right>
+                                    <literal-expression start-index="47" stop-index="53" value="login" />
+                                </right>
+                            </binary-operation-expression>
+                        </parameter>
+                    </function>
+                </expr>
+            </expression-projection>
+        </projections>
+        <from>
+            <simple-table name="t_order" start-index="70" stop-index="76" />
+        </from>
+        <group-by>
+            <column-item name="k" start-index="87" stop-index="87" />
+        </group-by>
     </select>
 </sql-parser-test-cases>

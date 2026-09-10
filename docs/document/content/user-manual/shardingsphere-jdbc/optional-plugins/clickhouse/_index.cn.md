@@ -17,19 +17,14 @@ ShardingSphere 对 ClickHouse JDBC Driver 的支持位于可选模块中。
 <dependencies>
     <dependency>
         <groupId>org.apache.shardingsphere</groupId>
-        <artifactId>shardingsphere-jdbc</artifactId>
-        <version>${shardingsphere.version}</version>
-    </dependency>
-    <dependency>
-        <groupId>org.apache.shardingsphere</groupId>
-        <artifactId>shardingsphere-parser-sql-clickhouse</artifactId>
+        <artifactId>shardingsphere-jdbc-dialect-clickhouse</artifactId>
         <version>${shardingsphere.version}</version>
     </dependency>
     <dependency>
         <groupId>com.clickhouse</groupId>
         <artifactId>clickhouse-jdbc</artifactId>
-        <classifier>http</classifier>
-        <version>0.6.3</version>
+        <classifier>all</classifier>
+        <version>0.9.8</version>
     </dependency>
 </dependencies>
 ```
@@ -43,7 +38,9 @@ ShardingSphere 对 ClickHouse JDBC Driver 的支持位于可选模块中。
 ```yaml
 services:
   clickhouse-server:
-    image: clickhouse/clickhouse-server:24.11.1.2557
+    image: clickhouse/clickhouse-server:26.6.1.1193
+    environment:
+      CLICKHOUSE_SKIP_USER_SETUP: "1"
     ports:
       - "8123:8123"
 ```
@@ -51,11 +48,11 @@ services:
 ### 创建业务表
 
 通过第三方工具在 ClickHouse 内创建业务库与业务表。
-以 DBeaver Community 为例，若使用 Ubuntu 22.04.4，可通过 Snapcraft 快速安装，
+以 DBeaver Community 为例，若使用 Ubuntu 24.04，可通过 Snapcraft 快速安装，
 
 ```shell
 sudo apt update && sudo apt upgrade -y
-sudo snap install dbeaver-ce
+sudo snap install dbeaver-ce --classic
 snap run dbeaver-ce
 ```
 
@@ -90,7 +87,42 @@ TRUNCATE TABLE t_order;
 
 ### 在业务项目创建 ShardingSphere 数据源
 
-在业务项目引入`前提条件`涉及的依赖后，在业务项目的 classpath 上编写 ShardingSphere 数据源的配置文件`demo.yaml`，
+在业务项目引入`前提条件`涉及的依赖后，额外引入如下依赖，
+
+```xml
+<dependency>
+    <groupId>org.apache.shardingsphere</groupId>
+    <artifactId>shardingsphere-jdbc</artifactId>
+    <version>${shardingsphere.version}</version>
+</dependency>
+<dependency>
+    <groupId>org.apache.shardingsphere</groupId>
+    <artifactId>shardingsphere-infra-data-source-pool-hikari</artifactId>
+    <version>${shardingsphere.version}</version>
+</dependency>
+<dependency>
+    <groupId>org.apache.shardingsphere</groupId>
+    <artifactId>shardingsphere-infra-url-classpath</artifactId>
+    <version>${shardingsphere.version}</version>
+</dependency>
+<dependency>
+    <groupId>org.apache.shardingsphere</groupId>
+    <artifactId>shardingsphere-standalone-mode-repository-memory</artifactId>
+    <version>${shardingsphere.version}</version>
+</dependency>
+<dependency>
+    <groupId>org.apache.shardingsphere</groupId>
+    <artifactId>shardingsphere-sharding-core</artifactId>
+    <version>${shardingsphere.version}</version>
+</dependency>
+<dependency>
+    <groupId>org.apache.shardingsphere</groupId>
+    <artifactId>shardingsphere-authority-simple</artifactId>
+    <version>${shardingsphere.version}</version>
+</dependency>
+```
+
+在业务项目的 classpath 上编写 ShardingSphere 数据源的配置文件 `demo.yaml`，
 
 ```yaml
 dataSources:
@@ -116,14 +148,17 @@ rules:
 - !SHARDING
     tables:
       t_order:
-        actualDataNodes:
-        keyGenerateStrategy:
-          column: order_id
-          keyGeneratorName: snowflake
+        actualDataNodes: <LITERAL>ds_0.t_order, ds_1.t_order, ds_2.t_order
     defaultDatabaseStrategy:
       standard:
         shardingColumn: user_id
         shardingAlgorithmName: inline
+    keyGenerateStrategies:
+      t_order_order_id:
+        keyGenerateType: column
+        keyGeneratorName: snowflake
+        logicTable: t_order
+        keyGenerateColumn: order_id
     shardingAlgorithms:
       inline:
         type: INLINE
@@ -154,7 +189,7 @@ public class ExampleUtils {
              Statement statement = connection.createStatement()) {
             statement.execute("INSERT INTO t_order (user_id, order_type, address_id, status) VALUES (1, 1, 1, 'INSERT_TEST')");
             statement.executeQuery("SELECT * FROM t_order");
-            statement.execute("alter table t_order delete where order_id=1");
+            statement.execute("alter table t_order delete where user_id=1");
         }
     }
 }
@@ -165,24 +200,14 @@ public class ExampleUtils {
 ### SQL 限制
 
 ShardingSphere JDBC DataSource 尚不支持执行 ClickHouse 的 `create table`，`truncate table` 和 `drop table` 语句。
-用户应考虑为 ShardingSphere 提交包含单元测试的 PR。
+当前 ShardingSphere 对 ClickHouse 的 `INNER JOIN` 语法解析存在不足，
+对 `SELECT i.* FROM t_order o, t_order_item i WHERE o.order_id = i.order_id` 这类 SQL，它可能返回错误的查询结果。
 
 ### 分布式序列限制
 
-ClickHouse 自身的，对应分布式序列功能的列类型是 `UUID`，`UUID` 在 ClickHouse JDBC Driver 中接收为 `java.util.UUID`，
-参考 https://github.com/ClickHouse/ClickHouse/issues/56228 。 
-而 ShardingSphere 的 `SNOWFLAKE` 的分布式序列 SPI 实现对应的列类型是 `UInt64`，
-在 ShardingSphere JDBC Driver 中接收为 `java.lang.Long`。
-
-当为 ShardingSphere 配置连接至 ClickHouse 时， 若同时配置了 ShardingSphere 使用 `SNOWFLAKE` 的分布式序列 SPI 实现，
-ShardingSphere 的分布式序列功能使用的 ClickHouse 真实数据库中的列类型不应该被设置为 `UUID`。
-
-由于 `com.clickhouse:clickhouse-jdbc:0.6.3:http` Maven 模块的 `com.clickhouse.jdbc.ClickHouseConnection#prepareStatement(String, int)`
-故意在 `autoGeneratedKeys` 为 `java.sql.Statement.RETURN_GENERATED_KEYS` 时抛出异常，
-以阻止 ShardingSphere 正常代理 `com.clickhouse.jdbc.internal.ClickHouseConnectionImpl`，
-因此如果用户需要从 JDBC 业务代码获取 ShardingSphere 生成的分布式序列，需要将 `autoGeneratedKeys` 置为 `java.sql.Statement.NO_GENERATED_KEYS`。
-
-一个可能的示例如下，
+受 https://github.com/ClickHouse/ClickHouse/issues/21697 影响，
+由于 ClickHouse 不支持 `INSERT ... RETURNING` 语法，
+开发者无法在向 ShardingSphere 的逻辑数据源执行 `INSERT` SQL 后获得分布式序列。即，如下操作是不允许的，
 
 ```java
 import com.zaxxer.hikari.HikariConfig;
@@ -197,7 +222,7 @@ public class ExampleTest {
              Connection connection = dataSource.getConnection();
              PreparedStatement preparedStatement = connection.prepareStatement(
                      "INSERT INTO t_order (user_id, order_type, address_id, status) VALUES (1, 1, 1, 'INSERT_TEST')",
-                     Statement.NO_GENERATED_KEYS
+                     Statement.RETURN_GENERATED_KEYS
              )) {
             preparedStatement.executeUpdate();
             try (ResultSet resultSet = preparedStatement.getGeneratedKeys()) {

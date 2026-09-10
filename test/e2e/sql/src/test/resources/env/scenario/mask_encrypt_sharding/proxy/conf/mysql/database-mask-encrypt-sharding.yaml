@@ -20,8 +20,9 @@ databaseName: mask_encrypt_sharding
 dataSources:
   mask_encrypt_ds_0:
     url: jdbc:mysql://mysql.mask_encrypt_sharding.host:3306/mask_encrypt_ds_0?useSSL=false&characterEncoding=utf-8
+    driverClassName: com.mysql.cj.jdbc.Driver
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
@@ -29,84 +30,93 @@ dataSources:
     minPoolSize: 2
   mask_encrypt_ds_1:
     url: jdbc:mysql://mysql.mask_encrypt_sharding.host:3306/mask_encrypt_ds_1?useSSL=false&characterEncoding=utf-8
+    driverClassName: com.mysql.cj.jdbc.Driver
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   mask_encrypt_ds_2:
     url: jdbc:mysql://mysql.mask_encrypt_sharding.host:3306/mask_encrypt_ds_2?useSSL=false&characterEncoding=utf-8
+    driverClassName: com.mysql.cj.jdbc.Driver
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   mask_encrypt_ds_3:
     url: jdbc:mysql://mysql.mask_encrypt_sharding.host:3306/mask_encrypt_ds_3?useSSL=false&characterEncoding=utf-8
+    driverClassName: com.mysql.cj.jdbc.Driver
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   mask_encrypt_ds_4:
     url: jdbc:mysql://mysql.mask_encrypt_sharding.host:3306/mask_encrypt_ds_4?useSSL=false&characterEncoding=utf-8
+    driverClassName: com.mysql.cj.jdbc.Driver
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   mask_encrypt_ds_5:
     url: jdbc:mysql://mysql.mask_encrypt_sharding.host:3306/mask_encrypt_ds_5?useSSL=false&characterEncoding=utf-8
+    driverClassName: com.mysql.cj.jdbc.Driver
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   mask_encrypt_ds_6:
     url: jdbc:mysql://mysql.mask_encrypt_sharding.host:3306/mask_encrypt_ds_6?useSSL=false&characterEncoding=utf-8
+    driverClassName: com.mysql.cj.jdbc.Driver
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   mask_encrypt_ds_7:
     url: jdbc:mysql://mysql.mask_encrypt_sharding.host:3306/mask_encrypt_ds_7?useSSL=false&characterEncoding=utf-8
+    driverClassName: com.mysql.cj.jdbc.Driver
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   mask_encrypt_ds_8:
     url: jdbc:mysql://mysql.mask_encrypt_sharding.host:3306/mask_encrypt_ds_8?useSSL=false&characterEncoding=utf-8
+    driverClassName: com.mysql.cj.jdbc.Driver
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   mask_encrypt_ds_9:
     url: jdbc:mysql://mysql.mask_encrypt_sharding.host:3306/mask_encrypt_ds_9?useSSL=false&characterEncoding=utf-8
+    driverClassName: com.mysql.cj.jdbc.Driver
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
 
 rules:

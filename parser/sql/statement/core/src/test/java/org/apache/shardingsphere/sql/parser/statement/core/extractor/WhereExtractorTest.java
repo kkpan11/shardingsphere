@@ -23,21 +23,24 @@ import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.Bina
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.subquery.SubquerySegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.item.ProjectionsSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.item.SubqueryProjectionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.predicate.HierarchicalQuerySegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.predicate.WhereSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.JoinTableSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.SimpleTableSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.SubqueryTableSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.TableNameSegment;
-import org.apache.shardingsphere.sql.parser.statement.core.statement.dml.SelectStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.type.dml.SelectStatement;
 import org.apache.shardingsphere.sql.parser.statement.core.value.identifier.IdentifierValue;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.Optional;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -64,14 +67,14 @@ class WhereExtractorTest {
     
     @Test
     void assertExtractSubqueryWhereSegmentsFromSubqueryTableSegment() {
-        SelectStatement subQuerySelectStatement = mock(SelectStatement.class);
+        SelectStatement subQuerySelectStatement = mockSelectStatement();
         ColumnSegment left = new ColumnSegment(41, 48, new IdentifierValue("order_id"));
         ColumnSegment right = new ColumnSegment(52, 62, new IdentifierValue("order_id"));
         WhereSegment where = new WhereSegment(35, 62, new BinaryOperationExpression(41, 62, left, right, "=", "order_id = oi.order_id"));
         when(subQuerySelectStatement.getWhere()).thenReturn(Optional.of(where));
         ProjectionsSegment projections = new ProjectionsSegment(7, 79);
         projections.getProjections().add(new SubqueryProjectionSegment(new SubquerySegment(7, 63, subQuerySelectStatement, ""), "(SELECT status FROM t_order WHERE order_id = oi.order_id)"));
-        SelectStatement selectStatement = mock(SelectStatement.class);
+        SelectStatement selectStatement = mockSelectStatement();
         when(selectStatement.getProjections()).thenReturn(projections);
         Collection<WhereSegment> subqueryWhereSegments = WhereExtractor.extractSubqueryWhereSegments(selectStatement);
         WhereSegment actual = subqueryWhereSegments.iterator().next();
@@ -81,18 +84,52 @@ class WhereExtractorTest {
     
     @Test
     void assertGetWhereSegmentsFromSubQueryJoin() {
-        JoinTableSegment joinTableSegment = new JoinTableSegment();
-        joinTableSegment.setLeft(new SimpleTableSegment(new TableNameSegment(37, 39, new IdentifierValue("t_order"))));
-        joinTableSegment.setRight(new SimpleTableSegment(new TableNameSegment(54, 56, new IdentifierValue("t_order_item"))));
-        joinTableSegment.setJoinType("INNER");
-        joinTableSegment.setCondition(new BinaryOperationExpression(63, 83, new ColumnSegment(63, 71, new IdentifierValue("order_id")),
-                new ColumnSegment(75, 83, new IdentifierValue("order_id")), "=", "oi.order_id = o.order_id"));
-        SelectStatement subQuerySelectStatement = mock(SelectStatement.class);
+        JoinTableSegment joinTableSegment = createJoinTableSegment();
+        SelectStatement subQuerySelectStatement = mockSelectStatement();
         when(subQuerySelectStatement.getFrom()).thenReturn(Optional.of(joinTableSegment));
-        SelectStatement selectStatement = mock(SelectStatement.class);
+        SelectStatement selectStatement = mockSelectStatement();
         when(selectStatement.getFrom()).thenReturn(Optional.of(new SubqueryTableSegment(0, 0, new SubquerySegment(20, 84, subQuerySelectStatement, ""))));
         Collection<WhereSegment> subqueryWhereSegments = WhereExtractor.extractSubqueryWhereSegments(selectStatement);
         WhereSegment actual = subqueryWhereSegments.iterator().next();
         assertThat(actual.getExpr(), is(joinTableSegment.getCondition()));
+    }
+    
+    @Test
+    void assertExtractHierarchicalQueryWhereSegments() {
+        HierarchicalQuerySegment hierarchicalQuerySegment = new HierarchicalQuerySegment(35, 91);
+        BinaryOperationExpression startWith = createBinaryOperationExpression("parent_extend_id", 46, 61, "null", 66, 69);
+        BinaryOperationExpression connectBy = createBinaryOperationExpression("extend_id", 88, 96, "parent_extend_id", 100, 115);
+        hierarchicalQuerySegment.setStartWith(startWith);
+        hierarchicalQuerySegment.setConnectBy(connectBy);
+        SelectStatement selectStatement = mockSelectStatement();
+        when(selectStatement.getHierarchicalQuery()).thenReturn(Optional.of(hierarchicalQuerySegment));
+        Collection<WhereSegment> actual = WhereExtractor.extractHierarchicalQueryWhereSegments(selectStatement);
+        assertThat(actual.size(), is(2));
+        Iterator<WhereSegment> iterator = actual.iterator();
+        assertThat(iterator.next().getExpr(), is(startWith));
+        assertThat(iterator.next().getExpr(), is(connectBy));
+    }
+    
+    private SelectStatement mockSelectStatement() {
+        SelectStatement result = mock(SelectStatement.class);
+        when(result.withSubqueryType(any())).thenReturn(result);
+        when(result.getHierarchicalQuery()).thenReturn(Optional.empty());
+        return result;
+    }
+    
+    private BinaryOperationExpression createBinaryOperationExpression(final String leftColumnName, final int leftStartIndex, final int leftStopIndex,
+                                                                      final String rightColumnName, final int rightStartIndex, final int rightStopIndex) {
+        return new BinaryOperationExpression(leftStartIndex, rightStopIndex, new ColumnSegment(leftStartIndex, leftStopIndex, new IdentifierValue(leftColumnName)),
+                new ColumnSegment(rightStartIndex, rightStopIndex, new IdentifierValue(rightColumnName)), "=", leftColumnName + " = " + rightColumnName);
+    }
+    
+    private JoinTableSegment createJoinTableSegment() {
+        JoinTableSegment result = new JoinTableSegment();
+        result.setLeft(new SimpleTableSegment(new TableNameSegment(37, 39, new IdentifierValue("t_order"))));
+        result.setRight(new SimpleTableSegment(new TableNameSegment(54, 56, new IdentifierValue("t_order_item"))));
+        result.setJoinType("INNER");
+        result.setCondition(new BinaryOperationExpression(63, 83, new ColumnSegment(63, 71, new IdentifierValue("order_id")),
+                new ColumnSegment(75, 83, new IdentifierValue("order_id")), "=", "oi.order_id = o.order_id"));
+        return result;
     }
 }

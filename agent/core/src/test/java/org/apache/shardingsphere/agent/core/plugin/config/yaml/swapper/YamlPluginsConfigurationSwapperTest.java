@@ -35,14 +35,19 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class YamlPluginsConfigurationSwapperTest {
     
     private static final String CONFIG_PATH = "/conf/agent.yaml";
+    
+    @Test
+    void assertSwapWithNullPluginCategory() {
+        assertTrue(YamlPluginsConfigurationSwapper.swap(new YamlAgentConfiguration()).isEmpty());
+    }
     
     @Test
     void assertSwapWithNullPlugins() {
@@ -79,6 +84,33 @@ class YamlPluginsConfigurationSwapperTest {
         assertLogFixturePluginConfiguration(actual.get("log_fixture"));
         assertMetricsPluginConfiguration(actual.get("metrics_fixture"));
         assertTracingPluginConfiguration(actual.get("tracing_fixture"));
+    }
+    
+    @Test
+    void assertSwapWithNullLoggingPlugins() {
+        YamlPluginCategoryConfiguration yamlPluginCategoryConfig = new YamlPluginCategoryConfiguration();
+        yamlPluginCategoryConfig.setLogging(null);
+        yamlPluginCategoryConfig.setMetrics(Collections.singletonMap("metrics_fixture", createYamlPluginConfiguration("localhost", "random", 8081, createProperties())));
+        YamlAgentConfiguration yamlAgentConfig = new YamlAgentConfiguration();
+        yamlAgentConfig.setPlugins(yamlPluginCategoryConfig);
+        Map<String, PluginConfiguration> actual = YamlPluginsConfigurationSwapper.swap(yamlAgentConfig);
+        assertThat(actual.size(), is(1));
+        assertMetricsPluginConfiguration(actual.get("metrics_fixture"));
+    }
+    
+    @Test
+    void assertSwapWithNullPluginConfigurationValue() {
+        YamlPluginCategoryConfiguration yamlPluginCategoryConfig = new YamlPluginCategoryConfiguration();
+        yamlPluginCategoryConfig.setLogging(Collections.singletonMap("log_fixture", null));
+        YamlAgentConfiguration yamlAgentConfig = new YamlAgentConfiguration();
+        yamlAgentConfig.setPlugins(yamlPluginCategoryConfig);
+        Map<String, PluginConfiguration> actual = YamlPluginsConfigurationSwapper.swap(yamlAgentConfig);
+        assertThat(actual.size(), is(1));
+        PluginConfiguration actualLogFixtureConfig = actual.get("log_fixture");
+        assertNull(actualLogFixtureConfig.getHost());
+        assertNull(actualLogFixtureConfig.getPassword());
+        assertThat(actualLogFixtureConfig.getPort(), is(0));
+        assertTrue(actualLogFixtureConfig.getProps().isEmpty());
     }
     
     @Test
@@ -123,7 +155,7 @@ class YamlPluginsConfigurationSwapperTest {
     
     private Properties createProperties() {
         Properties result = new Properties();
-        result.put("key", "value");
+        result.setProperty("key", "value");
         return result;
     }
     

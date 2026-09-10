@@ -17,8 +17,8 @@
 
 package org.apache.shardingsphere.infra.exception.kernel.metadata;
 
-import org.apache.shardingsphere.infra.exception.core.external.sql.sqlstate.XOpenSQLState;
-import org.apache.shardingsphere.infra.exception.core.external.sql.type.kernel.category.MetaDataSQLException;
+import org.apache.shardingsphere.infra.exception.external.sql.sqlstate.XOpenSQLState;
+import org.apache.shardingsphere.infra.exception.external.sql.type.kernel.category.MetaDataSQLException;
 
 /**
  * Duplicate index exception.
@@ -28,6 +28,6 @@ public final class DuplicateIndexException extends MetaDataSQLException {
     private static final long serialVersionUID = 1463379993377506978L;
     
     public DuplicateIndexException(final String indexName) {
-        super(XOpenSQLState.DUPLICATE, 5, "Index '%s' already exists.", indexName);
+        super(XOpenSQLState.DUPLICATE, 14, "Index '%s' already exists.", indexName);
     }
 }

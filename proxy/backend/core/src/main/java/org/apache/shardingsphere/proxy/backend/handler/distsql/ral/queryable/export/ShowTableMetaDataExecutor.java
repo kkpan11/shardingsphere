@@ -20,8 +20,7 @@ package org.apache.shardingsphere.proxy.backend.handler.distsql.ral.queryable.ex
 import lombok.Setter;
 import org.apache.shardingsphere.distsql.handler.aware.DistSQLExecutorDatabaseAware;
 import org.apache.shardingsphere.distsql.handler.engine.query.DistSQLQueryExecutor;
-import org.apache.shardingsphere.distsql.statement.ral.queryable.show.ShowTableMetaDataStatement;
-import org.apache.shardingsphere.infra.database.core.type.DatabaseTypeRegistry;
+import org.apache.shardingsphere.distsql.statement.type.ral.queryable.show.ShowTableMetaDataStatement;
 import org.apache.shardingsphere.infra.merge.result.impl.local.LocalDataQueryResultRow;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereColumn;
@@ -29,9 +28,11 @@ import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSp
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereSchema;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereTable;
 import org.apache.shardingsphere.mode.manager.ContextManager;
+import org.apache.shardingsphere.sql.parser.statement.core.value.identifier.IdentifierValue;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.stream.Collectors;
 
@@ -50,17 +51,16 @@ public final class ShowTableMetaDataExecutor implements DistSQLQueryExecutor<Sho
     
     @Override
     public Collection<LocalDataQueryResultRow> getRows(final ShowTableMetaDataStatement sqlStatement, final ContextManager contextManager) {
-        String defaultSchema = new DatabaseTypeRegistry(database.getProtocolType()).getDefaultSchemaName(database.getName());
-        ShardingSphereSchema schema = database.getSchema(defaultSchema);
-        return sqlStatement.getTableNames().stream()
-                .filter(schema::containsTable).map(each -> buildTableRows(database.getName(), schema, each)).flatMap(Collection::stream).collect(Collectors.toList());
+        return database.findDefaultSchema().map(schema -> sqlStatement.getTableNames().stream()
+                .filter(schema::containsTable).map(each -> buildTableRows(database.getName(), schema, each)).flatMap(Collection::stream).collect(Collectors.toList()))
+                .orElseGet(Collections::emptyList);
     }
     
-    private Collection<LocalDataQueryResultRow> buildTableRows(final String databaseName, final ShardingSphereSchema schema, final String tableName) {
+    private Collection<LocalDataQueryResultRow> buildTableRows(final String databaseName, final ShardingSphereSchema schema, final IdentifierValue tableName) {
         Collection<LocalDataQueryResultRow> result = new LinkedList<>();
         ShardingSphereTable table = schema.getTable(tableName);
-        result.addAll(table.getAllColumns().stream().map(each -> buildColumnRow(databaseName, tableName, each)).collect(Collectors.toList()));
-        result.addAll(table.getAllIndexes().stream().map(each -> buildIndexRow(databaseName, tableName, each)).collect(Collectors.toList()));
+        result.addAll(table.getAllColumns().stream().map(each -> buildColumnRow(databaseName, table.getName(), each)).collect(Collectors.toList()));
+        result.addAll(table.getAllIndexes().stream().map(each -> buildIndexRow(databaseName, table.getName(), each)).collect(Collectors.toList()));
         return result;
     }
     

@@ -17,12 +17,14 @@
 
 package org.apache.shardingsphere.sharding.route.engine.condition.engine;
 
+import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
+import org.apache.shardingsphere.database.exception.core.exception.data.InsertColumnsAndValuesMismatchedException;
+import org.apache.shardingsphere.infra.algorithm.core.context.AlgorithmSQLContext;
 import org.apache.shardingsphere.infra.binder.context.segment.insert.keygen.GeneratedKeyContext;
 import org.apache.shardingsphere.infra.binder.context.segment.insert.values.InsertSelectContext;
 import org.apache.shardingsphere.infra.binder.context.segment.insert.values.InsertValueContext;
-import org.apache.shardingsphere.infra.binder.context.statement.dml.InsertStatementContext;
-import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
-import org.apache.shardingsphere.infra.exception.dialect.exception.data.InsertColumnsAndValuesMismatchedException;
+import org.apache.shardingsphere.infra.binder.context.statement.type.dml.InsertStatementContext;
+import org.apache.shardingsphere.infra.exception.kernel.metadata.SchemaNotFoundException;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereSchema;
 import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
@@ -34,7 +36,7 @@ import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.simp
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.simple.ParameterMarkerExpressionSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.SimpleTableSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.TableNameSegment;
-import org.apache.shardingsphere.sql.parser.statement.core.statement.dml.InsertStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.type.dml.InsertStatement;
 import org.apache.shardingsphere.sql.parser.statement.core.value.identifier.IdentifierValue;
 import org.apache.shardingsphere.timeservice.config.TimestampServiceRuleConfiguration;
 import org.apache.shardingsphere.timeservice.core.rule.TimestampServiceRule;
@@ -54,14 +56,17 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -79,30 +84,32 @@ class InsertClauseShardingConditionEngineTest {
     @BeforeEach
     void setUp() {
         ShardingSphereDatabase database = mockDatabase();
-        InsertStatement insertStatement = mockInsertStatement();
+        InsertStatement insertStatement = createInsertStatement();
         shardingConditionEngine = new InsertClauseShardingConditionEngine(database, rule, new TimestampServiceRule(new TimestampServiceRuleConfiguration("System", new Properties())));
         when(insertStatementContext.getSqlStatement()).thenReturn(insertStatement);
         when(insertStatementContext.getColumnNames()).thenReturn(Arrays.asList("foo_col_1", "foo_col_3"));
         when(insertStatementContext.getInsertValueContexts()).thenReturn(Collections.singletonList(createInsertValueContext()));
         when(insertStatementContext.getInsertSelectContext()).thenReturn(null);
-        when(insertStatementContext.getDatabaseType()).thenReturn(TypedSPILoader.getService(DatabaseType.class, "FIXTURE"));
         when(insertStatementContext.getTablesContext().getSchemaName()).thenReturn(Optional.empty());
     }
     
     private ShardingSphereDatabase mockDatabase() {
         ShardingSphereDatabase result = mock(ShardingSphereDatabase.class);
+        IdentifierValue fooTable = new IdentifierValue("foo_tbl");
         when(result.getName()).thenReturn("foo_db");
         ShardingSphereSchema schema = mock(ShardingSphereSchema.class, RETURNS_DEEP_STUBS);
         when(schema.containsTable("foo_tbl")).thenReturn(true);
+        when(schema.containsTable(fooTable)).thenReturn(true);
         when(schema.getTable("foo_tbl").findColumnNamesIfNotExistedFrom(new LinkedHashSet<>(Arrays.asList("foo_col_1", "foo_col_3")))).thenReturn(Collections.singleton("foo_col_2"));
-        when(result.getSchema("foo_db")).thenReturn(schema);
+        when(schema.getTable(fooTable).findColumnNamesIfNotExistedFrom(new LinkedHashSet<>(Arrays.asList("foo_col_1", "foo_col_3")))).thenReturn(Collections.singleton("foo_col_2"));
+        when(result.findDefaultSchema()).thenReturn(Optional.of(schema));
+        when(result.getDefaultSchemaName()).thenReturn("foo_default_schema");
         return result;
     }
     
-    private InsertStatement mockInsertStatement() {
-        InsertStatement result = mock(InsertStatement.class);
-        when(result.getTable()).thenReturn(Optional.of(new SimpleTableSegment(new TableNameSegment(0, 0, new IdentifierValue("foo_tbl")))));
-        return result;
+    private InsertStatement createInsertStatement() {
+        return InsertStatement.builder().databaseType(TypedSPILoader.getService(DatabaseType.class, "FIXTURE"))
+                .table(new SimpleTableSegment(new TableNameSegment(0, 0, new IdentifierValue("foo_tbl")))).build();
     }
     
     private InsertValueContext createInsertValueContext() {
@@ -155,6 +162,15 @@ class InsertClauseShardingConditionEngineTest {
     }
     
     @Test
+    void assertCreateShardingConditionsWithoutDefaultSchema() {
+        ShardingSphereDatabase database = mock(ShardingSphereDatabase.class);
+        when(database.getDefaultSchemaName()).thenReturn("foo_default_schema");
+        InsertClauseShardingConditionEngine engine = new InsertClauseShardingConditionEngine(
+                database, rule, new TimestampServiceRule(new TimestampServiceRuleConfiguration("System", new Properties())));
+        assertThrows(SchemaNotFoundException.class, () -> engine.createShardingConditions(insertStatementContext, Collections.emptyList()));
+    }
+    
+    @Test
     void assertCreateShardingConditionsInsertStatementWithGeneratedKeyContext() {
         when(insertStatementContext.getGeneratedKeyContext()).thenReturn(Optional.of(mock(GeneratedKeyContext.class)));
         List<ShardingCondition> shardingConditions = shardingConditionEngine.createShardingConditions(insertStatementContext, Collections.emptyList());
@@ -173,6 +189,7 @@ class InsertClauseShardingConditionEngineTest {
         List<ShardingCondition> shardingConditions = shardingConditionEngine.createShardingConditions(insertStatementContext, Collections.emptyList());
         assertThat(shardingConditions.get(0).getStartIndex(), is(0));
         assertFalse(shardingConditions.get(0).getValues().isEmpty());
+        verify(rule).generateKeys(argThat((AlgorithmSQLContext each) -> "foo_default_schema".equals(each.getSchemaName())), anyInt());
     }
     
     @Test

@@ -21,6 +21,7 @@ import org.apache.shardingsphere.encrypt.config.EncryptRuleConfiguration;
 import org.apache.shardingsphere.encrypt.config.rule.EncryptColumnItemRuleConfiguration;
 import org.apache.shardingsphere.encrypt.config.rule.EncryptColumnRuleConfiguration;
 import org.apache.shardingsphere.encrypt.config.rule.EncryptTableRuleConfiguration;
+import org.apache.shardingsphere.encrypt.enums.EncryptColumnItemType;
 import org.apache.shardingsphere.encrypt.exception.metadata.EncryptTableNotFoundException;
 import org.apache.shardingsphere.encrypt.exception.metadata.MismatchedEncryptAlgorithmTypeException;
 import org.apache.shardingsphere.infra.algorithm.core.config.AlgorithmConfiguration;
@@ -30,6 +31,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.ArgumentsProvider;
 import org.junit.jupiter.params.provider.ArgumentsSource;
+import org.junit.jupiter.params.support.ParameterDeclarations;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -39,8 +41,8 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.stream.Stream;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -85,15 +87,15 @@ class EncryptRuleTest {
     }
     
     @Test
-    void assertFindQueryEncryptor() {
+    void assertFindEncryptor() {
         EncryptRule encryptRule = new EncryptRule("foo_db", createEncryptRuleConfiguration());
-        assertThat(encryptRule.findQueryEncryptor("t_encrypt", "credit_card"),
+        assertThat(encryptRule.findEncryptor("t_encrypt", "credit_card", EncryptColumnItemType.CIPHER),
                 is(Optional.of(encryptRule.getEncryptTable("t_encrypt").getEncryptColumn("credit_card").getCipher().getEncryptor())));
     }
     
     @Test
-    void assertNotFindQueryEncryptor() {
-        assertFalse(new EncryptRule("foo_db", createEncryptRuleConfiguration()).findQueryEncryptor("t_encrypt", "invalid_col").isPresent());
+    void assertNotFindEncryptor() {
+        assertFalse(new EncryptRule("foo_db", createEncryptRuleConfiguration()).findEncryptor("t_encrypt", "invalid_col", EncryptColumnItemType.CIPHER).isPresent());
     }
     
     @SuppressWarnings("unused")
@@ -115,10 +117,10 @@ class EncryptRuleTest {
         return result;
     }
     
-    private static class TestCaseArgumentsProvider implements ArgumentsProvider {
+    private static final class TestCaseArgumentsProvider implements ArgumentsProvider {
         
         @Override
-        public Stream<? extends Arguments> provideArguments(final ExtensionContext extensionContext) {
+        public Stream<? extends Arguments> provideArguments(final ParameterDeclarations parameters, final ExtensionContext context) {
             return Stream.of(
                     Arguments.of("Encryptor", "assisted_encryptor", "assisted_encryptor", "like_encryptor"),
                     Arguments.of("AssistedQueryEncryptor", "standard_encryptor", "like_encryptor", "like_encryptor"),

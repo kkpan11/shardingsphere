@@ -18,7 +18,7 @@
 package org.apache.shardingsphere.proxy.backend.handler.distsql.ral.queryable.computenode;
 
 import org.apache.shardingsphere.distsql.handler.engine.query.DistSQLQueryExecutor;
-import org.apache.shardingsphere.distsql.statement.ral.queryable.show.ShowComputeNodesStatement;
+import org.apache.shardingsphere.distsql.statement.type.ral.queryable.show.ShowComputeNodesStatement;
 import org.apache.shardingsphere.infra.instance.ComputeNodeInstance;
 import org.apache.shardingsphere.infra.instance.metadata.InstanceMetaData;
 import org.apache.shardingsphere.infra.instance.metadata.proxy.ProxyInstanceMetaData;
@@ -36,7 +36,7 @@ public final class ShowComputeNodesExecutor implements DistSQLQueryExecutor<Show
     
     @Override
     public Collection<String> getColumnNames(final ShowComputeNodesStatement sqlStatement) {
-        return Arrays.asList("instance_id", "instance_type", "host", "port", "status", "mode_type", "worker_id", "labels", "version", "database_name");
+        return Arrays.asList("instance_id", "instance_type", "host", "port", "status", "mode_type", "worker_id", "version", "database_name");
     }
     
     @Override
@@ -47,11 +47,10 @@ public final class ShowComputeNodesExecutor implements DistSQLQueryExecutor<Show
     }
     
     private LocalDataQueryResultRow buildRow(final ComputeNodeInstance instance, final String modeType) {
-        String labels = String.join(",", instance.getLabels());
         InstanceMetaData instanceMetaData = instance.getMetaData();
         return new LocalDataQueryResultRow(instanceMetaData.getId(), instanceMetaData.getType(), instanceMetaData.getIp(),
                 instanceMetaData instanceof ProxyInstanceMetaData ? ((ProxyInstanceMetaData) instanceMetaData).getPort() : -1,
-                instance.getState().getCurrentState(), modeType, instance.getWorkerId(), labels, instanceMetaData.getVersion(), instanceMetaData.getDatabaseName());
+                instance.getState().getCurrentState(), modeType, instance.getWorkerId(), instanceMetaData.getVersion(), instanceMetaData.getDatabaseName());
     }
     
     @Override

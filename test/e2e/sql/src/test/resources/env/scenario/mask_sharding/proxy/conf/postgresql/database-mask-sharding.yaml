@@ -20,93 +20,103 @@ databaseName: mask_sharding
 dataSources:
   mask_ds_0:
     url: jdbc:postgresql://postgresql.mask_sharding.host:5432/mask_ds_0
+    driverClassName: org.postgresql.Driver
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   mask_ds_1:
     url: jdbc:postgresql://postgresql.mask_sharding.host:5432/mask_ds_1
+    driverClassName: org.postgresql.Driver
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   mask_ds_2:
     url: jdbc:postgresql://postgresql.mask_sharding.host:5432/mask_ds_2
+    driverClassName: org.postgresql.Driver
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   mask_ds_3:
     url: jdbc:postgresql://postgresql.mask_sharding.host:5432/mask_ds_3
+    driverClassName: org.postgresql.Driver
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   mask_ds_4:
     url: jdbc:postgresql://postgresql.mask_sharding.host:5432/mask_ds_4
+    driverClassName: org.postgresql.Driver
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   mask_ds_5:
     url: jdbc:postgresql://postgresql.mask_sharding.host:5432/mask_ds_5
+    driverClassName: org.postgresql.Driver
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   mask_ds_6:
     url: jdbc:postgresql://postgresql.mask_sharding.host:5432/mask_ds_6
+    driverClassName: org.postgresql.Driver
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   mask_ds_7:
     url: jdbc:postgresql://postgresql.mask_sharding.host:5432/mask_ds_7
+    driverClassName: org.postgresql.Driver
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   mask_ds_8:
     url: jdbc:postgresql://postgresql.mask_sharding.host:5432/mask_ds_8
+    driverClassName: org.postgresql.Driver
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   mask_ds_9:
     url: jdbc:postgresql://postgresql.mask_sharding.host:5432/mask_ds_9
+    driverClassName: org.postgresql.Driver
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
 
 rules:

@@ -22,8 +22,8 @@ import lombok.NoArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.jspecify.annotations.Nullable;
 
-import javax.annotation.Nullable;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
@@ -62,11 +62,27 @@ public final class DataConsistencyCheckUtils {
             Object thatColumnValue = thatRecordIterator.next().getValue();
             if (!isMatched(equalsBuilder, thisColumnValue, thatColumnValue)) {
                 log.warn("Record column value not match, columnIndex={}, value1={}, value2={}, value1.class={}, value2.class={}.", columnIndex, thisColumnValue, thatColumnValue,
-                        null != thisColumnValue ? thisColumnValue.getClass().getName() : "", null == thatColumnValue ? "" : thatColumnValue.getClass().getName());
+                        null == thisColumnValue ? "" : thisColumnValue.getClass().getName(), null == thatColumnValue ? "" : thatColumnValue.getClass().getName());
                 return false;
             }
         }
         return true;
+    }
+    
+    /**
+     * Is first unique key value matched.
+     *
+     * @param thisRecord this record
+     * @param thatRecord that record
+     * @param uniqueKey unique key
+     * @param equalsBuilder equals builder
+     * @return true if matched, otherwise false
+     */
+    public static boolean isFirstUniqueKeyValueMatched(final Map<String, Object> thisRecord, final Map<String, Object> thatRecord, final String uniqueKey, final EqualsBuilder equalsBuilder) {
+        if (thisRecord.isEmpty() || thatRecord.isEmpty()) {
+            return false;
+        }
+        return isMatched(equalsBuilder, getFirstUniqueKeyValue(thisRecord, uniqueKey), getFirstUniqueKeyValue(thatRecord, uniqueKey));
     }
     
     /**
@@ -91,12 +107,16 @@ public final class DataConsistencyCheckUtils {
          * strategies with different database types could be considered.
          */
         if (thisColumnValue instanceof Timestamp && thatColumnValue instanceof Timestamp) {
-            return ((Timestamp) thisColumnValue).getTime() / 1000L * 1000L == ((Timestamp) thatColumnValue).getTime() / 1000L * 1000L;
+            return toFlooredSeconds((Timestamp) thisColumnValue) == toFlooredSeconds((Timestamp) thatColumnValue);
         }
         if (thisColumnValue instanceof Array && thatColumnValue instanceof Array) {
             return Objects.deepEquals(((Array) thisColumnValue).getArray(), ((Array) thatColumnValue).getArray());
         }
         return equalsBuilder.append(thisColumnValue, thatColumnValue).isEquals();
+    }
+    
+    private static long toFlooredSeconds(final Timestamp timestamp) {
+        return Math.floorDiv(timestamp.getTime(), 1000L);
     }
     
     private static boolean isNumberEquals(final Number one, final Number another) {
@@ -135,7 +155,7 @@ public final class DataConsistencyCheckUtils {
     /**
      * Check two BigDecimal whether equals or not.
      *
-     * <p>Scale will be ignored, so <code>332.2</code> is equals to <code>332.20</code>.</p>
+     * <p>Scale will be ignored, so ${@code 332.2} is equals to {@code 332.20}.</p>
      *
      * @param one first BigDecimal
      * @param another second BigDecimal
@@ -166,7 +186,7 @@ public final class DataConsistencyCheckUtils {
      * @param thatList that list
      * @return true if lists equals, otherwise false
      */
-    public static boolean compareLists(final @Nullable Collection<?> thisList, final @Nullable Collection<?> thatList) {
+    public static boolean compareLists(@Nullable final Collection<?> thisList, @Nullable final Collection<?> thatList) {
         if (null == thisList && null == thatList) {
             return true;
         }
@@ -189,14 +209,11 @@ public final class DataConsistencyCheckUtils {
     /**
      * Get first unique key value.
      *
-     * @param rawRecord raw record
+     * @param record record
      * @param uniqueKey unique key
      * @return first unique key value
      */
-    public static Object getFirstUniqueKeyValue(final Map<String, Object> rawRecord, final @Nullable String uniqueKey) {
-        if (rawRecord.isEmpty() || null == uniqueKey) {
-            return null;
-        }
-        return rawRecord.get(uniqueKey);
+    public static Object getFirstUniqueKeyValue(final Map<String, Object> record, @Nullable final String uniqueKey) {
+        return record.isEmpty() || null == uniqueKey ? null : record.get(uniqueKey);
     }
 }

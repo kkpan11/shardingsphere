@@ -25,8 +25,8 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Optional;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
 class NodePathSegmentTest {
@@ -49,7 +49,7 @@ class NodePathSegmentTest {
     @NodePathEntity("/foo/${fooVariable}")
     @RequiredArgsConstructor
     @Getter
-    private static class NodePathFixture implements NodePath {
+    private static final class NodePathFixture implements NodePath {
         
         private final String fooVariable;
     }

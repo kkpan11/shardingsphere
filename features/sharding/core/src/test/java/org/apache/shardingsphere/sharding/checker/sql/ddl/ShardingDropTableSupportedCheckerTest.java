@@ -17,16 +17,19 @@
 
 package org.apache.shardingsphere.sharding.checker.sql.ddl;
 
-import org.apache.shardingsphere.infra.binder.context.statement.ddl.DropTableStatementContext;
+import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
+import org.apache.shardingsphere.infra.binder.context.statement.SQLStatementContext;
+import org.apache.shardingsphere.infra.binder.context.statement.type.CommonSQLStatementContext;
 import org.apache.shardingsphere.infra.datanode.DataNode;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereSchema;
+import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 import org.apache.shardingsphere.sharding.rule.ShardingRule;
 import org.apache.shardingsphere.sharding.rule.ShardingTable;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.SimpleTableSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.TableNameSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.type.ddl.table.DropTableStatement;
 import org.apache.shardingsphere.sql.parser.statement.core.value.identifier.IdentifierValue;
-import org.apache.shardingsphere.sql.parser.statement.mysql.ddl.MySQLDropTableStatement;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -35,6 +38,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -49,6 +53,8 @@ import static org.mockito.Mockito.when;
 @MockitoSettings(strictness = Strictness.LENIENT)
 class ShardingDropTableSupportedCheckerTest {
     
+    private final DatabaseType databaseType = TypedSPILoader.getService(DatabaseType.class, "FIXTURE");
+    
     @Mock
     private ShardingRule rule;
     
@@ -61,13 +67,14 @@ class ShardingDropTableSupportedCheckerTest {
     }
     
     @Test
-    void assertCheckForMySQL() {
-        MySQLDropTableStatement sqlStatement = new MySQLDropTableStatement();
-        sqlStatement.getTables().add(new SimpleTableSegment(new TableNameSegment(0, 0, new IdentifierValue("t_order_item"))));
-        DropTableStatementContext sqlStatementContext = new DropTableStatementContext(sqlStatement);
+    void assertCheck() {
+        DropTableStatement sqlStatement = new DropTableStatement(
+                databaseType, Collections.singleton(new SimpleTableSegment(new TableNameSegment(0, 0, new IdentifierValue("t_order_item")))), false, false);
+        SQLStatementContext sqlStatementContext = new CommonSQLStatementContext(sqlStatement);
         ShardingSphereDatabase database = mock(ShardingSphereDatabase.class, RETURNS_DEEP_STUBS);
         ShardingSphereSchema schema = mock(ShardingSphereSchema.class);
         when(schema.containsTable("t_order_item")).thenReturn(true);
+        when(schema.containsTable(new IdentifierValue("t_order_item"))).thenReturn(true);
         ShardingDropTableSupportedChecker checker = new ShardingDropTableSupportedChecker();
         assertDoesNotThrow(() -> checker.check(rule, database, schema, sqlStatementContext));
     }
@@ -76,12 +83,12 @@ class ShardingDropTableSupportedCheckerTest {
         ShardingTable result = mock(ShardingTable.class);
         when(result.getLogicTable()).thenReturn(tableName);
         List<DataNode> dataNodes = new LinkedList<>();
-        DataNode d1 = mock(DataNode.class);
-        when(d1.getTableName()).thenReturn("t_order_item_1");
-        dataNodes.add(d1);
-        DataNode d2 = mock(DataNode.class);
-        when(d2.getTableName()).thenReturn("t_order_item_2");
-        dataNodes.add(d2);
+        DataNode dataNode1 = mock(DataNode.class);
+        when(dataNode1.getTableName()).thenReturn("t_order_item_1");
+        dataNodes.add(dataNode1);
+        DataNode dataNode2 = mock(DataNode.class);
+        when(dataNode2.getTableName()).thenReturn("t_order_item_2");
+        dataNodes.add(dataNode2);
         when(result.getActualDataNodes()).thenReturn(dataNodes);
         return result;
     }

@@ -19,39 +19,33 @@ package org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import org.apache.shardingsphere.sql.parser.statement.core.statement.tcl.BeginTransactionStatement;
-import org.apache.shardingsphere.sql.parser.statement.core.statement.tcl.CommitStatement;
-import org.apache.shardingsphere.sql.parser.statement.core.statement.tcl.LockStatement;
-import org.apache.shardingsphere.sql.parser.statement.core.statement.tcl.PrepareTransactionStatement;
-import org.apache.shardingsphere.sql.parser.statement.core.statement.tcl.RollbackStatement;
-import org.apache.shardingsphere.sql.parser.statement.core.statement.tcl.SavepointStatement;
-import org.apache.shardingsphere.sql.parser.statement.core.statement.tcl.SetAutoCommitStatement;
-import org.apache.shardingsphere.sql.parser.statement.core.statement.tcl.SetConstraintsStatement;
-import org.apache.shardingsphere.sql.parser.statement.core.statement.tcl.SetTransactionStatement;
-import org.apache.shardingsphere.sql.parser.statement.core.statement.tcl.TCLStatement;
-import org.apache.shardingsphere.sql.parser.statement.core.statement.tcl.UnlockStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.type.tcl.BeginTransactionStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.type.tcl.CommitStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.type.tcl.ReleaseSavepointStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.type.tcl.RollbackStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.type.tcl.SavepointStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.type.tcl.SetAutoCommitStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.type.tcl.SetConstraintsStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.type.tcl.SetTransactionStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.type.tcl.TCLStatement;
 import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.SQLCaseAssertContext;
-import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.tcl.impl.BeginTransactionStatementAssert;
-import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.tcl.impl.CommitStatementAssert;
-import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.tcl.impl.LockStatementAssert;
-import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.tcl.impl.PrepareTransactionStatementAssert;
-import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.tcl.impl.RollbackStatementAssert;
-import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.tcl.impl.SavepointStatementAssert;
-import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.tcl.impl.SetAutoCommitStatementAssert;
-import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.tcl.impl.SetConstraintsStatementAssert;
-import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.tcl.impl.SetTransactionStatementAssert;
-import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.tcl.impl.UnlockStatementAssert;
+import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.tcl.type.BeginTransactionStatementAssert;
+import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.tcl.type.CommitStatementAssert;
+import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.tcl.type.ReleaseSavepointStatementAssert;
+import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.tcl.type.RollbackStatementAssert;
+import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.tcl.type.SavepointStatementAssert;
+import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.tcl.type.SetAutoCommitStatementAssert;
+import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.tcl.type.SetConstraintsStatementAssert;
+import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.tcl.type.SetTransactionStatementAssert;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.SQLParserTestCase;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.statement.tcl.BeginTransactionStatementTestCase;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.statement.tcl.CommitStatementTestCase;
-import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.statement.tcl.LockStatementTestCase;
-import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.statement.tcl.PrepareTransactionTestCase;
+import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.statement.tcl.ReleaseSavepointStatementTestCase;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.statement.tcl.RollbackStatementTestCase;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.statement.tcl.SavepointStatementTestCase;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.statement.tcl.SetAutoCommitStatementTestCase;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.statement.tcl.SetConstraintsStatementTestCase;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.statement.tcl.SetTransactionStatementTestCase;
-import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.statement.tcl.UnlockStatementTestCase;
 
 /**
  * TCL statement assert.
@@ -79,14 +73,10 @@ public final class TCLStatementAssert {
             RollbackStatementAssert.assertIs(assertContext, (RollbackStatement) actual, (RollbackStatementTestCase) expected);
         } else if (actual instanceof SavepointStatement) {
             SavepointStatementAssert.assertIs(assertContext, (SavepointStatement) actual, (SavepointStatementTestCase) expected);
+        } else if (actual instanceof ReleaseSavepointStatement) {
+            ReleaseSavepointStatementAssert.assertIs(assertContext, (ReleaseSavepointStatement) actual, (ReleaseSavepointStatementTestCase) expected);
         } else if (actual instanceof SetConstraintsStatement) {
             SetConstraintsStatementAssert.assertIs(assertContext, (SetConstraintsStatement) actual, (SetConstraintsStatementTestCase) expected);
-        } else if (actual instanceof UnlockStatement) {
-            UnlockStatementAssert.assertIs(assertContext, (UnlockStatement) actual, (UnlockStatementTestCase) expected);
-        } else if (actual instanceof LockStatement) {
-            LockStatementAssert.assertIs(assertContext, (LockStatement) actual, (LockStatementTestCase) expected);
-        } else if (actual instanceof PrepareTransactionStatement) {
-            PrepareTransactionStatementAssert.assertIs(assertContext, (PrepareTransactionStatement) actual, (PrepareTransactionTestCase) expected);
         }
     }
 }

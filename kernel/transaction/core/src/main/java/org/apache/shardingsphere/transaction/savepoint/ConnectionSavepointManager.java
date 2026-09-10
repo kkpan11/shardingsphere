@@ -19,9 +19,9 @@ package org.apache.shardingsphere.transaction.savepoint;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import org.apache.shardingsphere.infra.database.core.spi.DatabaseTypedSPILoader;
-import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
-import org.apache.shardingsphere.infra.database.core.type.DatabaseTypeFactory;
+import org.apache.shardingsphere.database.connector.core.spi.DatabaseTypedSPILoader;
+import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
+import org.apache.shardingsphere.database.connector.core.type.DatabaseTypeFactory;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -60,7 +60,15 @@ public final class ConnectionSavepointManager {
      */
     public void setSavepoint(final Connection connection, final String savepointName) throws SQLException {
         Savepoint result = connection.setSavepoint(savepointName);
-        CONNECTION_SAVEPOINT_MAP.computeIfAbsent(connection, unused -> new LinkedHashMap<>()).put(savepointName, result);
+        getConnectionSavepoints(connection).put(savepointName, result);
+    }
+    
+    private Map<String, Savepoint> getConnectionSavepoints(final Connection connection) {
+        Map<String, Savepoint> result = CONNECTION_SAVEPOINT_MAP.get(connection);
+        if (null == result) {
+            result = CONNECTION_SAVEPOINT_MAP.computeIfAbsent(connection, unused -> new LinkedHashMap<>());
+        }
+        return result;
     }
     
     /**
@@ -89,7 +97,7 @@ public final class ConnectionSavepointManager {
         if (!result.isPresent()) {
             return;
         }
-        DatabaseType databaseType = DatabaseTypeFactory.get(connection.getMetaData().getURL());
+        DatabaseType databaseType = DatabaseTypeFactory.get(connection.getMetaData());
         databaseType = databaseType.getTrunkDatabaseType().orElse(databaseType);
         Optional<SavepointReleaseSQLProvider> savepointReleaseSQLProvider = DatabaseTypedSPILoader.findService(SavepointReleaseSQLProvider.class, databaseType);
         if (savepointReleaseSQLProvider.isPresent()) {

@@ -18,14 +18,13 @@
 package org.apache.shardingsphere.mode.metadata.manager.database;
 
 import lombok.RequiredArgsConstructor;
+import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.database.DatabaseTypeEngine;
-import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.metadata.ShardingSphereMetaData;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereSchema;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereTable;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereView;
-import org.apache.shardingsphere.infra.rule.attribute.datanode.MutableDataNodeRuleAttribute;
 import org.apache.shardingsphere.infra.rule.scope.GlobalRule;
 import org.apache.shardingsphere.infra.rule.scope.GlobalRule.GlobalRuleChangedType;
 import org.apache.shardingsphere.mode.metadata.MetaDataContexts;
@@ -83,7 +82,7 @@ public final class DatabaseMetaDataManager {
         if (database.containsSchema(schemaName)) {
             return;
         }
-        database.addSchema(new ShardingSphereSchema(schemaName));
+        database.addSchema(new ShardingSphereSchema(schemaName, database.getProtocolType()));
         metaData.getGlobalRuleMetaData().getRules().forEach(each -> ((GlobalRule) each).refresh(metaData.getAllDatabases(), GlobalRuleChangedType.SCHEMA_CHANGED));
     }
     
@@ -99,8 +98,9 @@ public final class DatabaseMetaDataManager {
         if (!database.containsSchema(schemaName)) {
             return;
         }
+        ShardingSphereSchema schema = database.getSchema(schemaName);
         database.dropSchema(schemaName);
-        if (database.getSchema(schemaName).getAllTables().stream().anyMatch(each -> TableRefreshUtils.isSingleTable(each.getName(), database))) {
+        if (schema.getAllTables().stream().anyMatch(each -> TableRefreshUtils.isSingleTable(each.getName(), database))) {
             database.reloadRules();
         }
         metaData.getGlobalRuleMetaData().getRules().forEach(each -> ((GlobalRule) each).refresh(metaData.getAllDatabases(), GlobalRuleChangedType.SCHEMA_CHANGED));
@@ -117,7 +117,8 @@ public final class DatabaseMetaDataManager {
         ShardingSphereMetaData metaData = metaDataContexts.getMetaData();
         ShardingSphereDatabase database = metaData.getDatabase(databaseName);
         ShardingSphereSchema schema = database.getSchema(schemaName);
-        ShardingSphereSchema renamedSchema = new ShardingSphereSchema(renamedSchemaName, schema.getAllTables(), schema.getAllViews());
+        // TODO @haoran
+        ShardingSphereSchema renamedSchema = new ShardingSphereSchema(renamedSchemaName, database.getProtocolType(), schema.getAllTables(), schema.getAllViews());
         database.addSchema(renamedSchema);
         database.dropSchema(schemaName);
         database.reloadRules();
@@ -191,7 +192,7 @@ public final class DatabaseMetaDataManager {
         } else {
             database.getSchema(schemaName).removeView(toBeDroppedTableOrViewName);
         }
-        database.getRuleMetaData().getAttributes(MutableDataNodeRuleAttribute.class).forEach(each -> each.remove(schemaName, toBeDroppedTableOrViewName));
+        database.removeDataNode(schemaName, toBeDroppedTableOrViewName);
         metaDataContexts.getMetaData().getGlobalRuleMetaData().getRules()
                 .forEach(each -> ((GlobalRule) each).refresh(metaDataContexts.getMetaData().getAllDatabases(), GlobalRuleChangedType.SCHEMA_CHANGED));
     }

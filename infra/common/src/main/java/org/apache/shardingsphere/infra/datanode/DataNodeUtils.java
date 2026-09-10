@@ -23,7 +23,6 @@ import lombok.NoArgsConstructor;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -33,20 +32,6 @@ import java.util.Map;
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class DataNodeUtils {
-    
-    /**
-     * Get data node groups.
-     *
-     * @param dataNodes data nodes
-     * @return data node groups, key is data source name, values are data nodes belong to this data source
-     */
-    public static Map<String, List<DataNode>> getDataNodeGroups(final Collection<DataNode> dataNodes) {
-        Map<String, List<DataNode>> result = new LinkedHashMap<>(dataNodes.size(), 1F);
-        for (DataNode each : dataNodes) {
-            result.computeIfAbsent(each.getDataSourceName(), unused -> new LinkedList<>()).add(each);
-        }
-        return result;
-    }
     
     /**
      * Build data node.
@@ -61,20 +46,20 @@ public final class DataNodeUtils {
         }
         Collection<DataNode> result = new LinkedList<>();
         for (String each : dataSources.get(dataNode.getDataSourceName())) {
-            result.add(new DataNode(each, dataNode.getTableName()));
+            result.add(new DataNode(each, dataNode.getSchemaName(), dataNode.getTableName()));
         }
         return result;
     }
     
     /**
-     * Get format data nodes.
+     * Get formatted data nodes.
      *
      * @param amount amount
      * @param logicTable logic table
      * @param dataSources data source names
-     * @return data node list
+     * @return formatted data node list
      */
-    public static List<String> getFormatDataNodes(final int amount, final String logicTable, final Collection<String> dataSources) {
+    public static List<String> getFormattedDataNodes(final int amount, final String logicTable, final Collection<String> dataSources) {
         List<String> result = new LinkedList<>();
         Iterator<String> iterator = dataSources.iterator();
         for (int i = 0; i < amount; i++) {

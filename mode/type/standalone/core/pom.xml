@@ -21,7 +21,7 @@
     <parent>
         <groupId>org.apache.shardingsphere</groupId>
         <artifactId>shardingsphere-standalone-mode</artifactId>
-        <version>5.5.3-SNAPSHOT</version>
+        <version>5.5.4-SNAPSHOT</version>
     </parent>
     <artifactId>shardingsphere-standalone-mode-core</artifactId>
     <name>${project.artifactId}</name>
@@ -45,19 +45,19 @@
         
         <dependency>
             <groupId>org.apache.shardingsphere</groupId>
-            <artifactId>shardingsphere-test-util</artifactId>
+            <artifactId>shardingsphere-test-infra-framework</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.shardingsphere</groupId>
-            <artifactId>shardingsphere-test-fixture-infra</artifactId>
+            <artifactId>shardingsphere-test-infra-fixture-rule</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.shardingsphere</groupId>
-            <artifactId>shardingsphere-test-fixture-database</artifactId>
+            <artifactId>shardingsphere-test-infra-fixture-database</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>

@@ -17,16 +17,22 @@
 
 package org.apache.shardingsphere.readwritesplitting.route.standard;
 
-import org.apache.shardingsphere.infra.spi.ShardingSphereServiceLoader;
+import org.apache.shardingsphere.infra.exception.ShardingSpherePreconditions;
+import org.apache.shardingsphere.readwritesplitting.exception.route.NoAvailableReadwriteSplittingReadDataSourceException;
 import org.apache.shardingsphere.readwritesplitting.route.standard.filter.ReadDataSourcesFilter;
+import org.apache.shardingsphere.readwritesplitting.route.standard.filter.type.DisabledReadDataSourcesFilter;
 import org.apache.shardingsphere.readwritesplitting.rule.ReadwriteSplittingDataSourceGroupRule;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 /**
  * Standard data source router for readwrite-splitting.
  */
 public final class StandardReadwriteSplittingDataSourceRouter {
+    
+    private static final Collection<ReadDataSourcesFilter> FILTERS = Collections.singleton(new DisabledReadDataSourcesFilter());
     
     /**
      * Route to data source.
@@ -35,12 +41,14 @@ public final class StandardReadwriteSplittingDataSourceRouter {
      * @return routed data source name
      */
     public String route(final ReadwriteSplittingDataSourceGroupRule rule) {
-        return rule.getLoadBalancer().getTargetName(rule.getName(), getFilteredReadDataSources(rule));
+        List<String> availableReadDataSources = getFilteredReadDataSources(rule);
+        ShardingSpherePreconditions.checkNotEmpty(availableReadDataSources, () -> new NoAvailableReadwriteSplittingReadDataSourceException(rule.getName()));
+        return rule.getLoadBalancer().getTargetName(rule.getName(), availableReadDataSources);
     }
     
     private List<String> getFilteredReadDataSources(final ReadwriteSplittingDataSourceGroupRule rule) {
         List<String> result = rule.getReadwriteSplittingGroup().getReadDataSources();
-        for (ReadDataSourcesFilter each : ShardingSphereServiceLoader.getServiceInstances(ReadDataSourcesFilter.class)) {
+        for (ReadDataSourcesFilter each : FILTERS) {
             result = each.filter(rule, result);
         }
         return result;

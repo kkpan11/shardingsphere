@@ -20,8 +20,8 @@ package org.apache.shardingsphere.single.rule.changed;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.infra.metadata.database.rule.RuleMetaData;
 import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
-import org.apache.shardingsphere.mode.spi.rule.RuleItemConfigurationChangedProcessor;
 import org.apache.shardingsphere.mode.spi.rule.RuleChangedItemType;
+import org.apache.shardingsphere.mode.spi.rule.RuleItemConfigurationChangedProcessor;
 import org.apache.shardingsphere.single.config.SingleRuleConfiguration;
 import org.apache.shardingsphere.single.rule.SingleRule;
 import org.junit.jupiter.api.Test;
@@ -29,8 +29,8 @@ import org.junit.jupiter.api.Test;
 import java.util.Collections;
 import java.util.LinkedList;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -64,7 +64,7 @@ class SingleTableChangedProcessorTest {
     @Test
     void assertChangeRuleItemConfiguration() {
         SingleRuleConfiguration currentRuleConfig = new SingleRuleConfiguration(new LinkedList<>(Collections.singleton("foo_tbl")), null);
-        SingleRuleConfiguration toBeChangedItemConfig = new SingleRuleConfiguration(new LinkedList<>(Collections.singleton("bar_tbl")), null);
+        SingleRuleConfiguration toBeChangedItemConfig = new SingleRuleConfiguration(Collections.singleton("bar_tbl"), null);
         processor.changeRuleItemConfiguration(null, currentRuleConfig, toBeChangedItemConfig);
         assertThat(currentRuleConfig.getTables(), is(Collections.singletonList("bar_tbl")));
     }

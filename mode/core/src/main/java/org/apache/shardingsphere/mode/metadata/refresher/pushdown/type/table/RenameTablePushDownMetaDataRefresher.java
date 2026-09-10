@@ -17,16 +17,18 @@
 
 package org.apache.shardingsphere.mode.metadata.refresher.pushdown.type.table;
 
+import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.config.props.ConfigurationProperties;
-import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereTable;
 import org.apache.shardingsphere.mode.metadata.refresher.pushdown.PushDownMetaDataRefresher;
+import org.apache.shardingsphere.mode.metadata.refresher.util.SchemaRefreshUtils;
+import org.apache.shardingsphere.mode.metadata.refresher.util.TableRefreshUtils;
 import org.apache.shardingsphere.mode.persist.service.MetaDataManagerPersistService;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.table.RenameTableDefinitionSegment;
-import org.apache.shardingsphere.sql.parser.statement.core.statement.ddl.RenameTableStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.type.ddl.table.RenameTableStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.value.identifier.IdentifierValue;
 
-import java.sql.SQLException;
 import java.util.Collection;
 import java.util.LinkedList;
 
@@ -37,18 +39,20 @@ public final class RenameTablePushDownMetaDataRefresher implements PushDownMetaD
     
     @Override
     public void refresh(final MetaDataManagerPersistService metaDataManagerPersistService, final ShardingSphereDatabase database, final String logicDataSourceName,
-                        final String schemaName, final DatabaseType databaseType, final RenameTableStatement sqlStatement, final ConfigurationProperties props) throws SQLException {
+                        final String schemaName, final DatabaseType databaseType, final RenameTableStatement sqlStatement, final ConfigurationProperties props) {
+        String actualSchemaName = SchemaRefreshUtils.getActualSchemaName(database, new IdentifierValue(schemaName));
         Collection<ShardingSphereTable> alteredTables = new LinkedList<>();
         Collection<String> droppedTables = new LinkedList<>();
         for (RenameTableDefinitionSegment each : sqlStatement.getRenameTables()) {
-            String toBeRenamedTableName = each.getTable().getTableName().getIdentifier().getValue();
-            ShardingSphereTable toBeRenamedTable = database.getSchema(schemaName).getTable(toBeRenamedTableName);
+            String toBeRenamedTableName = TableRefreshUtils.getActualTableName(database, actualSchemaName, each.getTable().getTableName().getIdentifier());
+            ShardingSphereTable toBeRenamedTable = database.getSchema(actualSchemaName).getTable(toBeRenamedTableName);
             alteredTables.add(new ShardingSphereTable(
-                    each.getRenameTable().getTableName().getIdentifier().getValue(), toBeRenamedTable.getAllColumns(), toBeRenamedTable.getAllIndexes(), toBeRenamedTable.getAllConstraints()));
+                    TableRefreshUtils.getActualTableName(database, actualSchemaName, each.getRenameTable().getTableName().getIdentifier()),
+                    toBeRenamedTable.getAllColumns(), toBeRenamedTable.getAllIndexes(), toBeRenamedTable.getAllConstraints()));
             droppedTables.add(toBeRenamedTableName);
         }
-        metaDataManagerPersistService.alterTables(database, schemaName, alteredTables);
-        metaDataManagerPersistService.dropTables(database, schemaName, droppedTables);
+        metaDataManagerPersistService.alterTables(database, actualSchemaName, alteredTables);
+        metaDataManagerPersistService.dropTables(database, actualSchemaName, droppedTables);
     }
     
     @Override

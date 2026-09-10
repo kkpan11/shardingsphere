@@ -19,16 +19,31 @@ package org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.
 
 import lombok.Getter;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.segment.AbstractExpectedSQLSegment;
+import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.segment.impl.column.ExpectedColumn;
+import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.segment.impl.expr.ExpectedExpression;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.segment.impl.orderby.ExpectedOrderByClause;
 
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementWrapper;
+import java.util.Collection;
+import java.util.LinkedList;
 
 @Getter
 @XmlAccessorType(XmlAccessType.FIELD)
 public final class ExpectedWindowItem extends AbstractExpectedSQLSegment {
     
+    @XmlElement(name = "window-name")
+    private String windowName;
+    
+    @XmlElementWrapper(name = "partition-by")
+    @XmlElement(name = "column")
+    private final Collection<ExpectedColumn> partitionByColumns = new LinkedList<>();
+    
     @XmlElement(name = "order-by")
     private ExpectedOrderByClause orderByClause;
+    
+    @XmlElement(name = "frame")
+    private ExpectedExpression frameClause;
 }

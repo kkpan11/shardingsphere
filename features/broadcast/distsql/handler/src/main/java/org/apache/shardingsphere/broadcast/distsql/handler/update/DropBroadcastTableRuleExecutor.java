@@ -22,14 +22,13 @@ import lombok.Setter;
 import org.apache.shardingsphere.broadcast.config.BroadcastRuleConfiguration;
 import org.apache.shardingsphere.broadcast.distsql.statement.DropBroadcastTableRuleStatement;
 import org.apache.shardingsphere.broadcast.rule.BroadcastRule;
-import org.apache.shardingsphere.distsql.handler.engine.update.rdl.rule.spi.database.DatabaseRuleDropExecutor;
-import org.apache.shardingsphere.infra.exception.kernel.metadata.rule.MissingRequiredRuleException;
+import org.apache.shardingsphere.distsql.handler.engine.update.rdl.rule.spi.database.type.DatabaseRuleDropExecutor;
 import org.apache.shardingsphere.distsql.handler.required.DistSQLExecutorCurrentRuleRequired;
-import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.exception.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.exception.kernel.metadata.rule.MissingRequiredRuleException;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.stream.Collectors;
 
@@ -59,7 +58,8 @@ public final class DropBroadcastTableRuleExecutor implements DatabaseRuleDropExe
     
     @Override
     public boolean hasAnyOneToBeDropped(final DropBroadcastTableRuleStatement sqlStatement) {
-        return !Collections.disjoint(rule.getConfiguration().getTables(), sqlStatement.getTables());
+        Collection<String> currentTableNames = new CaseInsensitiveSet<>(rule.getConfiguration().getTables());
+        return sqlStatement.getTables().stream().anyMatch(currentTableNames::contains);
     }
     
     @Override

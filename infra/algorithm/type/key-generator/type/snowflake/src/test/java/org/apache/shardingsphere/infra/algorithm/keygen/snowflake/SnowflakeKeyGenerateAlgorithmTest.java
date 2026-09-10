@@ -21,17 +21,20 @@ import lombok.SneakyThrows;
 import org.apache.shardingsphere.infra.algorithm.core.context.AlgorithmSQLContext;
 import org.apache.shardingsphere.infra.algorithm.core.exception.AlgorithmExecuteException;
 import org.apache.shardingsphere.infra.algorithm.core.exception.AlgorithmInitializationException;
-import org.apache.shardingsphere.infra.algorithm.keygen.core.KeyGenerateAlgorithm;
 import org.apache.shardingsphere.infra.algorithm.keygen.snowflake.fixture.FixedTimeService;
+import org.apache.shardingsphere.infra.algorithm.keygen.spi.KeyGenerateAlgorithm;
 import org.apache.shardingsphere.infra.instance.ComputeNodeInstanceContext;
 import org.apache.shardingsphere.infra.instance.ComputeNodeInstanceContextAware;
 import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
-import org.apache.shardingsphere.test.util.PropertiesBuilder;
-import org.apache.shardingsphere.test.util.PropertiesBuilder.Property;
+import org.apache.shardingsphere.infra.util.props.PropertiesBuilder;
+import org.apache.shardingsphere.infra.util.props.PropertiesBuilder.Property;
 import org.awaitility.Awaitility;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.internal.configuration.plugins.Plugins;
 
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -46,8 +49,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -60,10 +63,23 @@ class SnowflakeKeyGenerateAlgorithmTest {
     
     private static final ComputeNodeInstanceContext INSTANCE;
     
+    @Test
+    void assertEpochShouldBeTimezoneIndependent() {
+        // The EPOCH is supposed to represent 2016-11-01 00:00:00 UTC.
+        // It MUST equal the UTC-based value regardless of system timezone.
+        long expectedUtcEpoch = LocalDateTime.of(2016, 11, 1, 0, 0, 0).toInstant(ZoneOffset.UTC).toEpochMilli();
+        assertThat(SnowflakeKeyGenerateAlgorithm.EPOCH, is(expectedUtcEpoch));
+    }
+    
     static {
         ComputeNodeInstanceContext computeNodeInstanceContext = mock(ComputeNodeInstanceContext.class);
         when(computeNodeInstanceContext.getWorkerId()).thenReturn(0);
         INSTANCE = computeNodeInstanceContext;
+    }
+    
+    @AfterEach
+    void resetTimeService() {
+        SnowflakeKeyGenerateAlgorithm.setTimeService(new TimeService());
     }
     
     @Test

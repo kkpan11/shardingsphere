@@ -34,7 +34,7 @@ import org.apache.shardingsphere.data.pipeline.core.job.progress.listener.Pipeli
 import org.apache.shardingsphere.data.pipeline.core.sqlbuilder.sql.PipelineImportSQLBuilder;
 import org.apache.shardingsphere.data.pipeline.core.util.PipelineJdbcUtils;
 import org.apache.shardingsphere.infra.annotation.HighFrequencyInvocation;
-import org.apache.shardingsphere.infra.util.json.JsonUtils;
+import org.apache.shardingsphere.infra.util.json.JsonEngine;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -44,7 +44,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -201,7 +200,7 @@ public final class PipelineDataSourceSink implements PipelineSink {
     }
     
     private void executeUpdate(final Connection connection, final DataRecord dataRecord) throws SQLException {
-        Set<String> shardingColumns = importerConfig.getShardingColumns(dataRecord.getTableName());
+        Collection<String> shardingColumns = importerConfig.getShardingColumns(dataRecord.getTableName());
         List<Column> conditionColumns = RecordUtils.extractConditionColumns(dataRecord, shardingColumns);
         List<Column> setColumns = dataRecord.getColumns().stream().filter(Column::isUpdated).collect(Collectors.toList());
         String sql = importSQLBuilder.buildUpdateSQL(importerConfig.findSchemaName(dataRecord.getTableName()).orElse(null), dataRecord, conditionColumns);
@@ -223,11 +222,11 @@ public final class PipelineDataSourceSink implements PipelineSink {
             int updateCount = preparedStatement.executeUpdate();
             if (1 != updateCount) {
                 log.warn("Update failed, update count: {}, sql: {}, set columns: {}, sharding columns: {}, condition columns: {}",
-                        updateCount, sql, setColumns, JsonUtils.toJsonString(shardingColumns), JsonUtils.toJsonString(conditionColumns));
+                        updateCount, sql, setColumns, JsonEngine.marshal(shardingColumns), JsonEngine.marshal(conditionColumns));
             }
         } catch (final SQLException ex) {
             log.error("execute update failed, sql: {}, set columns: {}, sharding columns: {}, condition columns: {}, error message: {}, data record: {}",
-                    sql, setColumns, JsonUtils.toJsonString(shardingColumns), JsonUtils.toJsonString(conditionColumns), ex.getMessage(), dataRecord);
+                    sql, setColumns, JsonEngine.marshal(shardingColumns), JsonEngine.marshal(conditionColumns), ex.getMessage(), dataRecord);
             throw ex;
         } finally {
             runningStatement.set(null);
@@ -247,7 +246,7 @@ public final class PipelineDataSourceSink implements PipelineSink {
         }
     }
     
-    private void executeBatchDelete(final Connection connection, final Collection<DataRecord> dataRecords, final Set<String> shardingColumns) throws SQLException {
+    private void executeBatchDelete(final Connection connection, final Collection<DataRecord> dataRecords, final Collection<String> shardingColumns) throws SQLException {
         DataRecord dataRecord = dataRecords.iterator().next();
         String deleteSQL = importSQLBuilder.buildDeleteSQL(importerConfig.findSchemaName(dataRecord.getTableName()).orElse(null), dataRecord,
                 RecordUtils.extractConditionColumns(dataRecord, shardingColumns));

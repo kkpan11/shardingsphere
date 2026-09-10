@@ -18,9 +18,9 @@
 package org.apache.shardingsphere.mask.algorithm;
 
 import org.apache.shardingsphere.infra.algorithm.core.exception.AlgorithmInitializationException;
+import org.apache.shardingsphere.infra.util.props.PropertiesBuilder;
+import org.apache.shardingsphere.infra.util.props.PropertiesBuilder.Property;
 import org.apache.shardingsphere.mask.spi.MaskAlgorithm;
-import org.apache.shardingsphere.test.util.PropertiesBuilder;
-import org.apache.shardingsphere.test.util.PropertiesBuilder.Property;
 import org.junit.jupiter.api.Test;
 
 import java.util.Properties;
@@ -70,7 +70,7 @@ class MaskAlgorithmPropertiesCheckerTest {
     @Test
     void assertCheckPositiveIntegerSuccess() {
         Properties props = PropertiesBuilder.build(new Property("key", "123"));
-        MaskAlgorithmPropertiesChecker.checkPositiveInteger(props, "key", mock(MaskAlgorithm.class));
+        assertDoesNotThrow(() -> MaskAlgorithmPropertiesChecker.checkPositiveInteger(props, "key", mock(MaskAlgorithm.class)));
     }
     
     @Test
@@ -89,5 +89,35 @@ class MaskAlgorithmPropertiesCheckerTest {
     void assertCheckPositiveIntegerFailedWithNotInteger() {
         Properties props = PropertiesBuilder.build(new Property("key", "123.0"));
         assertThrows(AlgorithmInitializationException.class, () -> MaskAlgorithmPropertiesChecker.checkPositiveInteger(props, "key", mock(MaskAlgorithm.class)));
+    }
+    
+    @Test
+    void assertCheckNotNegativeIntegerSuccessWithPositive() {
+        Properties props = PropertiesBuilder.build(new Property("key", "123"));
+        assertDoesNotThrow(() -> MaskAlgorithmPropertiesChecker.checkNotNegativeInteger(props, "key", mock(MaskAlgorithm.class)));
+    }
+    
+    @Test
+    void assertCheckNotNegativeIntegerSuccessWithZero() {
+        Properties props = PropertiesBuilder.build(new Property("key", "0"));
+        assertDoesNotThrow(() -> MaskAlgorithmPropertiesChecker.checkNotNegativeInteger(props, "key", mock(MaskAlgorithm.class)));
+    }
+    
+    @Test
+    void assertCheckNotNegativeIntegerFailedWithoutKey() {
+        Properties props = new Properties();
+        assertThrows(AlgorithmInitializationException.class, () -> MaskAlgorithmPropertiesChecker.checkNotNegativeInteger(props, "key", mock(MaskAlgorithm.class)));
+    }
+    
+    @Test
+    void assertCheckNotNegativeIntegerFailedWithNegative() {
+        Properties props = PropertiesBuilder.build(new Property("key", "-1"));
+        assertThrows(AlgorithmInitializationException.class, () -> MaskAlgorithmPropertiesChecker.checkNotNegativeInteger(props, "key", mock(MaskAlgorithm.class)));
+    }
+    
+    @Test
+    void assertCheckNotNegativeIntegerFailedWithNotInteger() {
+        Properties props = PropertiesBuilder.build(new Property("key", "123.0"));
+        assertThrows(AlgorithmInitializationException.class, () -> MaskAlgorithmPropertiesChecker.checkNotNegativeInteger(props, "key", mock(MaskAlgorithm.class)));
     }
 }

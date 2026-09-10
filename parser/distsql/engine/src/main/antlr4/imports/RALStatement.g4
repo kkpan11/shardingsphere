@@ -28,7 +28,7 @@ showDistVariable
     ;
 
 showDistVariables
-    : SHOW DIST VARIABLES showLike?
+    : SHOW TEMP? DIST VARIABLES showLike?
     ;
 
 alterComputeNode
@@ -65,14 +65,6 @@ showComputeNodeInfo
 
 showComputeNodeMode
     : SHOW COMPUTE NODE MODE
-    ;
-
-labelComputeNode
-    : (LABEL | RELABEL) COMPUTE NODE instanceId WITH label (COMMA_ label)*
-    ;
-
-unlabelComputeNode
-    : UNLABEL COMPUTE NODE instanceId (WITH label (COMMA_ label)*)?
     ;
 
 exportDatabaseConfiguration
@@ -120,19 +112,19 @@ showLoadBalanceAlgorithmPlugins
     ;
 
 confPath
-    : STRING_
+    : distSQLString
     ;
 
 filePath
-    : STRING_
+    : distSQLString
     ;
 
 metaDataValue
-    : STRING_
+    : distSQLString
     ;
 
 variableName
-    : IDENTIFIER_ | STRING_
+    : IDENTIFIER_ | distSQLString
     ;
 
 variableValues
@@ -144,7 +136,7 @@ variableValue
     ;
 
 instanceId
-    : IDENTIFIER_ | STRING_
+    : IDENTIFIER_ | distSQLString
     ;
 
 refreshScope
@@ -159,18 +151,14 @@ lockStrategy
     : LOCK_STRATEGY LP_ algorithmDefinition RP_
     ;
 
-label
-    : IDENTIFIER_
-    ;
-
 showLike
     : LIKE likePattern
     ;
 
 likePattern
-    : STRING_
+    : distSQLString
     ;
 
 pluginClass
-    : STRING_
+    : distSQLString
     ;

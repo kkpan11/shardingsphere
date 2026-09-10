@@ -17,8 +17,8 @@
 
 package org.apache.shardingsphere.data.pipeline.core.consistencycheck.table;
 
+import org.apache.shardingsphere.database.connector.core.spi.DatabaseSupportedTypedSPI;
 import org.apache.shardingsphere.infra.algorithm.core.ShardingSphereAlgorithm;
-import org.apache.shardingsphere.infra.database.core.spi.DatabaseSupportedTypedSPI;
 
 /**
  * Table data consistency checker.
@@ -32,15 +32,6 @@ public interface TableDataConsistencyChecker extends ShardingSphereAlgorithm, Da
      * @return table inventory checker
      */
     TableInventoryChecker buildTableInventoryChecker(TableInventoryCheckParameter param);
-    
-    /**
-     * Is break on inventory check not matched.
-     *
-     * @return break or not
-     */
-    default boolean isBreakOnInventoryCheckNotMatched() {
-        return true;
-    }
     
     @Override
     void close();

@@ -18,15 +18,15 @@
 package org.apache.shardingsphere.encrypt.distsql.handler.update;
 
 import lombok.Setter;
-import org.apache.shardingsphere.infra.exception.kernel.metadata.rule.MissingRequiredRuleException;
+import org.apache.shardingsphere.distsql.handler.engine.update.rdl.rule.spi.database.type.DatabaseRuleDropExecutor;
 import org.apache.shardingsphere.distsql.handler.required.DistSQLExecutorCurrentRuleRequired;
-import org.apache.shardingsphere.distsql.handler.engine.update.rdl.rule.spi.database.DatabaseRuleDropExecutor;
 import org.apache.shardingsphere.encrypt.config.EncryptRuleConfiguration;
 import org.apache.shardingsphere.encrypt.config.rule.EncryptTableRuleConfiguration;
 import org.apache.shardingsphere.encrypt.distsql.statement.DropEncryptRuleStatement;
 import org.apache.shardingsphere.encrypt.rule.EncryptRule;
 import org.apache.shardingsphere.infra.algorithm.core.config.AlgorithmConfiguration;
-import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.exception.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.exception.kernel.metadata.rule.MissingRequiredRuleException;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 
 import java.util.Collection;
@@ -70,8 +70,11 @@ public final class DropEncryptRuleExecutor implements DatabaseRuleDropExecutor<D
         Collection<EncryptTableRuleConfiguration> toBeDroppedTables = new LinkedList<>();
         Map<String, AlgorithmConfiguration> toBeDroppedEncryptors = new HashMap<>(sqlStatement.getTables().size(), 1F);
         for (String each : sqlStatement.getTables()) {
-            toBeDroppedTables.add(new EncryptTableRuleConfiguration(each, Collections.emptyList()));
-            dropRule(each);
+            Optional<EncryptTableRuleConfiguration> tableRuleConfig = rule.getConfiguration().getTables().stream().filter(optional -> optional.getName().equalsIgnoreCase(each)).findFirst();
+            if (tableRuleConfig.isPresent()) {
+                toBeDroppedTables.add(new EncryptTableRuleConfiguration(tableRuleConfig.get().getName(), Collections.emptyList()));
+                dropRule(tableRuleConfig.get().getName());
+            }
         }
         UnusedAlgorithmFinder.findUnusedEncryptor(rule.getConfiguration()).forEach(each -> toBeDroppedEncryptors.put(each, rule.getConfiguration().getEncryptors().get(each)));
         return new EncryptRuleConfiguration(toBeDroppedTables, toBeDroppedEncryptors);

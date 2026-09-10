@@ -18,6 +18,7 @@
 package org.apache.shardingsphere.infra.executor.sql.log;
 
 import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.LoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import org.apache.shardingsphere.infra.binder.context.statement.SQLStatementContext;
@@ -43,9 +44,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -62,7 +64,7 @@ class SQLLoggerTest {
     @SuppressWarnings({"unchecked", "rawtypes"})
     @BeforeAll
     static void setupLogger() {
-        ch.qos.logback.classic.Logger log = (ch.qos.logback.classic.Logger) LoggerFactory.getLogger("ShardingSphere-SQL");
+        Logger log = (Logger) LoggerFactory.getLogger("org.apache.shardingsphere.sql");
         ListAppender<LoggingEvent> appender = (ListAppender) log.getAppender("SQLLoggerTestAppender");
         appenderList = appender.list;
     }
@@ -74,11 +76,14 @@ class SQLLoggerTest {
         ShardingSphereMetaData metaData = mock(ShardingSphereMetaData.class);
         when(metaData.containsDatabase("foo_db")).thenReturn(true);
         when(metaData.getDatabase("foo_db")).thenReturn(mock(ShardingSphereDatabase.class));
-        queryContext = new QueryContext(mock(SQLStatementContext.class), SQL, Collections.emptyList(), new HintValueContext(), connectionContext, metaData);
+        SQLStatementContext sqlStatementContext = mock(SQLStatementContext.class, RETURNS_DEEP_STUBS);
+        when(sqlStatementContext.getTablesContext().getDatabaseNames()).thenReturn(Collections.emptyList());
+        queryContext = new QueryContext(sqlStatementContext, SQL, Collections.emptyList(), new HintValueContext(), connectionContext, metaData);
         executionUnits = prepareExecutionUnits(Arrays.asList("db1", "db2", "db3"));
         appenderList.clear();
     }
     
+    @SuppressWarnings("CollectionWithoutInitialCapacity")
     private Collection<ExecutionUnit> prepareExecutionUnits(final Collection<String> dataSourceNames) {
         return dataSourceNames.stream().map(each -> new ExecutionUnit(each, new SQLUnit(SQL, new ArrayList<>()))).collect(Collectors.toList());
     }

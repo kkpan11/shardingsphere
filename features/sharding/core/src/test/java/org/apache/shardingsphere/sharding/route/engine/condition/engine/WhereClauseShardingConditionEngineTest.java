@@ -17,16 +17,22 @@
 
 package org.apache.shardingsphere.sharding.route.engine.condition.engine;
 
-import org.apache.shardingsphere.infra.binder.context.statement.dml.SelectStatementContext;
+import org.apache.shardingsphere.infra.binder.context.statement.type.dml.SelectStatementContext;
+import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
+import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereColumn;
+import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereSchema;
+import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereTable;
 import org.apache.shardingsphere.sharding.route.engine.condition.ShardingCondition;
 import org.apache.shardingsphere.sharding.route.engine.condition.value.ListShardingConditionValue;
 import org.apache.shardingsphere.sharding.route.engine.condition.value.RangeShardingConditionValue;
 import org.apache.shardingsphere.sharding.rule.ShardingRule;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.column.ColumnSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.BetweenExpression;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.BinaryOperationExpression;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.ExpressionSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.InExpression;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.ListExpression;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.UnaryOperationExpression;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.simple.LiteralExpressionSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.predicate.WhereSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.value.identifier.IdentifierValue;
@@ -41,10 +47,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.mockito.ArgumentMatchers.any;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.isA;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -62,10 +68,24 @@ class WhereClauseShardingConditionEngineTest {
     @Mock
     private WhereSegment whereSegment;
     
+    @Mock
+    private ShardingSphereDatabase database;
+    
+    @Mock
+    private ShardingSphereSchema schema;
+    
+    @Mock
+    private ShardingSphereTable table;
+    
     @BeforeEach
     void setUp() {
-        shardingConditionEngine = new WhereClauseShardingConditionEngine(rule, mock(TimestampServiceRule.class));
+        shardingConditionEngine = new WhereClauseShardingConditionEngine(database, rule, mock(TimestampServiceRule.class));
         when(sqlStatementContext.getWhereSegments()).thenReturn(Collections.singleton(whereSegment));
+        when(database.containsSchema(new IdentifierValue(""))).thenReturn(true);
+        when(database.getSchema(new IdentifierValue(""))).thenReturn(schema);
+        when(schema.containsTable(new IdentifierValue(""))).thenReturn(true);
+        when(schema.getTable(new IdentifierValue(""))).thenReturn(table);
+        when(table.getColumn("foo_sharding_col")).thenReturn(mock(ShardingSphereColumn.class));
     }
     
     @Test
@@ -77,10 +97,10 @@ class WhereClauseShardingConditionEngineTest {
         ExpressionSegment andSegment = new LiteralExpressionSegment(0, 0, and);
         BetweenExpression betweenExpression = new BetweenExpression(0, 0, left, betweenSegment, andSegment, false);
         when(whereSegment.getExpr()).thenReturn(betweenExpression);
-        when(rule.findShardingColumn(any(), any())).thenReturn(Optional.of("foo_sharding_col"));
+        when(rule.findShardingColumn("foo_sharding_col", "")).thenReturn(Optional.of("foo_sharding_col"));
         List<ShardingCondition> actual = shardingConditionEngine.createShardingConditions(sqlStatementContext, Collections.emptyList());
         assertThat(actual.get(0).getStartIndex(), is(0));
-        assertThat(actual.get(0).getValues().get(0), instanceOf(RangeShardingConditionValue.class));
+        assertThat(actual.get(0).getValues().get(0), isA(RangeShardingConditionValue.class));
     }
     
     @Test
@@ -91,9 +111,20 @@ class WhereClauseShardingConditionEngineTest {
         right.getItems().add(literalExpressionSegment);
         InExpression inExpression = new InExpression(0, 0, left, right, false);
         when(whereSegment.getExpr()).thenReturn(inExpression);
-        when(rule.findShardingColumn(any(), any())).thenReturn(Optional.of("foo_sharding_col"));
+        when(rule.findShardingColumn("foo_sharding_col", "")).thenReturn(Optional.of("foo_sharding_col"));
         List<ShardingCondition> actual = shardingConditionEngine.createShardingConditions(sqlStatementContext, Collections.emptyList());
         assertThat(actual.get(0).getStartIndex(), is(0));
-        assertThat(actual.get(0).getValues().get(0), instanceOf(ListShardingConditionValue.class));
+        assertThat(actual.get(0).getValues().get(0), isA(ListShardingConditionValue.class));
+    }
+    
+    @Test
+    void assertCreateEmptyShardingConditionsForBinaryOperatorRangeStatement() {
+        ColumnSegment left = new ColumnSegment(0, 0, new IdentifierValue("foo_sharding_col"));
+        ExpressionSegment binaryColumn = new UnaryOperationExpression(0, 0, left, "BINARY", "BINARY foo_sharding_col");
+        BinaryOperationExpression expression = new BinaryOperationExpression(0, 0, binaryColumn, new LiteralExpressionSegment(0, 0, "100"), ">", null);
+        when(whereSegment.getExpr()).thenReturn(expression);
+        when(rule.findShardingColumn("foo_sharding_col", "")).thenReturn(Optional.of("foo_sharding_col"));
+        List<ShardingCondition> actual = shardingConditionEngine.createShardingConditions(sqlStatementContext, Collections.emptyList());
+        assertTrue(actual.isEmpty());
     }
 }

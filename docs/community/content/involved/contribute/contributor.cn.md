@@ -40,10 +40,18 @@ git remote -v
 
 ```shell
 cd shardingsphere
-./mvnw clean install -DskipITs -DskipTests -Prelease
+./mvnw clean install -DskipITs -DskipTests -P-dev,release,all
 ```
 
 当你以后从 ShardingSphere 拉取最新代码并新建分支，可能会遇到类似的解析器编译错误，可以重新运行这个命令来解决问题。
+
+如果你只是想为变更过的 `.g4` 文件重新生成解析器相关的 Java 类，而不想再次执行全量构建，也可以使用下面的辅助脚本。该脚本会在首次运行或切换分支后扫描 ANTLR 模块，之后根据语法文件变更仅重新编译受影响的 Maven 模块。
+
+```shell
+./scripts/smart-antlr-rebuild.sh
+```
+
+这个脚本适合在拉取最新代码、rebase，或本地修改语法文件后，快速修复 parser 生成物未更新的问题；如果还需要同时刷新 Maven 本地仓库中的依赖，仍然应当使用上面的全量 `./mvnw clean install ...` 命令。
 
 **2. 选择 issue**
 

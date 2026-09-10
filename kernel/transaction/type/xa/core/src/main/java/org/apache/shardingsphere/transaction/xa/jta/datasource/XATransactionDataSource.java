@@ -17,11 +17,14 @@
 
 package org.apache.shardingsphere.transaction.xa.jta.datasource;
 
-import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
-import org.apache.shardingsphere.infra.database.core.spi.DatabaseTypedSPILoader;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.shardingsphere.database.connector.core.metadata.database.metadata.option.transaction.DialectTransactionOption;
+import org.apache.shardingsphere.database.connector.core.spi.DatabaseTypedSPILoader;
+import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
+import org.apache.shardingsphere.database.connector.core.type.DatabaseTypeRegistry;
+import org.apache.shardingsphere.infra.session.connection.transaction.TransactionOptionReplayCallback;
 import org.apache.shardingsphere.infra.util.reflection.ReflectionUtils;
 import org.apache.shardingsphere.transaction.xa.jta.connection.XAConnectionWrapper;
-import org.apache.shardingsphere.transaction.xa.jta.datasource.properties.XADataSourceDefinition;
 import org.apache.shardingsphere.transaction.xa.jta.datasource.swapper.DataSourceSwapper;
 import org.apache.shardingsphere.transaction.xa.spi.SingleXAResource;
 import org.apache.shardingsphere.transaction.xa.spi.XATransactionManagerProvider;
@@ -36,19 +39,25 @@ import javax.transaction.Transaction;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * XA transaction data source.
  */
+@Slf4j
 public final class XATransactionDataSource implements AutoCloseable {
     
     private static final Set<String> CONTAINER_DATASOURCE_NAMES = new HashSet<>(Arrays.asList("AtomikosDataSourceBean", "BasicManagedDataSource"));
     
-    private final ThreadLocal<Map<Transaction, Connection>> enlistedTransactions = ThreadLocal.withInitial(HashMap::new);
+    private final ThreadLocal<Map<Transaction, Collection<Connection>>> enlistedTransactions = ThreadLocal.withInitial(HashMap::new);
+    
+    private final ThreadLocal<AtomicInteger> uniqueName = ThreadLocal.withInitial(AtomicInteger::new);
     
     private final String resourceName;
     
@@ -64,7 +73,8 @@ public final class XATransactionDataSource implements AutoCloseable {
         this.resourceName = resourceName;
         this.dataSource = dataSource;
         if (!CONTAINER_DATASOURCE_NAMES.contains(dataSource.getClass().getSimpleName())) {
-            xaDataSource = new DataSourceSwapper(DatabaseTypedSPILoader.getService(XADataSourceDefinition.class, databaseType)).swap(dataSource);
+            DialectTransactionOption transactionOption = new DatabaseTypeRegistry(databaseType).getDialectDatabaseMetaData().getTransactionOption();
+            xaDataSource = new DataSourceSwapper(databaseType, transactionOption.getXaDriverClassNames()).swap(dataSource);
             xaConnectionWrapper = DatabaseTypedSPILoader.getService(XAConnectionWrapper.class, databaseType);
             this.xaTransactionManagerProvider = xaTransactionManagerProvider;
             xaTransactionManagerProvider.registerRecoveryResource(resourceName, xaDataSource);
@@ -74,35 +84,87 @@ public final class XATransactionDataSource implements AutoCloseable {
     /**
      * Get connection.
      *
+     * @param transactionOptionReplayCallback transaction option replay callback
      * @return XA transaction connection
      * @throws SQLException SQL exception
      * @throws SystemException system exception
      * @throws RollbackException rollback exception
      */
-    public Connection getConnection() throws SQLException, SystemException, RollbackException {
+    public Connection getConnection(final TransactionOptionReplayCallback transactionOptionReplayCallback) throws SQLException, SystemException, RollbackException {
         if (CONTAINER_DATASOURCE_NAMES.contains(dataSource.getClass().getSimpleName())) {
-            return dataSource.getConnection();
+            Connection result = dataSource.getConnection();
+            replayTransactionOption(result, transactionOptionReplayCallback);
+            return result;
         }
         Transaction transaction = xaTransactionManagerProvider.getTransactionManager().getTransaction();
-        if (!enlistedTransactions.get().containsKey(transaction)) {
-            Connection connection = dataSource.getConnection();
-            XAConnection xaConnection = xaConnectionWrapper.wrap(xaDataSource, connection);
-            transaction.enlistResource(new SingleXAResource(resourceName, xaConnection.getXAResource()));
-            transaction.registerSynchronization(new Synchronization() {
-                
-                @Override
-                public void beforeCompletion() {
-                    enlistedTransactions.get().remove(transaction);
-                }
-                
-                @Override
-                public void afterCompletion(final int status) {
-                    enlistedTransactions.get().clear();
-                }
-            });
-            enlistedTransactions.get().put(transaction, connection);
+        Connection connection = dataSource.getConnection();
+        replayTransactionOption(connection, transactionOptionReplayCallback);
+        try {
+            enlistResource(connection, transaction);
+            // CHECKSTYLE:OFF
+        } catch (final RuntimeException | SystemException | RollbackException ex) {
+            // CHECKSTYLE:ON
+            closeConnection(connection);
+            throw ex;
+            // CHECKSTYLE:OFF
+        } catch (final Exception ex) {
+            // CHECKSTYLE:ON
+            closeConnection(connection);
+            throw new SQLException(ex);
         }
-        return enlistedTransactions.get().get(transaction);
+        return connection;
+    }
+    
+    private void replayTransactionOption(final Connection connection, final TransactionOptionReplayCallback transactionOptionReplayCallback) throws SQLException {
+        try {
+            transactionOptionReplayCallback.replay(connection);
+        } catch (final SQLException ex) {
+            closeConnection(connection);
+            throw ex;
+        }
+    }
+    
+    private void enlistResource(final Connection connection, final Transaction transaction) throws SQLException, RollbackException, SystemException {
+        boolean originalAutoCommit = connection.getAutoCommit();
+        XAConnection xaConnection = xaConnectionWrapper.wrap(xaDataSource, connection);
+        boolean restoreAutoCommit = originalAutoCommit && !connection.getAutoCommit();
+        transaction.enlistResource(new SingleXAResource(resourceName, String.valueOf(uniqueName.get().getAndIncrement()), xaConnection.getXAResource()));
+        registerSynchronization(transaction, connection, restoreAutoCommit);
+        enlistedTransactions.get().computeIfAbsent(transaction, key -> new LinkedList<>());
+        enlistedTransactions.get().get(transaction).add(connection);
+    }
+    
+    private void closeConnection(final Connection connection) {
+        try {
+            connection.close();
+            // CHECKSTYLE:OFF
+        } catch (final Throwable ex) {
+            // CHECKSTYLE:ON
+            log.warn("Failed to close connection after transaction setup failure. Resource: {}", resourceName, ex);
+        }
+    }
+    
+    private void registerSynchronization(final Transaction transaction, final Connection connection, final boolean restoreAutoCommit) throws RollbackException, SystemException {
+        transaction.registerSynchronization(new Synchronization() {
+            
+            @Override
+            public void beforeCompletion() {
+                enlistedTransactions.get().remove(transaction);
+                uniqueName.remove();
+            }
+            
+            @Override
+            public void afterCompletion(final int status) {
+                if (restoreAutoCommit) {
+                    try {
+                        connection.setAutoCommit(true);
+                    } catch (final SQLException ex) {
+                        log.warn("Failed to restore auto-commit after transaction completion. Resource: {}", resourceName, ex);
+                    }
+                }
+                enlistedTransactions.get().clear();
+            }
+        });
     }
     
     @Override

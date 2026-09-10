@@ -19,12 +19,13 @@ package org.apache.shardingsphere.infra.metadata.database.schema.builder;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import org.apache.shardingsphere.infra.database.core.metadata.data.loader.MetaDataLoader;
-import org.apache.shardingsphere.infra.database.core.metadata.data.loader.MetaDataLoaderMaterial;
-import org.apache.shardingsphere.infra.database.core.metadata.data.model.SchemaMetaData;
-import org.apache.shardingsphere.infra.database.core.metadata.data.model.TableMetaData;
-import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
-import org.apache.shardingsphere.infra.database.core.type.DatabaseTypeRegistry;
+import org.apache.shardingsphere.database.connector.core.metadata.data.loader.MetaDataLoader;
+import org.apache.shardingsphere.database.connector.core.metadata.data.loader.MetaDataLoaderMaterial;
+import org.apache.shardingsphere.database.connector.core.metadata.data.model.SchemaMetaData;
+import org.apache.shardingsphere.database.connector.core.metadata.data.model.TableMetaData;
+import org.apache.shardingsphere.database.connector.core.metadata.database.metadata.DialectDatabaseMetaData;
+import org.apache.shardingsphere.database.connector.core.spi.DatabaseTypedSPILoader;
+import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.metadata.database.resource.unit.StorageUnit;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereSchema;
 import org.apache.shardingsphere.infra.metadata.database.schema.reviser.MetaDataReviseEngine;
@@ -36,7 +37,6 @@ import java.sql.SQLException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Optional;
@@ -70,11 +70,12 @@ public final class GenericSchemaBuilder {
      * @throws SQLException SQL exception
      */
     public static Map<String, ShardingSphereSchema> build(final Collection<String> tableNames, final DatabaseType protocolType, final GenericSchemaBuilderMaterial material) throws SQLException {
-        Map<String, SchemaMetaData> result = loadSchemas(tableNames, material);
-        if (!isSameProtocolAndStorageTypes(protocolType, material.getStorageUnits())) {
-            result = translate(result, protocolType, material);
+        Collection<MetaDataLoaderMaterial> loaderMaterials = SchemaMetaDataUtils.getMetaDataLoaderMaterials(tableNames, protocolType, material);
+        Map<String, SchemaMetaData> result = loadSchemas(loaderMaterials);
+        if (!isSchemaCompatible(protocolType, material.getStorageUnits())) {
+            result = translate(result, protocolType, material, loaderMaterials);
         }
-        return revise(result, material);
+        return revise(result, material, protocolType);
     }
     
     private static Collection<String> getAllTableNames(final Collection<ShardingSphereRule> rules) {
@@ -85,31 +86,37 @@ public final class GenericSchemaBuilder {
         return result;
     }
     
-    private static Map<String, SchemaMetaData> loadSchemas(final Collection<String> tableNames, final GenericSchemaBuilderMaterial material) throws SQLException {
-        Collection<MetaDataLoaderMaterial> materials = SchemaMetaDataUtils.getMetaDataLoaderMaterials(tableNames, material);
+    private static Map<String, SchemaMetaData> loadSchemas(final Collection<MetaDataLoaderMaterial> materials) throws SQLException {
         return materials.isEmpty() ? Collections.emptyMap() : MetaDataLoader.load(materials);
+    }
+    
+    private static boolean isSchemaCompatible(final DatabaseType protocolType, final Map<String, StorageUnit> storageUnits) {
+        return isSameProtocolAndStorageTypes(protocolType, storageUnits) || isSchemaAvailable(protocolType)
+                && storageUnits.values().stream().map(StorageUnit::getStorageType).allMatch(GenericSchemaBuilder::isSchemaAvailable);
     }
     
     private static boolean isSameProtocolAndStorageTypes(final DatabaseType protocolType, final Map<String, StorageUnit> storageUnits) {
         return storageUnits.values().stream().map(StorageUnit::getStorageType).allMatch(protocolType::equals);
     }
     
-    private static Map<String, SchemaMetaData> translate(final Map<String, SchemaMetaData> schemaMetaDataMap, final DatabaseType protocolType, final GenericSchemaBuilderMaterial material) {
-        Collection<TableMetaData> tableMetaDataList = new LinkedList<>();
-        for (StorageUnit each : material.getStorageUnits().values()) {
-            DatabaseTypeRegistry databaseTypeRegistry = new DatabaseTypeRegistry(each.getStorageType());
-            String defaultSchemaName = databaseTypeRegistry.getDefaultSchemaName(material.getDefaultSchemaName());
-            tableMetaDataList.addAll(Optional.ofNullable(schemaMetaDataMap.get(defaultSchemaName)).map(SchemaMetaData::getTables).orElseGet(Collections::emptyList));
-        }
-        String frontendSchemaName = new DatabaseTypeRegistry(protocolType).getDefaultSchemaName(material.getDefaultSchemaName());
-        Map<String, SchemaMetaData> result = new LinkedHashMap<>();
-        result.put(frontendSchemaName, new SchemaMetaData(frontendSchemaName, tableMetaDataList));
-        return result;
+    private static boolean isSchemaAvailable(final DatabaseType databaseType) {
+        return DatabaseTypedSPILoader.findService(DialectDatabaseMetaData.class, databaseType)
+                .map(each -> each.getSchemaOption().isSchemaAvailable()).orElse(false);
     }
     
-    private static Map<String, ShardingSphereSchema> revise(final Map<String, SchemaMetaData> schemaMetaDataMap, final GenericSchemaBuilderMaterial material) {
+    private static Map<String, SchemaMetaData> translate(final Map<String, SchemaMetaData> schemaMetaDataMap, final DatabaseType protocolType, final GenericSchemaBuilderMaterial material,
+                                                         final Collection<MetaDataLoaderMaterial> loaderMaterials) {
+        Collection<TableMetaData> tableMetaDataList = new LinkedList<>();
+        for (String each : loaderMaterials.stream().map(MetaDataLoaderMaterial::getDefaultSchemaName).distinct().collect(Collectors.toList())) {
+            tableMetaDataList.addAll(Optional.ofNullable(schemaMetaDataMap.get(each)).map(SchemaMetaData::getTables).orElseGet(Collections::emptyList));
+        }
+        String frontendSchemaName = material.getDefaultSchemaName();
+        return Collections.singletonMap(frontendSchemaName, new SchemaMetaData(frontendSchemaName, tableMetaDataList));
+    }
+    
+    private static Map<String, ShardingSphereSchema> revise(final Map<String, SchemaMetaData> schemaMetaDataMap, final GenericSchemaBuilderMaterial material, final DatabaseType protocolType) {
         Collection<ShardingSphereRule> rules = material.getRules().stream()
                 .filter(each -> each.getAttributes().findAttribute(TableMapperRuleAttribute.class).isPresent()).collect(Collectors.toList());
-        return new MetaDataReviseEngine(rules).revise(schemaMetaDataMap, material);
+        return new MetaDataReviseEngine(rules, protocolType).revise(schemaMetaDataMap, material);
     }
 }

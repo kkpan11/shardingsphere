@@ -39,40 +39,32 @@ SHOW
     : S H O W
     ;
 
-SHARDING
-    : S H A R D I N G
-    ;
-
-RULE
-    :  R U L E
-    ;
-
-FROM
-    : F R O M
-    ;
-
-STORAGE_UNITS
-    : S T O R A G E UL_ U N I T S
-    ;
-
-KEY_GENERATE_STRATEGY
-    : K E Y UL_ G E N E R A T E UL_ S T R A T E G Y
-    ;
-
-DEFAULT_TABLE_STRATEGY
-    : D E F A U L T UL_ T A B L E UL_ S T R A T E G Y
+DATABASE
+    : D A T A B A S E
     ;
 
 TABLE
     : T A B L E
     ;
 
-SHARDING_COLUMN
-    : S H A R D I N G UL_ C O L U M N
+COLUMN
+    : C O L U M N
     ;
 
-SHARDING_COLUMNS
-    : S H A R D I N G UL_ C O L U M N S
+COLUMNS
+    : C O L U M N S
+    ;
+
+REFERENCE
+    : R E F E R E N C E
+    ;
+
+RULE
+    :  R U L E
+    ;
+
+STORAGE_UNITS
+    : S T O R A G E UL_ U N I T S
     ;
 
 TYPE
@@ -87,20 +79,8 @@ PROPERTIES
     : P R O P E R T I E S
     ;
 
-COLUMN
-    : C O L U M N
-    ;
-
-REFERENCE
-    : R E F E R E N C E
-    ;
-
 RULES
     : R U L E S
-    ;
-
-COLUMNS
-    : C O L U M N S
     ;
 
 ALGORITHM
@@ -111,16 +91,36 @@ ALGORITHMS
     : A L G O R I T H M S
     ;
 
-HINT
-    : H I N T
+FROM
+    : F R O M
     ;
 
 DEFAULT
     : D E F A U L T
     ;
 
-DATABASE
-    : D A T A B A S E
+SHARDING
+    : S H A R D I N G
+    ;
+
+KEY_GENERATE_STRATEGY
+    : K E Y UL_ G E N E R A T E UL_ S T R A T E G Y
+    ;
+
+DEFAULT_TABLE_STRATEGY
+    : D E F A U L T UL_ T A B L E UL_ S T R A T E G Y
+    ;
+
+SHARDING_COLUMN
+    : S H A R D I N G UL_ C O L U M N
+    ;
+
+SHARDING_COLUMNS
+    : S H A R D I N G UL_ C O L U M N S
+    ;
+
+HINT
+    : H I N T
     ;
 
 SHARDING_ALGORITHM
@@ -151,6 +151,10 @@ KEY
     : K E Y
     ;
 
+GENERATE
+    : G E N E R A T E
+    ;
+
 GENERATOR
     : G E N E R A T O R
     ;
@@ -159,8 +163,16 @@ GENERATORS
     : G E N E R A T O R S
     ;
 
+STRATEGIES
+    : S T R A T E G I E S
+    ;
+
 KEY_GENERATOR
     : K E Y UL_ G E N E R A T O R
+    ;
+
+SEQUENCE
+    : S E Q U E N C E
     ;
 
 UNUSED
@@ -177,10 +189,6 @@ IF
 
 EXISTS
     : E X I S T S
-    ;
-
-WITH
-    : W I T H
     ;
 
 COUNT

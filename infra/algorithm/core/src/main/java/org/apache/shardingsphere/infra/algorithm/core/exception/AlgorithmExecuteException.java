@@ -18,13 +18,12 @@
 package org.apache.shardingsphere.infra.algorithm.core.exception;
 
 import org.apache.shardingsphere.infra.algorithm.core.ShardingSphereAlgorithm;
-import org.apache.shardingsphere.infra.exception.core.external.sql.sqlstate.XOpenSQLState;
+import org.apache.shardingsphere.infra.exception.external.sql.sqlstate.XOpenSQLState;
 
 /**
  * Algorithm execute exception.
  */
-// TODO It is runnable exception, consider about move out from AlgorithmDefinitionException
-public final class AlgorithmExecuteException extends AlgorithmDefinitionException {
+public final class AlgorithmExecuteException extends AlgorithmSQLException {
     
     private static final long serialVersionUID = -9099514178650043282L;
     

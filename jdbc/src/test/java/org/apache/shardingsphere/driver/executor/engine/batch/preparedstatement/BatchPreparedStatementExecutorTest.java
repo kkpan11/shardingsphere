@@ -20,7 +20,6 @@ package org.apache.shardingsphere.driver.executor.engine.batch.preparedstatement
 import lombok.SneakyThrows;
 import org.apache.shardingsphere.infra.binder.context.segment.table.TablesContext;
 import org.apache.shardingsphere.infra.binder.context.statement.SQLStatementContext;
-import org.apache.shardingsphere.infra.binder.context.type.TableAvailable;
 import org.apache.shardingsphere.infra.executor.kernel.ExecutorEngine;
 import org.apache.shardingsphere.infra.executor.kernel.model.ExecutionGroup;
 import org.apache.shardingsphere.infra.executor.kernel.model.ExecutionGroupContext;
@@ -57,8 +56,8 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
@@ -76,7 +75,7 @@ class BatchPreparedStatementExecutorTest {
     
     private BatchPreparedStatementExecutor executor;
     
-    @Mock(extraInterfaces = TableAvailable.class)
+    @Mock
     private SQLStatementContext sqlStatementContext;
     
     @BeforeEach
@@ -84,7 +83,7 @@ class BatchPreparedStatementExecutorTest {
         SQLExecutorExceptionHandler.setExceptionThrown(true);
         String processId = new UUID(ThreadLocalRandom.current().nextLong(), ThreadLocalRandom.current().nextLong()).toString().replace("-", "");
         executor = new BatchPreparedStatementExecutor(mockDatabase(), new JDBCExecutor(executorEngine, mock(ConnectionContext.class, RETURNS_DEEP_STUBS)), processId);
-        when(((TableAvailable) sqlStatementContext).getTablesContext()).thenReturn(mock(TablesContext.class));
+        when(sqlStatementContext.getTablesContext()).thenReturn(mock(TablesContext.class));
     }
     
     private ShardingSphereDatabase mockDatabase() {

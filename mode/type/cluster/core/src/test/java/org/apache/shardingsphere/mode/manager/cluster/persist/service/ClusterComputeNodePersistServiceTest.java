@@ -24,6 +24,7 @@ import org.apache.shardingsphere.infra.instance.yaml.YamlComputeNodeData;
 import org.apache.shardingsphere.infra.state.instance.InstanceState;
 import org.apache.shardingsphere.infra.util.yaml.YamlEngine;
 import org.apache.shardingsphere.mode.repository.cluster.ClusterPersistRepository;
+import org.apache.shardingsphere.mode.repository.cluster.exception.ClusterRepositoryPersistException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -36,11 +37,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -60,11 +63,9 @@ class ClusterComputeNodePersistServiceTest {
     @Test
     void assertRegisterOnline() {
         ComputeNodeInstance computeNodeInstance = new ComputeNodeInstance(new ProxyInstanceMetaData("foo_instance_id", 3307));
-        computeNodeInstance.getLabels().add("test");
         computeNodePersistService.registerOnline(computeNodeInstance);
         verify(repository).persistEphemeral(eq("/nodes/compute_nodes/online/proxy/foo_instance_id"), anyString());
         verify(repository).persistEphemeral("/nodes/compute_nodes/status/foo_instance_id", InstanceState.OK.name());
-        verify(repository).persistEphemeral("/nodes/compute_nodes/labels/foo_instance_id", YamlEngine.marshal(Collections.singletonList("test")));
     }
     
     @Test
@@ -101,10 +102,10 @@ class ClusterComputeNodePersistServiceTest {
     }
     
     @Test
-    void assertPersistLabels() {
-        String instanceId = new ProxyInstanceMetaData("foo_instance_id", 3307).getId();
-        computeNodePersistService.persistLabels(instanceId, Collections.singletonList("test"));
-        verify(repository).persistEphemeral("/nodes/compute_nodes/labels/foo_instance_id", YamlEngine.marshal(Collections.singletonList("test")));
+    void assertUpdateStateThrowsExceptionWhenPersistEphemeralFails() {
+        doThrow(new ClusterRepositoryPersistException(new RuntimeException("connection lost")))
+                .when(repository).persistEphemeral("/nodes/compute_nodes/status/foo_instance_id", InstanceState.OK.name());
+        assertThrows(ClusterRepositoryPersistException.class, () -> computeNodePersistService.updateState("foo_instance_id", InstanceState.OK));
     }
     
     @Test

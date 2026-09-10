@@ -19,19 +19,19 @@ package org.apache.shardingsphere.shadow.route.retriever.hint;
 
 import org.apache.shardingsphere.infra.algorithm.core.config.AlgorithmConfiguration;
 import org.apache.shardingsphere.infra.hint.HintValueContext;
+import org.apache.shardingsphere.infra.util.props.PropertiesBuilder;
+import org.apache.shardingsphere.infra.util.props.PropertiesBuilder.Property;
 import org.apache.shardingsphere.shadow.config.ShadowRuleConfiguration;
 import org.apache.shardingsphere.shadow.config.datasource.ShadowDataSourceConfiguration;
 import org.apache.shardingsphere.shadow.config.table.ShadowTableConfiguration;
 import org.apache.shardingsphere.shadow.rule.ShadowRule;
-import org.apache.shardingsphere.test.util.PropertiesBuilder;
-import org.apache.shardingsphere.test.util.PropertiesBuilder.Property;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.Map;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 class ShadowHintDataSourceMappingsRetrieverTest {
     

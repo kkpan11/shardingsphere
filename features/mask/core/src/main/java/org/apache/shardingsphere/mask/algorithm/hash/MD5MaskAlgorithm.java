@@ -17,7 +17,9 @@
 
 package org.apache.shardingsphere.mask.algorithm.hash;
 
-import org.apache.shardingsphere.infra.algorithm.messagedigest.core.MessageDigestAlgorithm;
+import org.apache.shardingsphere.infra.algorithm.messagedigest.core.MessageDigestAlgorithmEngine;
+import org.apache.shardingsphere.infra.algorithm.messagedigest.spi.MessageDigestAlgorithm;
+import org.apache.shardingsphere.infra.annotation.HighFrequencyInvocation;
 import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 import org.apache.shardingsphere.mask.spi.MaskAlgorithm;
 
@@ -28,6 +30,8 @@ import java.util.Properties;
  */
 public final class MD5MaskAlgorithm implements MaskAlgorithm<Object, String> {
     
+    private static final String DEFAULT_MD5_ENCODER = "HEX";
+    
     private MessageDigestAlgorithm digestAlgorithm;
     
     @Override
@@ -35,9 +39,11 @@ public final class MD5MaskAlgorithm implements MaskAlgorithm<Object, String> {
         digestAlgorithm = TypedSPILoader.getService(MessageDigestAlgorithm.class, getType(), props);
     }
     
+    @HighFrequencyInvocation
     @Override
     public String mask(final Object plainValue) {
-        return digestAlgorithm.digest(plainValue);
+        Object result = MessageDigestAlgorithmEngine.digest(digestAlgorithm, plainValue, DEFAULT_MD5_ENCODER, false);
+        return null == result ? null : String.valueOf(result);
     }
     
     @Override

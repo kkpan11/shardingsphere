@@ -298,4 +298,137 @@
             </assignment>
         </set>
     </insert>
+
+    <insert sql-case-id="insert_select_with_target_table_alias_oracle">
+        <table name="t_order" start-index="12" stop-index="20" alias="o">
+            <table-bound>
+                <original-database name="foo_db_1" />
+                <original-schema name="FOO_DB_1" />
+            </table-bound>
+        </table>
+        <columns start-index="22" stop-index="31">
+            <column name="order_id" start-index="23" stop-index="30">
+                <column-bound>
+                    <original-database name="foo_db_1" />
+                    <original-schema name="FOO_DB_1" />
+                    <original-table name="t_order" />
+                    <original-column name="order_id" start-delimiter="&quot;" end-delimiter="&quot;" />
+                    <table-source-type name="PHYSICAL_TABLE"/>
+                </column-bound>
+            </column>
+        </columns>
+        <select>
+            <projections start-index="40" stop-index="49">
+                <column-projection name="order_id" start-index="40" stop-index="49">
+                    <owner name="i" start-index="40" stop-index="40" />
+                    <column-bound>
+                        <original-database name="foo_db_1" />
+                        <original-schema name="FOO_DB_1" />
+                        <original-table name="t_order_item" />
+                        <original-column name="order_id" start-delimiter="&quot;" end-delimiter="&quot;" />
+                        <table-source-type name="PHYSICAL_TABLE"/>
+                    </column-bound>
+                </column-projection>
+            </projections>
+            <from start-index="56" stop-index="69">
+                <simple-table name="t_order_item" start-index="56" stop-index="69" alias="i">
+                    <table-bound>
+                        <original-database name="foo_db_1" />
+                        <original-schema name="FOO_DB_1" />
+                    </table-bound>
+                </simple-table>
+            </from>
+            <where start-index="71" stop-index="89">
+                <expr>
+                    <binary-operation-expression start-index="77" stop-index="89">
+                        <left>
+                            <column name="item_id" start-index="77" stop-index="85">
+                                <owner name="i" start-index="77" stop-index="77" />
+                                <column-bound>
+                                    <original-database name="foo_db_1" />
+                                    <original-schema name="FOO_DB_1" />
+                                    <original-table name="t_order_item" />
+                                    <original-column name="item_id" start-delimiter="&quot;" end-delimiter="&quot;" />
+                                    <table-source-type name="PHYSICAL_TABLE"/>
+                                </column-bound>
+                            </column>
+                        </left>
+                        <operator>=</operator>
+                        <right>
+                            <literal-expression value="1" start-index="89" stop-index="89" />
+                        </right>
+                    </binary-operation-expression>
+                </expr>
+            </where>
+        </select>
+    </insert>
+
+    <insert sql-case-id="insert_on_duplicate_key_update_with_excluded_postgres">
+        <table name="t_order" start-index="12" stop-index="18">
+            <table-bound>
+                <original-database name="foo_db_1" />
+                <original-schema name="public" />
+            </table-bound>
+        </table>
+        <columns start-index="20" stop-index="46">
+            <column name="order_id" start-index="21" stop-index="28">
+                <column-bound>
+                    <original-database name="foo_db_1" />
+                    <original-schema name="public" />
+                    <original-table name="t_order" />
+                    <original-column name="order_id" start-delimiter="&quot;" end-delimiter="&quot;" />
+                    <table-source-type name="PHYSICAL_TABLE"/>
+                </column-bound>
+            </column>
+            <column name="user_id" start-index="31" stop-index="37">
+                <column-bound>
+                    <original-database name="foo_db_1" />
+                    <original-schema name="public" />
+                    <original-table name="t_order" />
+                    <original-column name="user_id" start-delimiter="&quot;" end-delimiter="&quot;" />
+                    <table-source-type name="PHYSICAL_TABLE"/>
+                </column-bound>
+            </column>
+            <column name="status" start-index="40" stop-index="45">
+                <column-bound>
+                    <original-database name="foo_db_1" />
+                    <original-schema name="public" />
+                    <original-table name="t_order" />
+                    <original-column name="status" start-delimiter="&quot;" end-delimiter="&quot;" />
+                    <table-source-type name="PHYSICAL_TABLE"/>
+                </column-bound>
+            </column>
+        </columns>
+        <values>
+            <value>
+                <assignment-value>
+                    <literal-expression value="1" start-index="56" stop-index="56" />
+                </assignment-value>
+                <assignment-value>
+                    <literal-expression value="1" start-index="59" stop-index="59" />
+                </assignment-value>
+                <assignment-value>
+                    <literal-expression value="init" start-index="62" stop-index="67" />
+                </assignment-value>
+            </value>
+        </values>
+        <on-duplicate-key-columns start-index="70" stop-index="130">
+            <assignment start-index="107" stop-index="130">
+                <column name="status" start-index="107" stop-index="112">
+                    <column-bound>
+                        <original-database name="foo_db_1" />
+                        <original-schema name="public" />
+                        <original-table name="t_order" />
+                        <original-column name="status" start-delimiter="&quot;" end-delimiter="&quot;" />
+                        <table-source-type name="PHYSICAL_TABLE"/>
+                    </column-bound>
+                </column>
+                <assignment-value>
+                    <column name="status" start-index="116" stop-index="130">
+                        <owner name="EXCLUDED" start-index="116" stop-index="123" />
+                    </column>
+                </assignment-value>
+            </assignment>
+        </on-duplicate-key-columns>
+    </insert>
 </sql-parser-test-cases>

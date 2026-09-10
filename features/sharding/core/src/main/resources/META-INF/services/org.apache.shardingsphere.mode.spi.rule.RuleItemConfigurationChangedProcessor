@@ -20,10 +20,10 @@ org.apache.shardingsphere.sharding.rule.changed.ShardingAutoTableChangedProcesso
 org.apache.shardingsphere.sharding.rule.changed.ShardingTableReferenceChangedProcessor
 org.apache.shardingsphere.sharding.rule.changed.ShardingAlgorithmChangedProcessor
 org.apache.shardingsphere.sharding.rule.changed.KeyGeneratorChangedProcessor
+org.apache.shardingsphere.sharding.rule.changed.KeyGenerateStrategiesChangedProcessor
 org.apache.shardingsphere.sharding.rule.changed.ShardingAuditorChangedProcessor
 org.apache.shardingsphere.sharding.rule.changed.DefaultDatabaseShardingStrategyChangedProcessor
 org.apache.shardingsphere.sharding.rule.changed.DefaultTableShardingStrategyChangedProcessor
 org.apache.shardingsphere.sharding.rule.changed.DefaultKeyGenerateStrategyChangedProcessor
 org.apache.shardingsphere.sharding.rule.changed.DefaultShardingAuditorStrategyChangedProcessor
 org.apache.shardingsphere.sharding.rule.changed.DefaultShardingColumnChangedProcessor
-org.apache.shardingsphere.sharding.rule.changed.ShardingCacheChangedProcessor

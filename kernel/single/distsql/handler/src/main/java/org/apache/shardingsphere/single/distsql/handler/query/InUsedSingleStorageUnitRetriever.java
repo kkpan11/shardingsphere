@@ -18,10 +18,10 @@
 package org.apache.shardingsphere.single.distsql.handler.query;
 
 import org.apache.shardingsphere.distsql.handler.executor.rql.resource.InUsedStorageUnitRetriever;
-import org.apache.shardingsphere.distsql.statement.rql.rule.database.ShowRulesUsedStorageUnitStatement;
+import org.apache.shardingsphere.distsql.statement.type.rql.rule.database.ShowRulesUsedStorageUnitStatement;
 import org.apache.shardingsphere.infra.datanode.DataNode;
-import org.apache.shardingsphere.single.rule.SingleDataNodeRuleAttribute;
 import org.apache.shardingsphere.single.rule.SingleRule;
+import org.apache.shardingsphere.single.rule.attribute.SingleDataNodeRuleAttribute;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -39,7 +39,7 @@ public final class InUsedSingleStorageUnitRetriever implements InUsedStorageUnit
         Collection<String> result = new HashSet<>(dataNodes.size(), 1F);
         for (Collection<DataNode> each : dataNodes.values()) {
             String storageUnitName = each.iterator().next().getDataSourceName();
-            if (storageUnitName.equalsIgnoreCase(sqlStatement.getStorageUnitName())) {
+            if (sqlStatement.getStorageUnitName().equals(storageUnitName)) {
                 result.add(each.iterator().next().getTableName());
             }
         }

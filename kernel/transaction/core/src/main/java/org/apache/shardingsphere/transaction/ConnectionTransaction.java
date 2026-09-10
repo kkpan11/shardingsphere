@@ -19,6 +19,7 @@ package org.apache.shardingsphere.transaction;
 
 import lombok.Getter;
 import org.apache.shardingsphere.infra.session.connection.transaction.TransactionConnectionContext;
+import org.apache.shardingsphere.infra.session.connection.transaction.TransactionOptionReplayCallback;
 import org.apache.shardingsphere.transaction.api.TransactionType;
 import org.apache.shardingsphere.transaction.rule.TransactionRule;
 import org.apache.shardingsphere.transaction.spi.ShardingSphereDistributedTransactionManager;
@@ -46,7 +47,7 @@ public final class ConnectionTransaction {
         if (transactionContext.getTransactionManager().isPresent()) {
             distributedTransactionManager = (ShardingSphereDistributedTransactionManager) transactionContext.getTransactionManager().get();
         } else {
-            distributedTransactionManager = TransactionType.LOCAL == this.transactionType ? null : rule.getResource().getTransactionManager(rule.getDefaultType());
+            distributedTransactionManager = TransactionType.LOCAL == transactionType ? null : rule.getResource().getTransactionManager(rule.getDefaultType());
         }
     }
     
@@ -57,7 +58,7 @@ public final class ConnectionTransaction {
      * @return in distributed transaction or not
      */
     public boolean isInDistributedTransaction(final TransactionConnectionContext transactionContext) {
-        return transactionContext.isInTransaction() && isInDistributedTransaction();
+        return transactionContext.isTransactionStarted() && isInDistributedTransaction();
     }
     
     /**
@@ -94,11 +95,15 @@ public final class ConnectionTransaction {
      * @param databaseName database name
      * @param dataSourceName data source name
      * @param transactionConnectionContext transaction connection context
+     * @param transactionOptionReplayCallback transaction option replay callback
      * @return connection in transaction
      * @throws SQLException SQL exception
      */
-    public Optional<Connection> getConnection(final String databaseName, final String dataSourceName, final TransactionConnectionContext transactionConnectionContext) throws SQLException {
-        return isInDistributedTransaction(transactionConnectionContext) ? Optional.of(distributedTransactionManager.getConnection(databaseName, dataSourceName)) : Optional.empty();
+    public Optional<Connection> getConnection(final String databaseName, final String dataSourceName, final TransactionConnectionContext transactionConnectionContext,
+                                              final TransactionOptionReplayCallback transactionOptionReplayCallback) throws SQLException {
+        return isInDistributedTransaction(transactionConnectionContext)
+                ? Optional.of(distributedTransactionManager.getConnection(databaseName, dataSourceName, transactionOptionReplayCallback))
+                : Optional.empty();
     }
     
     /**

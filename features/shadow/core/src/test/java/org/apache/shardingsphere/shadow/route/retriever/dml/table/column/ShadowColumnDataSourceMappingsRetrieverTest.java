@@ -22,8 +22,8 @@ import org.apache.shardingsphere.shadow.route.retriever.dml.table.column.fixture
 import org.apache.shardingsphere.shadow.rule.ShadowRule;
 import org.apache.shardingsphere.shadow.spi.ShadowOperationType;
 import org.apache.shardingsphere.shadow.spi.column.ColumnShadowAlgorithm;
-import org.apache.shardingsphere.test.mock.AutoMockExtension;
-import org.apache.shardingsphere.test.mock.StaticMockSettings;
+import org.apache.shardingsphere.test.infra.framework.extension.mock.AutoMockExtension;
+import org.apache.shardingsphere.test.infra.framework.extension.mock.StaticMockSettings;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -32,8 +32,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;

@@ -18,7 +18,7 @@
 package org.apache.shardingsphere.sharding.route.engine.condition.generator.impl;
 
 import com.google.common.collect.Range;
-import org.apache.shardingsphere.sharding.route.engine.condition.Column;
+import org.apache.shardingsphere.infra.metadata.database.schema.HashColumn;
 import org.apache.shardingsphere.sharding.route.engine.condition.ExpressionConditionUtils;
 import org.apache.shardingsphere.sharding.route.engine.condition.generator.ConditionValue;
 import org.apache.shardingsphere.sharding.route.engine.condition.generator.ConditionValueGenerator;
@@ -28,6 +28,7 @@ import org.apache.shardingsphere.sharding.route.engine.condition.value.ShardingC
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.column.ColumnSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.BinaryOperationExpression;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.ExpressionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.UnaryOperationExpression;
 import org.apache.shardingsphere.timeservice.core.rule.TimestampServiceRule;
 
 import java.util.ArrayList;
@@ -58,12 +59,21 @@ public final class ConditionValueCompareOperatorGenerator implements ConditionVa
     private static final Collection<String> OPERATORS = new HashSet<>(Arrays.asList(EQUAL, GREATER_THAN, LESS_THAN, AT_LEAST, AT_MOST, IS));
     
     @Override
-    public Optional<ShardingConditionValue> generate(final BinaryOperationExpression predicate, final Column column, final List<Object> params, final TimestampServiceRule timestampServiceRule) {
+    public Optional<ShardingConditionValue> generate(final BinaryOperationExpression predicate, final HashColumn column, final List<Object> params,
+                                                     final TimestampServiceRule timestampServiceRule) {
         String operator = predicate.getOperator().toUpperCase();
         if (!isSupportedOperator(operator)) {
             return Optional.empty();
         }
-        ExpressionSegment valueExpression = predicate.getLeft() instanceof ColumnSegment ? predicate.getRight() : predicate.getLeft();
+        ExpressionSegment left = predicate.getLeft();
+        ExpressionSegment right = predicate.getRight();
+        // MySQL evaluates BINARY range comparisons byte-wise, and range routing prunes partitions on converted endpoints,
+        // so unwrapping BINARY is semantics-preserving only for equality predicates; range predicates keep broadcast routing.
+        if (EQUAL.equals(operator)) {
+            left = unwrapBinaryOperator(left);
+            right = unwrapBinaryOperator(right);
+        }
+        ExpressionSegment valueExpression = left instanceof ColumnSegment ? right : left;
         ConditionValue conditionValue = new ConditionValue(valueExpression, params);
         if (conditionValue.isNull()) {
             return generate(null, column, operator, conditionValue.getParameterMarkerIndex().orElse(-1));
@@ -78,7 +88,7 @@ public final class ConditionValueCompareOperatorGenerator implements ConditionVa
         return Optional.empty();
     }
     
-    private Optional<ShardingConditionValue> generate(final Comparable<?> comparable, final Column column, final String operator, final int parameterMarkerIndex) {
+    private Optional<ShardingConditionValue> generate(final Comparable<?> comparable, final HashColumn column, final String operator, final int parameterMarkerIndex) {
         String columnName = column.getName();
         String tableName = column.getTableName();
         List<Integer> parameterMarkerIndexes = parameterMarkerIndex > -1 ? Collections.singletonList(parameterMarkerIndex) : Collections.emptyList();
@@ -104,5 +114,12 @@ public final class ConditionValueCompareOperatorGenerator implements ConditionVa
     
     private boolean isSupportedOperator(final String operator) {
         return OPERATORS.contains(operator);
+    }
+    
+    private ExpressionSegment unwrapBinaryOperator(final ExpressionSegment segment) {
+        return segment instanceof UnaryOperationExpression
+                && "BINARY".equalsIgnoreCase(((UnaryOperationExpression) segment).getOperator())
+                        ? ((UnaryOperationExpression) segment).getExpression()
+                        : segment;
     }
 }

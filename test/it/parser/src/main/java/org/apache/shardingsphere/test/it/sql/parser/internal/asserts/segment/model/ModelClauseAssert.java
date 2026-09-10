@@ -19,25 +19,28 @@ package org.apache.shardingsphere.test.it.sql.parser.internal.asserts.segment.mo
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import org.apache.shardingsphere.sql.parser.statement.core.extractor.ColumnExtractor;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.column.ColumnSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.subquery.SubquerySegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.order.OrderBySegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.ModelColumnSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.ModelSegment;
 import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.SQLCaseAssertContext;
 import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.segment.SQLSegmentAssert;
 import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.segment.column.ColumnAssert;
 import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.segment.orderby.OrderByItemAssert;
-import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.dml.impl.SelectStatementAssert;
+import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.dml.standard.type.SelectStatementAssert;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.segment.impl.column.ExpectedColumn;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.segment.impl.model.ExpectedModelClause;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.segment.impl.orderby.ExpectedOrderByClause;
-import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.statement.dml.SelectStatementTestCase;
+import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.statement.dml.standard.SelectStatementTestCase;
 
+import java.util.LinkedList;
 import java.util.List;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
  * Model clause assert.
@@ -63,6 +66,9 @@ public final class ModelClauseAssert {
             assertThat(assertContext.getText("Actual order by segments size assertion error: "), actual.getOrderBySegments().size(), is(expected.getOrderBySegments().size()));
             assertOrderBySegments(assertContext, actual.getOrderBySegments(), expected.getOrderBySegments());
         }
+        assertModelColumns(assertContext, actual.getPartitionColumns(), expected.getPartitionColumns(), "partition");
+        assertModelColumns(assertContext, actual.getDimensionColumns(), expected.getDimensionColumns(), "dimension");
+        assertModelColumns(assertContext, actual.getMeasureColumns(), expected.getMeasureColumns(), "measure");
         if (null != expected.getCellAssignmentColumns()) {
             assertNotNull(actual.getCellAssignmentColumns(), assertContext.getText("Actual cell assignment columns should exist."));
             assertThat(assertContext.getText("Actual cell assignment columns assertion error: "), actual.getCellAssignmentColumns().size(), is(expected.getCellAssignmentColumns().size()));
@@ -73,6 +79,19 @@ public final class ModelClauseAssert {
             assertThat(assertContext.getText("Actual cell assignment select size assertion error: "), actual.getCellAssignmentSelects().size(), is(expected.getCellAssignmentSelect().size()));
             assertSubquerySegments(assertContext, actual.getCellAssignmentSelects(), expected.getCellAssignmentSelect());
         }
+    }
+    
+    private static void assertModelColumns(final SQLCaseAssertContext assertContext, final List<ModelColumnSegment> actual, final List<ExpectedColumn> expected, final String columnType) {
+        if (expected.isEmpty()) {
+            return;
+        }
+        assertNotNull(actual, assertContext.getText("Actual model " + columnType + " columns should exist."));
+        List<ColumnSegment> actualColumns = new LinkedList<>();
+        for (ModelColumnSegment each : actual) {
+            actualColumns.addAll(ColumnExtractor.extract(each.getExpression()));
+        }
+        assertThat(assertContext.getText("Actual model " + columnType + " columns assertion error: "), actualColumns.size(), is(expected.size()));
+        assertCellAssignmentColumns(assertContext, actualColumns, expected);
     }
     
     private static void assertSubquerySegments(final SQLCaseAssertContext assertContext, final List<SubquerySegment> actual, final List<SelectStatementTestCase> expected) {

@@ -20,213 +20,234 @@ databaseName: empty_rules
 dataSources:
   write_ds_0:
     url: jdbc:mysql://mysql.empty_rules.host:3306/write_ds_0?useSSL=true&requireSSL=true&enabledTLSProtocols=TLSv1.2,TLSv1.3&verifyServerCertificate=false&useServerPrepStmts=true&useLocalSessionState=true&characterEncoding=utf-8&allowPublicKeyRetrieval=true&allowMultiQueries=true&rewriteBatchedStatements=true
+    driverClassName: com.mysql.cj.jdbc.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   write_ds_1:
     url: jdbc:mysql://mysql.empty_rules.host:3306/write_ds_1?useSSL=true&requireSSL=true&enabledTLSProtocols=TLSv1.2,TLSv1.3&verifyServerCertificate=false&useServerPrepStmts=true&useLocalSessionState=true&characterEncoding=utf-8&allowPublicKeyRetrieval=true&allowMultiQueries=true&rewriteBatchedStatements=true
+    driverClassName: com.mysql.cj.jdbc.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   write_ds_2:
     url: jdbc:mysql://mysql.empty_rules.host:3306/write_ds_2?useSSL=true&requireSSL=true&enabledTLSProtocols=TLSv1.2,TLSv1.3&verifyServerCertificate=false&useServerPrepStmts=true&useLocalSessionState=true&characterEncoding=utf-8&allowPublicKeyRetrieval=true&allowMultiQueries=true&rewriteBatchedStatements=true
+    driverClassName: com.mysql.cj.jdbc.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   write_ds_3:
     url: jdbc:mysql://mysql.empty_rules.host:3306/write_ds_3?useSSL=true&requireSSL=true&enabledTLSProtocols=TLSv1.2,TLSv1.3&verifyServerCertificate=false&useServerPrepStmts=true&useLocalSessionState=true&characterEncoding=utf-8&allowPublicKeyRetrieval=true&allowMultiQueries=true&rewriteBatchedStatements=true
+    driverClassName: com.mysql.cj.jdbc.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   write_ds_4:
     url: jdbc:mysql://mysql.empty_rules.host:3306/write_ds_4?useSSL=true&requireSSL=true&enabledTLSProtocols=TLSv1.2,TLSv1.3&verifyServerCertificate=false&useServerPrepStmts=true&useLocalSessionState=true&characterEncoding=utf-8&allowPublicKeyRetrieval=true&allowMultiQueries=true&rewriteBatchedStatements=true
+    driverClassName: com.mysql.cj.jdbc.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   write_ds_5:
     url: jdbc:mysql://mysql.empty_rules.host:3306/write_ds_5?useSSL=true&requireSSL=true&enabledTLSProtocols=TLSv1.2,TLSv1.3&verifyServerCertificate=false&useServerPrepStmts=true&useLocalSessionState=true&characterEncoding=utf-8&allowPublicKeyRetrieval=true&allowMultiQueries=true&rewriteBatchedStatements=true
+    driverClassName: com.mysql.cj.jdbc.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   write_ds_6:
     url: jdbc:mysql://mysql.empty_rules.host:3306/write_ds_6?useSSL=true&requireSSL=true&enabledTLSProtocols=TLSv1.2,TLSv1.3&verifyServerCertificate=false&useServerPrepStmts=true&useLocalSessionState=true&characterEncoding=utf-8&allowPublicKeyRetrieval=true&allowMultiQueries=true&rewriteBatchedStatements=true
+    driverClassName: com.mysql.cj.jdbc.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   write_ds_7:
     url: jdbc:mysql://mysql.empty_rules.host:3306/write_ds_7?useSSL=true&requireSSL=true&enabledTLSProtocols=TLSv1.2,TLSv1.3&verifyServerCertificate=false&useServerPrepStmts=true&useLocalSessionState=true&characterEncoding=utf-8&allowPublicKeyRetrieval=true&allowMultiQueries=true&rewriteBatchedStatements=true
+    driverClassName: com.mysql.cj.jdbc.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   write_ds_8:
     url: jdbc:mysql://mysql.empty_rules.host:3306/write_ds_8?useSSL=true&requireSSL=true&enabledTLSProtocols=TLSv1.2,TLSv1.3&verifyServerCertificate=false&useServerPrepStmts=true&useLocalSessionState=true&characterEncoding=utf-8&allowPublicKeyRetrieval=true&allowMultiQueries=true&rewriteBatchedStatements=true
+    driverClassName: com.mysql.cj.jdbc.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   write_ds_9:
     url: jdbc:mysql://mysql.empty_rules.host:3306/write_ds_9?useSSL=true&requireSSL=true&enabledTLSProtocols=TLSv1.2,TLSv1.3&verifyServerCertificate=false&useServerPrepStmts=true&useLocalSessionState=true&characterEncoding=utf-8&allowPublicKeyRetrieval=true&allowMultiQueries=true&rewriteBatchedStatements=true
+    driverClassName: com.mysql.cj.jdbc.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   read_ds_0:
     url: jdbc:mysql://mysql.empty_rules.host:3306/read_ds_0?useSSL=true&requireSSL=true&enabledTLSProtocols=TLSv1.2,TLSv1.3&verifyServerCertificate=false&useServerPrepStmts=true&useLocalSessionState=true&characterEncoding=utf-8&allowPublicKeyRetrieval=true&allowMultiQueries=true&rewriteBatchedStatements=true
+    driverClassName: com.mysql.cj.jdbc.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   read_ds_1:
     url: jdbc:mysql://mysql.empty_rules.host:3306/read_ds_1?useSSL=true&requireSSL=true&enabledTLSProtocols=TLSv1.2,TLSv1.3&verifyServerCertificate=false&useServerPrepStmts=true&useLocalSessionState=true&characterEncoding=utf-8&allowPublicKeyRetrieval=true&allowMultiQueries=true&rewriteBatchedStatements=true
+    driverClassName: com.mysql.cj.jdbc.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   read_ds_2:
     url: jdbc:mysql://mysql.empty_rules.host:3306/read_ds_2?useSSL=true&requireSSL=true&enabledTLSProtocols=TLSv1.2,TLSv1.3&verifyServerCertificate=false&useServerPrepStmts=true&useLocalSessionState=true&characterEncoding=utf-8&allowPublicKeyRetrieval=true&allowMultiQueries=true&rewriteBatchedStatements=true
+    driverClassName: com.mysql.cj.jdbc.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   read_ds_3:
     url: jdbc:mysql://mysql.empty_rules.host:3306/read_ds_3?useSSL=true&requireSSL=true&enabledTLSProtocols=TLSv1.2,TLSv1.3&verifyServerCertificate=false&useServerPrepStmts=true&useLocalSessionState=true&characterEncoding=utf-8&allowPublicKeyRetrieval=true&allowMultiQueries=true&rewriteBatchedStatements=true
+    driverClassName: com.mysql.cj.jdbc.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   read_ds_4:
     url: jdbc:mysql://mysql.empty_rules.host:3306/read_ds_4?useSSL=true&requireSSL=true&enabledTLSProtocols=TLSv1.2,TLSv1.3&verifyServerCertificate=false&useServerPrepStmts=true&useLocalSessionState=true&characterEncoding=utf-8&allowPublicKeyRetrieval=true&allowMultiQueries=true&rewriteBatchedStatements=true
+    driverClassName: com.mysql.cj.jdbc.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   read_ds_5:
     url: jdbc:mysql://mysql.empty_rules.host:3306/read_ds_5?useSSL=true&requireSSL=true&enabledTLSProtocols=TLSv1.2,TLSv1.3&verifyServerCertificate=false&useServerPrepStmts=true&useLocalSessionState=true&characterEncoding=utf-8&allowPublicKeyRetrieval=true&allowMultiQueries=true&rewriteBatchedStatements=true
+    driverClassName: com.mysql.cj.jdbc.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   read_ds_6:
     url: jdbc:mysql://mysql.empty_rules.host:3306/read_ds_6?useSSL=true&requireSSL=true&enabledTLSProtocols=TLSv1.2,TLSv1.3&verifyServerCertificate=false&useServerPrepStmts=true&useLocalSessionState=true&characterEncoding=utf-8&allowPublicKeyRetrieval=true&allowMultiQueries=true&rewriteBatchedStatements=true
+    driverClassName: com.mysql.cj.jdbc.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   read_ds_7:
     url: jdbc:mysql://mysql.empty_rules.host:3306/read_ds_7?useSSL=true&requireSSL=true&enabledTLSProtocols=TLSv1.2,TLSv1.3&verifyServerCertificate=false&useServerPrepStmts=true&useLocalSessionState=true&characterEncoding=utf-8&allowPublicKeyRetrieval=true&allowMultiQueries=true&rewriteBatchedStatements=true
+    driverClassName: com.mysql.cj.jdbc.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   read_ds_8:
     url: jdbc:mysql://mysql.empty_rules.host:3306/read_ds_8?useSSL=true&requireSSL=true&enabledTLSProtocols=TLSv1.2,TLSv1.3&verifyServerCertificate=false&useServerPrepStmts=true&useLocalSessionState=true&characterEncoding=utf-8&allowPublicKeyRetrieval=true&allowMultiQueries=true&rewriteBatchedStatements=true
+    driverClassName: com.mysql.cj.jdbc.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   read_ds_9:
     url: jdbc:mysql://mysql.empty_rules.host:3306/read_ds_9?useSSL=true&requireSSL=true&enabledTLSProtocols=TLSv1.2,TLSv1.3&verifyServerCertificate=false&useServerPrepStmts=true&useLocalSessionState=true&characterEncoding=utf-8&allowPublicKeyRetrieval=true&allowMultiQueries=true&rewriteBatchedStatements=true
+    driverClassName: com.mysql.cj.jdbc.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   rdl_test_0:
     url: jdbc:mysql://mysql.empty_rules.host:3306/rdl_test_0?useSSL=true&requireSSL=true&enabledTLSProtocols=TLSv1.2,TLSv1.3&verifyServerCertificate=false&useServerPrepStmts=true&useLocalSessionState=true&characterEncoding=utf-8&allowPublicKeyRetrieval=true&allowMultiQueries=true&rewriteBatchedStatements=true
+    driverClassName: com.mysql.cj.jdbc.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
 
 rules:
@@ -234,6 +255,18 @@ rules:
     tables:
       - "*.*"
   - !SHARDING
+    keyGenerateStrategies:
+      t_user_user_id:
+        keyGenerateType: column
+        keyGeneratorName: constant
+        logicTable: t_user
+        keyGenerateColumn: user_id
+      t_user_item_user_id:
+        keyGenerateType: column
+        keyGeneratorName: constant
+        logicTable: t_user_item
+        keyGenerateColumn: user_id
+
     autoTables:
       t_user:
         actualDataSources: write_ds_${0..9}
@@ -241,9 +274,6 @@ rules:
           standard:
             shardingColumn: user_id
             shardingAlgorithmName: mod
-        keyGenerateStrategy:
-          column: user_id
-          keyGeneratorName: constant
         auditStrategy:
           auditorNames:
             - auditor_constant
@@ -254,10 +284,6 @@ rules:
           standard:
             shardingColumn: user_id
             shardingAlgorithmName: mod
-        keyGenerateStrategy:
-          column: user_id
-          keyGeneratorName: constant
-    
     shardingAlgorithms:
       mod:
         type: MOD
@@ -266,13 +292,13 @@ rules:
 
     keyGenerators:
       constant:
-        type: IT.FIXTURE
+        type: E2E.KEYGEN.FIXTURE
         props:
           worker-id: 1
 
     auditors:
       auditor_constant:
-        type: IT.AUDITOR.FIXTURE
+        type: E2E.AUDITOR.FIXTURE
 
   - !READWRITE_SPLITTING
     dataSourceGroups:

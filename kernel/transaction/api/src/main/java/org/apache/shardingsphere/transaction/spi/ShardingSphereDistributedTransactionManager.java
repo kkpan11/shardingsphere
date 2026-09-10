@@ -17,8 +17,9 @@
 
 package org.apache.shardingsphere.transaction.spi;
 
-import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
+import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.session.connection.transaction.TransactionManager;
+import org.apache.shardingsphere.infra.session.connection.transaction.TransactionOptionReplayCallback;
 import org.apache.shardingsphere.infra.spi.type.typed.TypedSPI;
 import org.apache.shardingsphere.transaction.api.TransactionType;
 
@@ -30,7 +31,7 @@ import java.util.Map;
 /**
  * ShardingSphere distributed transaction manager.
  */
-public interface ShardingSphereDistributedTransactionManager extends TypedSPI, AutoCloseable, TransactionManager {
+public interface ShardingSphereDistributedTransactionManager extends TypedSPI, TransactionManager, AutoCloseable {
     
     /**
      * Initialize distributed transaction manager.
@@ -60,10 +61,11 @@ public interface ShardingSphereDistributedTransactionManager extends TypedSPI, A
      *
      * @param databaseName database name
      * @param dataSourceName data source name
+     * @param transactionOptionReplayCallback transaction option replay callback
      * @return connection
      * @throws SQLException SQL exception
      */
-    Connection getConnection(String databaseName, String dataSourceName) throws SQLException;
+    Connection getConnection(String databaseName, String dataSourceName, TransactionOptionReplayCallback transactionOptionReplayCallback) throws SQLException;
     
     /**
      * Begin transaction.
@@ -97,9 +99,6 @@ public interface ShardingSphereDistributedTransactionManager extends TypedSPI, A
      */
     boolean containsProviderType(String providerType);
     
-    /**
-     * Close transaction manager.
-     */
     @Override
     void close();
 }

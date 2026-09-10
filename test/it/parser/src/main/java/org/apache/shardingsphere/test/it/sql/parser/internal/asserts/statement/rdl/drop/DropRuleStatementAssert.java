@@ -20,7 +20,7 @@ package org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.apache.shardingsphere.broadcast.distsql.statement.DropBroadcastTableRuleStatement;
-import org.apache.shardingsphere.distsql.statement.rdl.rule.database.type.DropRuleStatement;
+import org.apache.shardingsphere.distsql.statement.type.rdl.rule.database.type.DropRuleStatement;
 import org.apache.shardingsphere.encrypt.distsql.statement.DropEncryptRuleStatement;
 import org.apache.shardingsphere.mask.distsql.statement.DropMaskRuleStatement;
 import org.apache.shardingsphere.readwritesplitting.distsql.statement.DropReadwriteSplittingRuleStatement;
@@ -29,22 +29,24 @@ import org.apache.shardingsphere.shadow.distsql.statement.DropShadowRuleStatemen
 import org.apache.shardingsphere.sharding.distsql.statement.DropDefaultShardingStrategyStatement;
 import org.apache.shardingsphere.sharding.distsql.statement.DropShardingAlgorithmStatement;
 import org.apache.shardingsphere.sharding.distsql.statement.DropShardingAuditorStatement;
+import org.apache.shardingsphere.sharding.distsql.statement.DropShardingKeyGenerateStrategyStatement;
 import org.apache.shardingsphere.sharding.distsql.statement.DropShardingKeyGeneratorStatement;
 import org.apache.shardingsphere.sharding.distsql.statement.DropShardingTableReferenceRuleStatement;
 import org.apache.shardingsphere.sharding.distsql.statement.DropShardingTableRuleStatement;
 import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.SQLCaseAssertContext;
-import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.rdl.drop.impl.DropBroadcastTableRuleStatementAssert;
-import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.rdl.drop.impl.DropDefaultShardingStrategyStatementAssert;
-import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.rdl.drop.impl.DropEncryptRuleStatementAssert;
-import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.rdl.drop.impl.DropMaskRuleStatementAssert;
-import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.rdl.drop.impl.DropReadwriteSplittingRuleStatementAssert;
-import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.rdl.drop.impl.DropShadowAlgorithmStatementAssert;
-import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.rdl.drop.impl.DropShadowRuleStatementAssert;
-import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.rdl.drop.impl.DropShardingAlgorithmStatementAssert;
-import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.rdl.drop.impl.DropShardingAuditorStatementAssert;
-import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.rdl.drop.impl.DropShardingKeyGeneratorStatementAssert;
-import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.rdl.drop.impl.DropShardingTableReferenceRulesStatementAssert;
-import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.rdl.drop.impl.DropShardingTableRuleStatementAssert;
+import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.rdl.drop.type.DropBroadcastTableRuleStatementAssert;
+import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.rdl.drop.type.DropDefaultShardingStrategyStatementAssert;
+import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.rdl.drop.type.DropEncryptRuleStatementAssert;
+import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.rdl.drop.type.DropMaskRuleStatementAssert;
+import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.rdl.drop.type.DropReadwriteSplittingRuleStatementAssert;
+import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.rdl.drop.type.DropShadowAlgorithmStatementAssert;
+import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.rdl.drop.type.DropShadowRuleStatementAssert;
+import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.rdl.drop.type.DropShardingAlgorithmStatementAssert;
+import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.rdl.drop.type.DropShardingAuditorStatementAssert;
+import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.rdl.drop.type.DropShardingKeyGenerateStrategyStatementAssert;
+import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.rdl.drop.type.DropShardingKeyGeneratorStatementAssert;
+import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.rdl.drop.type.DropShardingTableReferenceRulesStatementAssert;
+import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.rdl.drop.type.DropShardingTableRuleStatementAssert;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.SQLParserTestCase;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.statement.rdl.rule.encrypt.DropEncryptRuleStatementTestCase;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.statement.rdl.rule.mask.DropMaskRuleStatementTestCase;
@@ -55,6 +57,7 @@ import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.s
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.statement.rdl.rule.sharding.DropDefaultShardingStrategyStatementTestCase;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.statement.rdl.rule.sharding.DropShardingAlgorithmStatementTestCase;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.statement.rdl.rule.sharding.DropShardingAuditorStatementTestCase;
+import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.statement.rdl.rule.sharding.DropShardingKeyGenerateStrategyStatementTestCase;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.statement.rdl.rule.sharding.DropShardingKeyGeneratorStatementTestCase;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.statement.rdl.rule.sharding.DropShardingTableReferenceRuleStatementTestCase;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.statement.rdl.rule.sharding.DropShardingTableRuleStatementTestCase;
@@ -73,7 +76,10 @@ public final class DropRuleStatementAssert {
      * @param expected expected drop RDL statement test case
      */
     public static void assertIs(final SQLCaseAssertContext assertContext, final DropRuleStatement actual, final SQLParserTestCase expected) {
-        if (actual instanceof DropDefaultShardingStrategyStatement) {
+        if (actual instanceof DropShardingKeyGenerateStrategyStatement || expected instanceof DropShardingKeyGenerateStrategyStatementTestCase) {
+            DropShardingKeyGenerateStrategyStatementAssert.assertIs(
+                    assertContext, (DropShardingKeyGenerateStrategyStatement) actual, (DropShardingKeyGenerateStrategyStatementTestCase) expected);
+        } else if (actual instanceof DropDefaultShardingStrategyStatement) {
             DropDefaultShardingStrategyStatementAssert.assertIs(assertContext, (DropDefaultShardingStrategyStatement) actual, (DropDefaultShardingStrategyStatementTestCase) expected);
         } else if (actual instanceof DropEncryptRuleStatement) {
             DropEncryptRuleStatementAssert.assertIs(assertContext, (DropEncryptRuleStatement) actual, (DropEncryptRuleStatementTestCase) expected);

@@ -18,12 +18,12 @@
 package org.apache.shardingsphere.broadcast.distsql.statement;
 
 import lombok.Getter;
-import org.apache.shardingsphere.distsql.statement.rdl.rule.database.type.DropRuleStatement;
+import org.apache.shardingsphere.distsql.statement.type.rdl.rule.database.type.DropRuleStatement;
 
 import java.util.Collection;
 
 /**
- * Drop broadcast table rules statement.
+ * Drop broadcast table rule statement.
  */
 @Getter
 public final class DropBroadcastTableRuleStatement extends DropRuleStatement {

@@ -32,7 +32,7 @@
             <column-item name="user_id" start-index="83" stop-index="89" />
         </order-by>
     </select>
-    
+
     <select sql-case-id="select_group_by_with_sum_where">
         <from>
             <join-table join-type="COMMA">
@@ -73,7 +73,7 @@
             </column-item>
         </group-by>
     </select>
-    
+
     <select sql-case-id="select_group_by_with_count">
         <from>
             <simple-table name="t_order" start-index="53" stop-index="59" />
@@ -137,7 +137,7 @@
             <column-item name="user_id" start-index="83" stop-index="89" />
         </order-by>
     </select>
-    
+
     <select sql-case-id="select_group_by_with_column_avg">
         <projections start-index="7" stop-index="57">
             <column-projection name="prod_subcategory" start-index="7" stop-index="24">
@@ -508,8 +508,73 @@
             </expr>
         </having>
         <window start-index="102" stop-index="135">
-            <window-item start-index="109" stop-index="135"/>
+            <window-item start-index="109" stop-index="135">
+                <window-name>w</window-name>
+                <partition-by>
+                    <column name="user_id" start-index="128" stop-index="134" />
+                </partition-by>
+            </window-item>
         </window>
+    </select>
+
+    <select sql-case-id="select_group_by_empty_grouping_set_postgresql">
+        <from>
+            <simple-table name="t_order" start-index="20" stop-index="26" />
+        </from>
+        <projections start-index="7" stop-index="13">
+            <column-projection name="user_id" start-index="7" stop-index="13" />
+        </projections>
+        <group-by contains-grouping-extension="true" start-index="28" stop-index="38">
+            <expression-item expression="()" start-index="37" stop-index="38" />
+        </group-by>
+    </select>
+
+    <select sql-case-id="select_group_by_cube_opengauss">
+        <from>
+            <simple-table name="t_order" start-index="20" stop-index="26" />
+        </from>
+        <projections start-index="7" stop-index="13">
+            <column-projection name="user_id" start-index="7" stop-index="13" />
+        </projections>
+        <group-by contains-grouping-extension="true" start-index="28" stop-index="50">
+            <expression-item expression="CUBE (user_id)" start-index="37" stop-index="50" />
+        </group-by>
+    </select>
+
+    <select sql-case-id="select_group_by_rollup_opengauss">
+        <from>
+            <simple-table name="t_order" start-index="20" stop-index="26" />
+        </from>
+        <projections start-index="7" stop-index="13">
+            <column-projection name="user_id" start-index="7" stop-index="13" />
+        </projections>
+        <group-by contains-grouping-extension="true" start-index="28" stop-index="51">
+            <expression-item expression="ROLLUP(user_id)" start-index="37" stop-index="51" />
+        </group-by>
+    </select>
+
+    <select sql-case-id="select_group_by_grouping_sets_opengauss">
+        <from>
+            <simple-table name="t_order" start-index="20" stop-index="26" />
+        </from>
+        <projections start-index="7" stop-index="13">
+            <column-projection name="user_id" start-index="7" stop-index="13" />
+        </projections>
+        <group-by contains-grouping-extension="true" start-index="28" stop-index="60">
+            <expression-item expression="GROUPING SETS((user_id))" start-index="37" stop-index="60" />
+        </group-by>
+    </select>
+
+    <select sql-case-id="select_group_by_cube_sqlserver">
+        <from>
+            <simple-table name="t_order" start-index="20" stop-index="26" />
+        </from>
+        <projections start-index="7" stop-index="13">
+            <column-projection name="user_id" start-index="7" stop-index="13" />
+        </projections>
+        <group-by contains-grouping-extension="true" start-index="28" stop-index="49">
+            <column-item name="user_id" start-index="42" stop-index="48" />
+        </group-by>
     </select>
 
     <select sql-case-id="select_group_by_cube">
@@ -546,7 +611,7 @@
                 </binary-operation-expression>
             </expr>
         </where>
-        <group-by>
+        <group-by contains-grouping-extension="true">
             <column-item name="department_name" start-index="300" stop-index="314" />
             <column-item name="job_id" start-index="317" stop-index="322" />
         </group-by>
@@ -613,7 +678,7 @@
                 </binary-operation-expression>
             </expr>
         </where>
-        <group-by>
+        <group-by contains-grouping-extension="true">
             <expression-item expression="(channel_desc,calendar_month_desc,co.country_id)" start-index="218" stop-index="265" />
             <expression-item expression="(channel_desc,co.country_id)" start-index="268" stop-index="295" />
             <expression-item expression="(calendar_month_desc,co.country_id)" start-index="298" stop-index="332" />
@@ -667,14 +732,14 @@
                 <in-expression start-index="90" stop-index="219">
                     <not>false</not>
                     <left>
-                        <list-expression start-index="90" stop-index="116" literal-start-index="90" literal-stop-index="116">
+                        <row-expression text="(department_id, manager_id)" start-index="90" stop-index="116" literal-start-index="90" literal-stop-index="116">
                             <items>
                                 <column name="department_id" start-index="91" stop-index="103" literal-start-index="91" literal-stop-index="103" />
                             </items>
                             <items>
                                 <column name="manager_id" start-index="106" stop-index="115" literal-start-index="106" literal-stop-index="115" />
                             </items>
-                        </list-expression>
+                        </row-expression>
                     </left>
                     <right>
                         <subquery start-index="121" stop-index="219">
@@ -826,7 +891,7 @@
             </column-item>
         </order-by>
     </select>
-    
+
     <select sql-case-id="select_with_datepart_group_by_with_order_by">
         <projections start-index="7" stop-index="81">
             <expression-projection text="DATEPART(yyyy,OrderDate)" alias="Year" start-index="7" stop-index="41">
@@ -859,7 +924,7 @@
             <expression-item expression="DATEPART(yyyy,OrderDate)" order-direction="ASC" start-index="154" stop-index="177" />
         </order-by>
     </select>
-    
+
     <select sql-case-id="select_with_datepart_group_by_with_having_order_by">
         <projections start-index="7" stop-index="81">
             <expression-projection text="DATEPART(yyyy,OrderDate)" alias="Year" start-index="7" stop-index="41">
@@ -926,7 +991,7 @@
             <column-item name="tumblingwindow" order-direction="ASC" start-index="60" stop-index="73"/>
         </group-by>
     </select>
-    
+
     <select sql-case-id="select_group_by_top_column_value">
         <projections start-index="7" stop-index="34">
             <top-projection start-index="7" stop-index="12">
@@ -961,7 +1026,7 @@
             <expression-item expression="MAX(max_elapsed_time_microsec)" order-direction="DESC" start-index="145" stop-index="174" />
         </order-by>
     </select>
-    
+
     <select sql-case-id="select_group_by_count_with_tumblingwindow_function">
         <projections start-index="7" stop-index="14">
             <aggregation-projection expression="count(*)" type="COUNT" start-index="7" stop-index="14" />
@@ -981,6 +1046,48 @@
                             <literal-expression value="5" start-index="70" stop-index="70" />
                         </parameter>
                     </function>
+                </expr>
+            </expression-item>
+        </group-by>
+    </select>
+
+    <select sql-case-id="select_group_by_rollup_oracle">
+        <from>
+            <simple-table name="employees" start-index="30" stop-index="38" />
+        </from>
+        <projections start-index="7" stop-index="23">
+            <column-projection name="dept" start-index="7" stop-index="10" />
+            <aggregation-projection type="SUM" expression="SUM(salary)" start-index="13" stop-index="23" />
+        </projections>
+        <group-by contains-grouping-extension="true" start-index="40" stop-index="60">
+            <column-item name="dept" start-index="56" stop-index="59" />
+        </group-by>
+    </select>
+
+    <select sql-case-id="select_group_by_rollup_oracle_with_rollup">
+        <projections start-index="7" stop-index="29">
+            <column-projection name="department_id" start-index="7" stop-index="19" />
+            <aggregation-projection type="COUNT" expression="COUNT(*)" start-index="22" stop-index="29" />
+        </projections>
+        <from>
+            <simple-table name="employees" start-index="36" stop-index="44" />
+        </from>
+        <group-by contains-grouping-extension="true" start-index="46" stop-index="75">
+            <column-item name="department_id" order-direction="ASC" start-index="62" stop-index="74" />
+        </group-by>
+    </select>
+
+    <select sql-case-id="select_group_by_null_expression">
+        <from>
+            <simple-table name="t_order" start-index="21" stop-index="27" />
+        </from>
+        <projections start-index="7" stop-index="14">
+            <aggregation-projection type="COUNT" expression="COUNT(*)" start-index="7" stop-index="14" />
+        </projections>
+        <group-by>
+            <expression-item expression="NULL" start-index="38" stop-index="41">
+                <expr>
+                    <literal-expression value="null" start-index="38" stop-index="41" />
                 </expr>
             </expression-item>
         </group-by>

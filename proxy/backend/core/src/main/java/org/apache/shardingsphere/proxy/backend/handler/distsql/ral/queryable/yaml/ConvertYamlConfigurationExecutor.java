@@ -22,14 +22,16 @@ import com.google.common.base.Strings;
 import org.apache.shardingsphere.distsql.handler.engine.query.DistSQLQueryExecutor;
 import org.apache.shardingsphere.distsql.handler.engine.query.ral.convert.DistSQLScriptConstants;
 import org.apache.shardingsphere.distsql.handler.engine.query.ral.convert.RuleConfigurationToDistSQLConverter;
-import org.apache.shardingsphere.distsql.statement.ral.queryable.convert.ConvertYamlConfigurationStatement;
+import org.apache.shardingsphere.distsql.statement.type.ral.queryable.convert.ConvertYamlConfigurationStatement;
 import org.apache.shardingsphere.infra.config.rule.RuleConfiguration;
 import org.apache.shardingsphere.infra.datasource.pool.config.DataSourceConfiguration;
 import org.apache.shardingsphere.infra.datasource.pool.props.creator.DataSourcePoolPropertiesCreator;
 import org.apache.shardingsphere.infra.datasource.pool.props.domain.DataSourcePoolProperties;
 import org.apache.shardingsphere.infra.datasource.pool.props.domain.custom.CustomDataSourcePoolProperties;
 import org.apache.shardingsphere.infra.datasource.pool.props.domain.synonym.PoolPropertySynonyms;
+import org.apache.shardingsphere.infra.exception.generic.FileIOException;
 import org.apache.shardingsphere.infra.merge.result.impl.local.LocalDataQueryResultRow;
+import org.apache.shardingsphere.infra.metadata.database.DatabaseNameValidator;
 import org.apache.shardingsphere.infra.spi.type.ordered.OrderedSPILoader;
 import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 import org.apache.shardingsphere.infra.util.yaml.YamlEngine;
@@ -39,7 +41,6 @@ import org.apache.shardingsphere.mode.manager.ContextManager;
 import org.apache.shardingsphere.proxy.backend.config.yaml.YamlProxyDataSourceConfiguration;
 import org.apache.shardingsphere.proxy.backend.config.yaml.YamlProxyDatabaseConfiguration;
 import org.apache.shardingsphere.proxy.backend.config.yaml.swapper.YamlProxyDataSourceConfigurationSwapper;
-import org.apache.shardingsphere.infra.exception.generic.FileIOException;
 
 import java.io.File;
 import java.io.IOException;
@@ -74,6 +75,7 @@ public final class ConvertYamlConfigurationExecutor implements DistSQLQueryExecu
         }
         Preconditions.checkNotNull(yamlConfig, "Invalid yaml file `%s`", file.getName());
         Preconditions.checkNotNull(yamlConfig.getDatabaseName(), "`databaseName` in file `%s` is required.", file.getName());
+        DatabaseNameValidator.validate(yamlConfig.getDatabaseName());
         return Collections.singleton(new LocalDataQueryResultRow(convertYamlConfigurationToDistSQL(yamlConfig)));
     }
     

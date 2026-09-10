@@ -18,7 +18,8 @@
 package org.apache.shardingsphere.sharding.route.engine.checker.ddl;
 
 import org.apache.shardingsphere.infra.config.props.ConfigurationProperties;
-import org.apache.shardingsphere.infra.database.core.type.DatabaseTypeRegistry;
+import org.apache.shardingsphere.infra.exception.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.exception.kernel.metadata.SchemaNotFoundException;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereSchema;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereTable;
@@ -29,7 +30,7 @@ import org.apache.shardingsphere.sharding.exception.connection.ShardingDDLRouteE
 import org.apache.shardingsphere.sharding.route.engine.checker.ShardingRouteContextChecker;
 import org.apache.shardingsphere.sharding.rule.ShardingRule;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.index.IndexSegment;
-import org.apache.shardingsphere.sql.parser.statement.core.statement.ddl.DropIndexStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.type.ddl.index.DropIndexStatement;
 
 import java.util.Collection;
 import java.util.Optional;
@@ -48,9 +49,11 @@ public final class ShardingDropIndexRouteContextChecker implements ShardingRoute
         if (logicTableName.isPresent()) {
             validateDropIndexRouteUnit(shardingRule, routeContext, indexSegments, logicTableName.get());
         } else {
-            String defaultSchemaName = new DatabaseTypeRegistry(queryContext.getSqlStatementContext().getDatabaseType()).getDefaultSchemaName(database.getName());
+            ShardingSphereSchema defaultSchema = database.findDefaultSchema().orElse(null);
             for (IndexSegment each : indexSegments) {
-                ShardingSphereSchema schema = each.getOwner().map(optional -> optional.getIdentifier().getValue()).map(database::getSchema).orElseGet(() -> database.getSchema(defaultSchemaName));
+                Optional<String> schemaName = each.getOwner().map(optional -> optional.getIdentifier().getValue());
+                ShardingSphereSchema schema = schemaName.isPresent() ? database.getSchema(schemaName.get()) : defaultSchema;
+                ShardingSpherePreconditions.checkNotNull(schema, () -> new SchemaNotFoundException(schemaName.orElseGet(database::getDefaultSchemaName)));
                 logicTableName = schema.getAllTables().stream().filter(table -> table.containsIndex(each.getIndexName().getIdentifier().getValue())).findFirst().map(ShardingSphereTable::getName);
                 logicTableName.ifPresent(optional -> validateDropIndexRouteUnit(shardingRule, routeContext, indexSegments, optional));
             }

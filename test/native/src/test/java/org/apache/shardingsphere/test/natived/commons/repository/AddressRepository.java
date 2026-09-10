@@ -17,6 +17,7 @@
 
 package org.apache.shardingsphere.test.natived.commons.repository;
 
+import lombok.RequiredArgsConstructor;
 import org.apache.shardingsphere.test.natived.commons.entity.Address;
 
 import javax.sql.DataSource;
@@ -28,17 +29,14 @@ import java.sql.Statement;
 import java.util.LinkedList;
 import java.util.List;
 
+@RequiredArgsConstructor
 @SuppressWarnings({"SqlDialectInspection", "SqlNoDataSourceInspection"})
 public final class AddressRepository {
     
     private final DataSource dataSource;
     
-    public AddressRepository(final DataSource dataSource) {
-        this.dataSource = dataSource;
-    }
-    
     /**
-     * create table t_address if not exists in MySQL.
+     * Create table t_address if not exists in MySQL.
      *
      * @throws SQLException SQL exception
      */
@@ -52,17 +50,13 @@ public final class AddressRepository {
     }
     
     /**
-     * create table t_address in MS SQL Server.
+     * Create table t_address in MS SQL Server.
      * This also ignored the default schema of the `dbo`.
      *
      * @throws SQLException SQL exception
      */
     public void createTableInSQLServer() throws SQLException {
-        String sql = "CREATE TABLE [t_address] (\n"
-                + "    address_id bigint NOT NULL,\n"
-                + "    address_name varchar(100) NOT NULL,\n"
-                + "    PRIMARY KEY (address_id)\n"
-                + ")";
+        String sql = "CREATE TABLE [t_address] (address_id bigint NOT NULL,address_name varchar(100) NOT NULL,PRIMARY KEY (address_id))";
         try (
                 Connection connection = dataSource.getConnection();
                 Statement statement = connection.createStatement()) {
@@ -71,8 +65,8 @@ public final class AddressRepository {
     }
     
     /**
-     * create table t_address in Firebird.
-     * Cannot use `create table if not exists` for Docker Image `ghcr.io/fdcastel/firebird:5.0.1`,
+     * Create table t_address in Firebird.
+     * Cannot use `create table if not exists` for Docker Image `firebirdsql/firebird`,
      * see <a href="https://github.com/FirebirdSQL/firebird/issues/8062">FirebirdSQL/firebird#8062</a>.
      *
      * @throws SQLException SQL exception
@@ -87,7 +81,37 @@ public final class AddressRepository {
     }
     
     /**
-     * drop table t_address in MySQL.
+     * Create ACID table in HiveServer2.
+     *
+     * @throws SQLException SQL exception
+     */
+    public void createAcidTableInHiveServer2() throws SQLException {
+        String sql = "CREATE TABLE IF NOT EXISTS t_address (address_id BIGINT NOT NULL,address_name VARCHAR(100) NOT NULL,"
+                + "PRIMARY KEY (address_id) disable novalidate) CLUSTERED BY (address_id) INTO 2 BUCKETS STORED AS ORC TBLPROPERTIES ('transactional' = 'true')";
+        try (
+                Connection connection = dataSource.getConnection();
+                Statement statement = connection.createStatement()) {
+            statement.executeUpdate(sql);
+        }
+    }
+    
+    /**
+     * Create Iceberg table in HiveServer2.
+     *
+     * @throws SQLException SQL exception
+     */
+    public void createIcebergTableInHiveServer2() throws SQLException {
+        String sql = "CREATE TABLE IF NOT EXISTS t_address (address_id BIGINT NOT NULL,address_name string NOT NULL, "
+                + "PRIMARY KEY (address_id) disable novalidate) STORED BY ICEBERG STORED AS ORC TBLPROPERTIES ('format-version' = '2')";
+        try (
+                Connection connection = dataSource.getConnection();
+                Statement statement = connection.createStatement()) {
+            statement.executeUpdate(sql);
+        }
+    }
+    
+    /**
+     * Drop table t_address in MySQL.
      *
      * @throws SQLException SQL exception
      */
@@ -101,13 +125,13 @@ public final class AddressRepository {
     }
     
     /**
-     * drop table in Firebird.
-     * Docker Image `ghcr.io/fdcastel/firebird:5.0.1` does not work with `DROP TABLE IF EXISTS`.
+     * Drop table without verify.
+     * Docker Image `firebirdsql/firebird` does not work with `DROP TABLE IF EXISTS`.
      * See <a href="https://github.com/FirebirdSQL/firebird/issues/4203">FirebirdSQL/firebird#4203</a> .
      *
      * @throws SQLException SQL exception
      */
-    public void dropTableInFirebird() throws SQLException {
+    public void dropTableWithoutVerify() throws SQLException {
         String sql = "DROP TABLE t_address";
         try (
                 Connection connection = dataSource.getConnection();
@@ -117,7 +141,7 @@ public final class AddressRepository {
     }
     
     /**
-     * truncate table t_address.
+     * Truncate table t_address.
      *
      * @throws SQLException SQL exception
      */
@@ -131,7 +155,7 @@ public final class AddressRepository {
     }
     
     /**
-     * insert something to table t_address.
+     * Insert something to table t_address.
      *
      * @param address address
      * @return addressId of the insert statement
@@ -150,7 +174,7 @@ public final class AddressRepository {
     }
     
     /**
-     * delete by id.
+     * Delete by id.
      *
      * @param id id
      * @throws SQLException SQL exception
@@ -166,13 +190,13 @@ public final class AddressRepository {
     }
     
     /**
-     * delete by id in ClickHouse.
+     * Delete by id in ClickHouse.
      *
      * @param id id
      * @throws SQLException SQL exception
      */
     public void deleteInClickHouse(final Long id) throws SQLException {
-        String sql = "alter table t_address delete where address_id=?";
+        String sql = "ALTER TABLE t_address delete WHERE address_id=?";
         try (
                 Connection connection = dataSource.getConnection();
                 PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
@@ -182,7 +206,7 @@ public final class AddressRepository {
     }
     
     /**
-     * select all.
+     * Select all.
      *
      * @return list of address
      * @throws SQLException SQL exception

@@ -20,8 +20,8 @@ package org.apache.shardingsphere.data.pipeline.core.metadata.node;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.shardingsphere.data.pipeline.core.context.PipelineContextKey;
-import org.apache.shardingsphere.data.pipeline.core.metadata.node.event.handler.PipelineMetaDataChangedEventHandler;
 import org.apache.shardingsphere.data.pipeline.core.job.api.PipelineAPIFactory;
+import org.apache.shardingsphere.data.pipeline.core.metadata.node.event.handler.PipelineMetaDataChangedEventHandler;
 import org.apache.shardingsphere.infra.spi.ShardingSphereServiceLoader;
 import org.apache.shardingsphere.mode.event.DataChangedEvent;
 
@@ -73,12 +73,11 @@ public final class PipelineMetaDataNodeWatcher {
     }
     
     /**
-     * Get instance.
+     * Initialize for context key.
      *
      * @param contextKey context key
-     * @return instance
      */
-    public static PipelineMetaDataNodeWatcher getInstance(final PipelineContextKey contextKey) {
-        return INSTANCE_MAP.computeIfAbsent(contextKey, PipelineMetaDataNodeWatcher::new);
+    public static void init(final PipelineContextKey contextKey) {
+        INSTANCE_MAP.computeIfAbsent(contextKey, PipelineMetaDataNodeWatcher::new);
     }
 }

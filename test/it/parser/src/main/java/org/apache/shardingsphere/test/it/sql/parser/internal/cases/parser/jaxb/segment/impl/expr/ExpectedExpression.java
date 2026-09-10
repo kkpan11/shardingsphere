@@ -30,6 +30,8 @@ import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.s
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.segment.impl.json.ExpectedJsonNullClauseSegment;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.segment.impl.projection.impl.aggregation.ExpectedAggregationProjection;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.segment.impl.projection.impl.expression.ExpectedExpressionProjection;
+import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.segment.impl.xml.ExpectedXmlElementFunctionSegment;
+import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.segment.impl.xml.ExpectedXmlSerializeFunctionSegment;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.segment.impl.xmlquery.ExpectedXmlQueryAndExistsFunctionSegment;
 
 import javax.xml.bind.annotation.XmlElement;
@@ -110,8 +112,17 @@ public final class ExpectedExpression extends AbstractExpectedSQLSegment {
     @XmlElement(name = "outer-join-expression")
     private ExpectedOuterJoinExpression outerJoinExpression;
     
+    @XmlElement(name = "interval-expression-projection")
+    private ExpectedIntervalExpressionProjection intervalExpressionProjection;
+    
     @XmlElement(name = "interval-expression")
     private ExpectedIntervalExpression intervalExpression;
+    
+    @XmlElement(name = "interval-unit-expression")
+    private ExpectedIntervalUnitExpression intervalUnitExpression;
+    
+    @XmlElement(name = "quantify-subquery-expression")
+    private ExpectedQuantifySubqueryExpression quantifySubqueryExpression;
     
     @XmlElement(name = "multiset-expression")
     private ExpectedMultisetExpression multisetExpression;
@@ -124,6 +135,12 @@ public final class ExpectedExpression extends AbstractExpectedSQLSegment {
     
     @XmlElement(name = "xmlquery-projection")
     private ExpectedXmlQueryAndExistsFunctionSegment expectedXmlQueryAndExistsFunctionSegment;
+    
+    @XmlElement(name = "xml-element-function")
+    private ExpectedXmlElementFunctionSegment xmlElementFunctionSegment;
+    
+    @XmlElement(name = "xml-serialize-function")
+    private ExpectedXmlSerializeFunctionSegment xmlSerializeFunctionSegment;
     
     @XmlElement(name = "key-value")
     private ExpectedKeyValueSegment keyValueSegment;

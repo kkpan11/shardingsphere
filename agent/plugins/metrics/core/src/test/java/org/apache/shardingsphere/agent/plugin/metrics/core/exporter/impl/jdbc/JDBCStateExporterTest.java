@@ -24,6 +24,7 @@ import org.apache.shardingsphere.agent.plugin.metrics.core.collector.type.GaugeM
 import org.apache.shardingsphere.agent.plugin.metrics.core.config.MetricCollectorType;
 import org.apache.shardingsphere.agent.plugin.metrics.core.config.MetricConfiguration;
 import org.apache.shardingsphere.agent.plugin.metrics.core.fixture.collector.MetricsCollectorFixture;
+import org.apache.shardingsphere.infra.config.props.ConfigurationProperties;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.infra.state.instance.InstanceState;
 import org.apache.shardingsphere.mode.manager.ContextManager;
@@ -33,10 +34,11 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.Optional;
+import java.util.Properties;
 import java.util.UUID;
 
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
@@ -58,7 +60,7 @@ class JDBCStateExporterTest {
     
     private ContextManager mockContextManager(final String instanceId, final String databaseName) {
         ContextManager result = mock(ContextManager.class, RETURNS_DEEP_STUBS);
-        ShardingSphereDatabase database = new ShardingSphereDatabase(databaseName, mock(), mock(), mock(), Collections.emptyList());
+        ShardingSphereDatabase database = new ShardingSphereDatabase(databaseName, mock(), mock(), mock(), Collections.emptyList(), new ConfigurationProperties(new Properties()));
         when(result.getDatabase(databaseName)).thenReturn(database);
         when(result.getComputeNodeInstanceContext().getInstance().getMetaData().getId()).thenReturn(instanceId);
         when(result.getComputeNodeInstanceContext().getInstance().getState().getCurrentState().ordinal()).thenReturn(InstanceState.OK.ordinal());

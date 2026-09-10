@@ -18,7 +18,7 @@
 package org.apache.shardingsphere.encrypt.distsql.handler.update;
 
 import lombok.Setter;
-import org.apache.shardingsphere.distsql.handler.engine.update.rdl.rule.spi.database.DatabaseRuleCreateExecutor;
+import org.apache.shardingsphere.distsql.handler.engine.update.rdl.rule.spi.database.type.DatabaseRuleCreateExecutor;
 import org.apache.shardingsphere.distsql.segment.AlgorithmSegment;
 import org.apache.shardingsphere.encrypt.config.EncryptRuleConfiguration;
 import org.apache.shardingsphere.encrypt.distsql.handler.converter.EncryptRuleStatementConverter;
@@ -29,7 +29,7 @@ import org.apache.shardingsphere.encrypt.distsql.statement.CreateEncryptRuleStat
 import org.apache.shardingsphere.encrypt.rule.EncryptRule;
 import org.apache.shardingsphere.encrypt.spi.EncryptAlgorithm;
 import org.apache.shardingsphere.infra.algorithm.core.exception.AlgorithmInitializationException;
-import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.exception.ShardingSpherePreconditions;
 import org.apache.shardingsphere.infra.exception.kernel.metadata.resource.storageunit.EmptyStorageUnitException;
 import org.apache.shardingsphere.infra.exception.kernel.metadata.rule.DuplicateRuleException;
 import org.apache.shardingsphere.infra.exception.kernel.metadata.rule.InvalidRuleConfigurationException;
@@ -123,13 +123,13 @@ public final class CreateEncryptRuleExecutor implements DatabaseRuleCreateExecut
         encryptors.stream().filter(Objects::nonNull).forEach(each -> TypedSPILoader.checkService(EncryptAlgorithm.class, each.getName(), each.getProps()));
     }
     
-    private void addToEncryptors(final EncryptColumnSegment column, final Collection<AlgorithmSegment> result) {
-        result.add(column.getCipher().getEncryptor());
+    private void addToEncryptors(final EncryptColumnSegment column, final Collection<AlgorithmSegment> algorithmSegments) {
+        algorithmSegments.add(column.getCipher().getEncryptor());
         if (null != column.getAssistedQuery()) {
-            result.add(column.getAssistedQuery().getEncryptor());
+            algorithmSegments.add(column.getAssistedQuery().getEncryptor());
         }
         if (null != column.getLikeQuery()) {
-            result.add(column.getLikeQuery().getEncryptor());
+            algorithmSegments.add(column.getLikeQuery().getEncryptor());
         }
     }
     

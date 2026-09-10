@@ -28,7 +28,6 @@ import org.apache.shardingsphere.single.config.SingleRuleConfiguration;
 import org.apache.shardingsphere.single.distsql.statement.rdl.SetDefaultSingleTableStorageUnitStatement;
 import org.apache.shardingsphere.single.rule.SingleRule;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentMatchers;
 
 import java.sql.SQLException;
 import java.util.Arrays;
@@ -38,6 +37,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -52,7 +52,8 @@ class SetDefaultSingleTableStorageUnitExecutorTest {
         when(database.getRuleMetaData().getAttributes(DataSourceMapperRuleAttribute.class)).thenReturn(Collections.emptyList());
         SingleRule rule = mock(SingleRule.class, RETURNS_DEEP_STUBS);
         when(rule.getAttributes().findAttribute(DataSourceMapperRuleAttribute.class)).thenReturn(Optional.empty());
-        DistSQLUpdateExecuteEngine engine = new DistSQLUpdateExecuteEngine(new SetDefaultSingleTableStorageUnitStatement("foo_ds"), "foo_db", mockContextManager(database, rule));
+        SetDefaultSingleTableStorageUnitStatement sqlStatement = new SetDefaultSingleTableStorageUnitStatement("foo_ds");
+        DistSQLUpdateExecuteEngine engine = new DistSQLUpdateExecuteEngine(sqlStatement, "foo_db", mockContextManager(database, rule, "foo_ds"), null);
         assertThrows(MissingRequiredStorageUnitsException.class, engine::executeUpdate);
     }
     
@@ -61,11 +62,12 @@ class SetDefaultSingleTableStorageUnitExecutorTest {
         ShardingSphereDatabase database = mock(ShardingSphereDatabase.class, RETURNS_DEEP_STUBS);
         SingleRule rule = mock(SingleRule.class);
         when(rule.getConfiguration()).thenReturn(new SingleRuleConfiguration(Collections.emptyList(), "foo_ds"));
-        ContextManager contextManager = mockContextManager(database, rule);
-        new DistSQLUpdateExecuteEngine(new SetDefaultSingleTableStorageUnitStatement(null), "foo_db", contextManager).executeUpdate();
+        ContextManager contextManager = mockContextManager(database, rule, null);
+        SetDefaultSingleTableStorageUnitStatement sqlStatement = new SetDefaultSingleTableStorageUnitStatement(null);
+        new DistSQLUpdateExecuteEngine(sqlStatement, "foo_db", contextManager, null).executeUpdate();
         MetaDataManagerPersistService metaDataManagerPersistService = contextManager.getPersistServiceFacade().getModeFacade().getMetaDataManagerService();
-        verify(metaDataManagerPersistService).removeRuleConfigurationItem(any(), ArgumentMatchers.<SingleRuleConfiguration>argThat(x -> x.getDefaultDataSource().equals(Optional.of("foo_ds"))));
-        verify(metaDataManagerPersistService).alterRuleConfiguration(any(), ArgumentMatchers.<SingleRuleConfiguration>argThat(x -> !x.getDefaultDataSource().isPresent()));
+        verify(metaDataManagerPersistService).removeRuleConfigurationItem(any(), argThat((SingleRuleConfiguration x) -> x.getDefaultDataSource().equals(Optional.of("foo_ds"))));
+        verify(metaDataManagerPersistService).alterRuleConfiguration(any(), argThat((SingleRuleConfiguration x) -> !x.getDefaultDataSource().isPresent()));
     }
     
     @Test
@@ -77,17 +79,18 @@ class SetDefaultSingleTableStorageUnitExecutorTest {
         SingleRule rule = mock(SingleRule.class, RETURNS_DEEP_STUBS);
         when(rule.getConfiguration()).thenReturn(new SingleRuleConfiguration(Collections.emptyList(), "foo_ds"));
         when(rule.getAttributes().findAttribute(DataSourceMapperRuleAttribute.class)).thenReturn(Optional.empty());
-        ContextManager contextManager = mockContextManager(database, rule);
-        new DistSQLUpdateExecuteEngine(new SetDefaultSingleTableStorageUnitStatement("bar_ds"), "foo_db", contextManager).executeUpdate();
+        ContextManager contextManager = mockContextManager(database, rule, "bar_ds");
+        SetDefaultSingleTableStorageUnitStatement sqlStatement = new SetDefaultSingleTableStorageUnitStatement("bar_ds");
+        new DistSQLUpdateExecuteEngine(sqlStatement, "foo_db", contextManager, null).executeUpdate();
         MetaDataManagerPersistService metaDataManagerPersistService = contextManager.getPersistServiceFacade().getModeFacade().getMetaDataManagerService();
-        verify(metaDataManagerPersistService).removeRuleConfigurationItem(database, null);
-        verify(metaDataManagerPersistService).alterRuleConfiguration(any(), ArgumentMatchers.<SingleRuleConfiguration>argThat(x -> x.getDefaultDataSource().equals(Optional.of("bar_ds"))));
+        verify(metaDataManagerPersistService).alterRuleConfiguration(any(), argThat((SingleRuleConfiguration x) -> x.getDefaultDataSource().equals(Optional.of("bar_ds"))));
     }
     
-    private ContextManager mockContextManager(final ShardingSphereDatabase database, final SingleRule rule) {
+    private ContextManager mockContextManager(final ShardingSphereDatabase database, final SingleRule rule, final String defaultDataSource) {
         ContextManager result = mock(ContextManager.class, RETURNS_DEEP_STUBS);
         when(database.getName()).thenReturn("foo_db");
         when(database.getRuleMetaData()).thenReturn(new RuleMetaData(Collections.singleton(rule)));
+        when(database.decorateRuleConfiguration(any())).thenReturn(new SingleRuleConfiguration(Collections.emptyList(), defaultDataSource));
         when(result.getDatabase("foo_db")).thenReturn(database);
         return result;
     }

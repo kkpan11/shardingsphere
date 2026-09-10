@@ -17,14 +17,19 @@
 
 package org.apache.shardingsphere.infra.metadata.identifier;
 
-import org.apache.shardingsphere.sql.parser.statement.core.value.identifier.IdentifierValue;
 import org.junit.jupiter.api.Test;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 
 class ShardingSphereIdentifierTest {
+    
+    @Test
+    void assertConstructorWithValue() {
+        assertThat(new ShardingSphereIdentifier("foo").getValue(), is("foo"));
+        assertThat(new ShardingSphereIdentifier("foo").getStandardizeValue(), is("foo"));
+    }
     
     @Test
     void assertEqualsWithNotShardingSphereIdentifier() {
@@ -33,40 +38,20 @@ class ShardingSphereIdentifierTest {
     
     @Test
     void assertEqualsWithNullValue() {
-        assertThat(new ShardingSphereIdentifier("foo"), not(new ShardingSphereIdentifier((String) null)));
-        assertThat(new ShardingSphereIdentifier((String) null), not(new ShardingSphereIdentifier("foo")));
-        assertThat(new ShardingSphereIdentifier((String) null), is(new ShardingSphereIdentifier((String) null)));
+        assertThat(new ShardingSphereIdentifier("foo"), not(new ShardingSphereIdentifier(null)));
+        assertThat(new ShardingSphereIdentifier(null), not(new ShardingSphereIdentifier("foo")));
+        assertThat(new ShardingSphereIdentifier(null), is(new ShardingSphereIdentifier(null)));
     }
     
     @Test
-    void assertEqualsWithCaseSensitive() {
-        assertThat(new ShardingSphereIdentifier(new IdentifierValue("`foo`")), is(new ShardingSphereIdentifier(new IdentifierValue("`foo`"))));
-        assertThat(new ShardingSphereIdentifier(new IdentifierValue("`foo`")), is(new ShardingSphereIdentifier(new IdentifierValue("foo"))));
-        assertThat(new ShardingSphereIdentifier(new IdentifierValue("`foo`")), not(new ShardingSphereIdentifier("FOO")));
-    }
-    
-    @Test
-    void assertEqualsWithCaseInsensitive() {
+    void assertEqualsWithNoDatabaseType() {
         assertThat(new ShardingSphereIdentifier("foo"), is(new ShardingSphereIdentifier("foo")));
         assertThat(new ShardingSphereIdentifier("foo"), is(new ShardingSphereIdentifier("FOO")));
     }
     
     @Test
-    void assertHashCodeWithCaseSensitive() {
-        assertThat(new ShardingSphereIdentifier(new IdentifierValue("`foo`")).hashCode(), is(new ShardingSphereIdentifier(new IdentifierValue("`foo`")).hashCode()));
-        assertThat(new ShardingSphereIdentifier(new IdentifierValue("`foo`")).hashCode(), not(new ShardingSphereIdentifier(new IdentifierValue("`FOO`")).hashCode()));
-    }
-    
-    @Test
-    void assertHashCodeWithCaseInsensitive() {
+    void assertHashCodeWithNoDatabaseType() {
         assertThat(new ShardingSphereIdentifier("foo").hashCode(), is(new ShardingSphereIdentifier("foo").hashCode()));
         assertThat(new ShardingSphereIdentifier("foo").hashCode(), is(new ShardingSphereIdentifier("FOO").hashCode()));
-    }
-    
-    @Test
-    void assertToString() {
-        assertThat(new ShardingSphereIdentifier("foo").toString(), is("foo"));
-        assertThat(new ShardingSphereIdentifier("FOO").toString(), is("FOO"));
-        assertThat(new ShardingSphereIdentifier(new IdentifierValue("`foo`")).toString(), is("foo"));
     }
 }

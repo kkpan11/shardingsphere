@@ -20,9 +20,8 @@ package org.apache.shardingsphere.proxy.backend.handler.distsql.ral.updatable.re
 import lombok.Setter;
 import org.apache.shardingsphere.distsql.handler.aware.DistSQLExecutorDatabaseAware;
 import org.apache.shardingsphere.distsql.handler.engine.update.DistSQLUpdateExecutor;
-import org.apache.shardingsphere.distsql.statement.ral.updatable.RefreshTableMetaDataStatement;
-import org.apache.shardingsphere.infra.database.core.type.DatabaseTypeRegistry;
-import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
+import org.apache.shardingsphere.distsql.statement.type.ral.updatable.RefreshTableMetaDataStatement;
+import org.apache.shardingsphere.infra.exception.ShardingSpherePreconditions;
 import org.apache.shardingsphere.infra.exception.kernel.metadata.SchemaNotFoundException;
 import org.apache.shardingsphere.infra.exception.kernel.metadata.TableNotFoundException;
 import org.apache.shardingsphere.infra.exception.kernel.metadata.resource.storageunit.EmptyStorageUnitException;
@@ -30,8 +29,8 @@ import org.apache.shardingsphere.infra.exception.kernel.metadata.resource.storag
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.infra.metadata.database.resource.unit.StorageUnit;
 import org.apache.shardingsphere.mode.manager.ContextManager;
+import org.apache.shardingsphere.sql.parser.statement.core.value.identifier.IdentifierValue;
 
-import java.sql.SQLException;
 import java.util.Collections;
 import java.util.Map;
 
@@ -44,29 +43,30 @@ public final class RefreshTableMetaDataExecutor implements DistSQLUpdateExecutor
     private ShardingSphereDatabase database;
     
     @Override
-    public void executeUpdate(final RefreshTableMetaDataStatement sqlStatement, final ContextManager contextManager) throws SQLException {
-        String schemaName = getSchemaName(sqlStatement);
+    public void executeUpdate(final RefreshTableMetaDataStatement sqlStatement, final ContextManager contextManager) {
+        IdentifierValue schemaName = getSchemaName(sqlStatement);
         checkBeforeUpdate(sqlStatement, schemaName);
         if (sqlStatement.getStorageUnitName().isPresent()) {
+            String actualSchemaName = database.getSchema(schemaName).getName();
             if (sqlStatement.getTableName().isPresent()) {
-                contextManager.reloadTable(database, schemaName, sqlStatement.getStorageUnitName().get(), sqlStatement.getTableName().get());
+                contextManager.reloadTable(database, actualSchemaName, sqlStatement.getStorageUnitName().get(), sqlStatement.getTableName().get());
             } else {
-                contextManager.reloadSchema(database, schemaName, sqlStatement.getStorageUnitName().get());
+                contextManager.reloadSchema(database, actualSchemaName, sqlStatement.getStorageUnitName().get());
             }
             return;
         }
         if (sqlStatement.getTableName().isPresent()) {
-            contextManager.reloadTable(database, schemaName, sqlStatement.getTableName().get());
+            contextManager.reloadTable(database, database.getSchema(schemaName).getName(), sqlStatement.getTableName().get());
         } else {
             contextManager.reloadDatabase(database);
         }
     }
     
-    private String getSchemaName(final RefreshTableMetaDataStatement sqlStatement) {
-        return sqlStatement.getSchemaName().isPresent() ? sqlStatement.getSchemaName().get() : new DatabaseTypeRegistry(database.getProtocolType()).getDefaultSchemaName(database.getName());
+    private IdentifierValue getSchemaName(final RefreshTableMetaDataStatement sqlStatement) {
+        return sqlStatement.getSchemaName().orElseGet(() -> new IdentifierValue(database.getDefaultSchemaName()));
     }
     
-    private void checkBeforeUpdate(final RefreshTableMetaDataStatement sqlStatement, final String schemaName) {
+    private void checkBeforeUpdate(final RefreshTableMetaDataStatement sqlStatement, final IdentifierValue schemaName) {
         checkStorageUnit(database.getResourceMetaData().getStorageUnits(), sqlStatement);
         checkSchema(schemaName);
         checkTable(sqlStatement, schemaName);
@@ -80,14 +80,14 @@ public final class RefreshTableMetaDataExecutor implements DistSQLUpdateExecutor
         }
     }
     
-    private void checkSchema(final String schemaName) {
-        ShardingSpherePreconditions.checkState(database.containsSchema(schemaName), () -> new SchemaNotFoundException(schemaName));
+    private void checkSchema(final IdentifierValue schemaName) {
+        ShardingSpherePreconditions.checkState(database.containsSchema(schemaName), () -> new SchemaNotFoundException(schemaName.getValue()));
     }
     
-    private void checkTable(final RefreshTableMetaDataStatement sqlStatement, final String schemaName) {
+    private void checkTable(final RefreshTableMetaDataStatement sqlStatement, final IdentifierValue schemaName) {
         if (sqlStatement.getTableName().isPresent()) {
-            String tableName = sqlStatement.getTableName().get();
-            ShardingSpherePreconditions.checkState(database.getSchema(schemaName).containsTable(tableName), () -> new TableNotFoundException(tableName));
+            IdentifierValue tableName = sqlStatement.getTableName().get();
+            ShardingSpherePreconditions.checkState(database.getSchema(schemaName).containsTable(tableName), () -> new TableNotFoundException(tableName.getValue()));
         }
     }
     

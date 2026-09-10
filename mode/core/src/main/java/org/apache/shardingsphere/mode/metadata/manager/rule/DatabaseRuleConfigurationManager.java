@@ -20,11 +20,12 @@ package org.apache.shardingsphere.mode.metadata.manager.rule;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import org.apache.shardingsphere.infra.config.rule.RuleConfiguration;
+import org.apache.shardingsphere.infra.config.rule.checker.DatabaseRuleConfigurationEmptyChecker;
+import org.apache.shardingsphere.infra.config.rule.scope.DatabaseRuleConfiguration;
 import org.apache.shardingsphere.infra.instance.ComputeNodeInstanceContext;
-import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.infra.rule.PartialRuleUpdateSupported;
 import org.apache.shardingsphere.infra.rule.ShardingSphereRule;
-import org.apache.shardingsphere.infra.rule.builder.database.DatabaseRulesBuilder;
+import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 import org.apache.shardingsphere.mode.metadata.MetaDataContexts;
 import org.apache.shardingsphere.mode.metadata.factory.MetaDataContextsFactory;
 import org.apache.shardingsphere.mode.metadata.persist.MetaDataPersistFacade;
@@ -52,30 +53,47 @@ public final class DatabaseRuleConfigurationManager {
      *
      * @param databaseName database name
      * @param ruleConfig rule configurations
-     * @param reBuildRules is need to rebuild rules
      * @throws SQLException SQL Exception
      */
     @SuppressWarnings({"unchecked", "rawtypes"})
-    public synchronized void refresh(final String databaseName, final RuleConfiguration ruleConfig, final boolean reBuildRules) throws SQLException {
-        ShardingSphereDatabase database = metaDataContexts.getMetaData().getDatabase(databaseName);
-        Collection<ShardingSphereRule> rules = new LinkedList<>(database.getRuleMetaData().getRules());
-        Optional<ShardingSphereRule> toBeChangedRule = rules.stream().filter(each -> each.getConfiguration().getClass().equals(ruleConfig.getClass())).findFirst();
-        if (toBeChangedRule.isPresent() && toBeChangedRule.get() instanceof PartialRuleUpdateSupported && ((PartialRuleUpdateSupported) toBeChangedRule.get()).partialUpdate(ruleConfig)) {
-            ((PartialRuleUpdateSupported) toBeChangedRule.get()).updateConfiguration(ruleConfig);
+    public synchronized void refresh(final String databaseName, final RuleConfiguration ruleConfig) throws SQLException {
+        Collection<ShardingSphereRule> rules = new LinkedList<>(metaDataContexts.getMetaData().getDatabase(databaseName).getRuleMetaData().getRules());
+        if (isRuleConfigurationEmpty(ruleConfig)) {
+            refreshMetadata(databaseName, ruleConfig, false, rules);
             return;
         }
-        Collection<ShardingSphereRule> toBeRemovedRules = rules.stream().filter(each -> each.getConfiguration().getClass().isAssignableFrom(ruleConfig.getClass())).collect(Collectors.toList());
-        rules.removeAll(toBeRemovedRules);
-        if (reBuildRules) {
-            rules.add(DatabaseRulesBuilder.build(
-                    databaseName, database.getProtocolType(), database.getRuleMetaData().getRules(), ruleConfig, computeNodeInstanceContext, database.getResourceMetaData()));
+        Optional<ShardingSphereRule> toBeChangedRule = rules.stream().filter(each -> each.getConfiguration().getClass().equals(ruleConfig.getClass())).findFirst();
+        if (toBeChangedRule.isPresent() && toBeChangedRule.get() instanceof PartialRuleUpdateSupported) {
+            boolean needRefreshSchemas = ((PartialRuleUpdateSupported) toBeChangedRule.get()).partialUpdate(ruleConfig);
+            ((PartialRuleUpdateSupported) toBeChangedRule.get()).updateConfiguration(ruleConfig);
+            if (needRefreshSchemas) {
+                refreshMetadata(databaseName, ruleConfig, true, rules);
+            }
+        } else {
+            refreshMetadata(databaseName, ruleConfig, true, rules);
         }
-        refreshMetadata(databaseName, rules, toBeRemovedRules);
     }
     
-    private void refreshMetadata(final String databaseName, final Collection<ShardingSphereRule> rules, final Collection<ShardingSphereRule> toBeRemovedRules) throws SQLException {
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private boolean isRuleConfigurationEmpty(final RuleConfiguration ruleConfig) {
+        if (!(ruleConfig instanceof DatabaseRuleConfiguration)) {
+            return false;
+        }
+        return TypedSPILoader.getService(DatabaseRuleConfigurationEmptyChecker.class, ruleConfig.getClass()).isEmpty((DatabaseRuleConfiguration) ruleConfig);
+    }
+    
+    private void refreshMetadata(final String databaseName, final RuleConfiguration ruleConfig, final boolean addRuleConfig, final Collection<ShardingSphereRule> rules) throws SQLException {
+        Collection<ShardingSphereRule> toBeRemovedRules = rules.stream().filter(each -> each.getConfiguration().getClass().isAssignableFrom(ruleConfig.getClass())).collect(Collectors.toList());
+        rules.removeAll(toBeRemovedRules);
         Collection<RuleConfiguration> ruleConfigs = rules.stream().map(ShardingSphereRule::getConfiguration).collect(Collectors.toList());
-        metaDataContexts.update(new MetaDataContextsFactory(metaDataPersistFacade, computeNodeInstanceContext).createByAlterRule(databaseName, false, ruleConfigs, metaDataContexts));
+        if (addRuleConfig) {
+            ruleConfigs.add(ruleConfig);
+        }
+        refreshMetadata(databaseName, ruleConfigs, toBeRemovedRules);
+    }
+    
+    private void refreshMetadata(final String databaseName, final Collection<RuleConfiguration> ruleConfigs, final Collection<ShardingSphereRule> toBeRemovedRules) throws SQLException {
+        metaDataContexts.update(new MetaDataContextsFactory(metaDataPersistFacade, computeNodeInstanceContext).createByAlterRule(databaseName, ruleConfigs, metaDataContexts));
         closeOriginalRules(toBeRemovedRules);
     }
     

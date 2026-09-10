@@ -16,9 +16,11 @@ Check and update year in NOTICE.
 
 ### 2. Confirm Release Notes
 
-The release note should be provided in English / Chinese, confirm whether English and Chinese description are clear,
-and shall be classified according to the following labels:
+Confirm that the content in the release note is complete and accurate, and categorize it according to the following labels:
 
+1. CVE
+1. Metadata Storage Changes
+1. API Change
 1. New Feature
 1. API Change
 1. Enhancement
@@ -48,9 +50,9 @@ Open [GitHub pull requests](https://github.com/apache/shardingsphere/pulls), fil
 
 ### 6. Call for a Discussion
 
-1. Create a [GitHub Discussion](https://github.com/apache/shardingsphere/discussions) contains all the release notes and **release cutting date** ;
+1. Create a [GitHub Issue](https://github.com/apache/shardingsphere/issues) contains all the release notes and **release cutting date** ;
 1. Send email to [dev@shardingsphere.apache.org](mailto:dev@shardingsphere.apache.org) with the GitHub Discussion and **release cutting date** in the message body;
-1. Follow the mailing list and confirm that the community developers have no questions about the release note.
+1. Follow the issue and mailing list and confirm that the community developers have no questions about the release note.
 
 ## GPG Settings
 
@@ -198,7 +200,7 @@ GPG signatures and hashes (SHA* etc) should be prefixed with `https://downloads.
 
 ### 5. Update README files
 
-Update `${RELEASE.VERSION}` and `${NEXT.RELEASE.VERSION}` in README.md and README_ZH.md.
+Update `${RELEASE.VERSION}` and `${NEXT.RELEASE.VERSION}` in the root README.md and README_ZH.md.
 
 ### 6. Update ShardingSphereDriver
 
@@ -235,10 +237,10 @@ export GPG_TTY=$(tty)
 ```
 
 ```shell
-./mvnw release:prepare -Prelease -Darguments="-DskipTests" -DautoVersionSubmodules=true -DdryRun=true -Dusername=${Github username}
+./mvnw release:prepare -P-dev,release,all -Darguments="-DskipTests" -DautoVersionSubmodules=true -DdryRun=true -Dusername=${Github username}
 ```
 
--Prelease: choose release profile, which will pack all the source codes, jar files and executable binary packages of ShardingSphere-Proxy.
+-P-dev,release,all: choose release profile, which will pack all the source codes, jar files and executable binary packages of ShardingSphere-Proxy.
 
 -DautoVersionSubmodules=true: it can make the version number is inputted only once and not for each sub-module.
 
@@ -255,7 +257,7 @@ First, clean local pre-release check information.
 Then, prepare to execute the release.
 
 ```shell
-./mvnw release:prepare -Prelease -Darguments="-DskipTests" -DautoVersionSubmodules=true -DpushChanges=false -Dusername=${Github username}
+./mvnw release:prepare -P-dev,release,all -Darguments="-DskipTests" -DautoVersionSubmodules=true -DpushChanges=false -Dusername=${Github username}
 ```
 
 It is basically the same as the previous rehearsal command, but deleting -DdryRun=true parameter.
@@ -271,7 +273,7 @@ git push origin ${RELEASE.VERSION}
 ### 4. Deploy the Release
 
 ```shell
-./mvnw release:perform -Prelease -Darguments="-DskipTests" -DautoVersionSubmodules=true -DlocalCheckout=true -Dusername=${Github username}
+./mvnw release:perform -P-dev,release,all -Darguments="-DskipTests" -DautoVersionSubmodules=true -DlocalCheckout=true -Dusername=${Github username}
 ```
 
 -DlocalCheckout=true: checkout code from local repository instead of remote repository.
@@ -573,7 +575,7 @@ docker login
 ```shell
 cd ~/shardingsphere
 git checkout ${RELEASE.VERSION}
-./mvnw -pl distribution/proxy -B -Prelease,docker.buildx.push clean package
+./mvnw -pl distribution/proxy -B -P-dev,release,all,docker.buildx.push clean package
 ```
 
 3.4 Confirm the successful release
@@ -595,7 +597,7 @@ docker login ghcr.io/apache/shardingsphere
 ```shell
 cd ~/shardingsphere
 git checkout ${RELEASE.VERSION}
-./mvnw -am -pl distribution/agent -Prelease,docker.buildx.push -T 1C -DskipTests clean package
+./mvnw -am -pl distribution/agent -P-dev,release,all,docker.buildx.push -T 1C -DskipTests clean package
 ```
 
 3.7 Confirm the successful release
@@ -606,11 +608,27 @@ Check [GitHub Packages](https://github.com/apache/shardingsphere/pkgs/container/
 docker logout
 ```
 
+3.8 ShardingSphere MCP publication
+
+ShardingSphere MCP is published through the repository workflow [`.github/workflows/release-mcp.yml`](https://github.com/apache/shardingsphere/blob/master/.github/workflows/release-mcp.yml).
+The workflow builds the MCP distribution, pushes `ghcr.io/apache/shardingsphere-mcp:${RELEASE.VERSION}` to GHCR,
+pushes `latest` for stable releases, and then publishes `mcp/server.json` to the official MCP Registry through GitHub OIDC.
+
 ### 4. Publish release on GitHub
 
 Click `Draft a new release` in [GitHub Releases](https://github.com/apache/shardingsphere/releases).
 
 Edit release version and release notes, select `Set as the latest release`, click `Publish release`.
+
+After the GitHub release is published:
+
+- wait for the `Release - MCP` workflow to finish successfully
+- confirm [GitHub Packages](https://github.com/apache/shardingsphere/pkgs/container/shardingsphere-mcp) contains `ghcr.io/apache/shardingsphere-mcp:${RELEASE.VERSION}`
+- confirm the official MCP Registry returns the published metadata:
+
+```shell
+curl "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.apache/shardingsphere-mcp"
+```
 
 ### 5. Remove previous release from Release Area
 

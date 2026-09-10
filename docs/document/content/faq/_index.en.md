@@ -109,7 +109,7 @@ Answer:
 
 ## Sharding
 
-### How to solve `Cloud not resolve placeholder … in string value …` error?
+### How to solve `Could not resolve placeholder … in string value …` error?
 
 Answer:
 
@@ -128,6 +128,12 @@ To obtain integer division result, A/B needs to be modified as A.intdiv(B).
 Answer:
 
 A table that does not use sharding is called single table in ShardingSphere, and you can use [LOAD statements](https://shardingsphere.apache.org/document/current/cn/user-manual/shardingsphere-proxy/distsql/syntax/rdl/rule-definition/single-table/load-single-table/) or [SINGLE rule](https://shardingsphere.apache.org/document/current/en/user-manual/shardingsphere-jdbc/yaml-config/rules/single/) to configure the single table that needs to be loaded.
+
+### Why are binding tables rejected when my table names already end with digits?
+
+Answer:
+
+Binding-table validation assumes that digits at the end of an actual table name are sharding suffixes derived from the logical table (for example `t_order_0`). When the business table name itself ends with digits (for example `AllPatientsV1`), those digits are interpreted as suffixes, so ShardingSphere cannot align the binding tables and will report `Invalid binding table configuration`. To avoid this, reserve the trailing digits exclusively for sharding suffixes (add a separator such as `_` before the suffix) or skip binding-table configuration for tables whose names inherently contain digits.
 
 ### When generic Long type `SingleKeyTableShardingAlgorithm` is used, why does the `ClassCastException: Integer can not cast to Long` exception appear?
 
@@ -269,7 +275,7 @@ The codes under the package `org.apache.shardingsphere.sql.parser.autogen` are g
 The generated codes such as `org.apache.shardingsphere.sql.parser.autogen.PostgreSQLStatementParser` may be too large to be indexed by the IDEA.
 You may configure the IDEA's property `idea.max.intellisense.filesize=10000`.
 
-### In SQLSever and PostgreSQL, why does the aggregation column without alias throw exception?
+### In SQL Server and PostgreSQL, why does the aggregation column without alias throw exception?
 
 Answer:
 

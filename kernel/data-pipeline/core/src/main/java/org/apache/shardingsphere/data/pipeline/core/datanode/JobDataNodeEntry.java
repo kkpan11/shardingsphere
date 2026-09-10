@@ -39,13 +39,13 @@ public final class JobDataNodeEntry {
     /**
      * Unmarshal from text.
      *
-     * @param text marshalled entry
+     * @param text marshaled entry
      * @return entry
      */
     public static JobDataNodeEntry unmarshal(final String text) {
         List<String> segments = Splitter.on(":").splitToList(text);
         String logicTableName = segments.get(0);
-        List<DataNode> dataNodes = Splitter.on(",").omitEmptyStrings().splitToList(segments.get(1)).stream().map(DataNodeUtils::parseWithSchema).collect(Collectors.toList());
+        List<DataNode> dataNodes = Splitter.on(",").omitEmptyStrings().splitToList(segments.get(1)).stream().map(DataNode::new).collect(Collectors.toList());
         return new JobDataNodeEntry(logicTableName, dataNodes);
     }
     

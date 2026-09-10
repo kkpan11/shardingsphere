@@ -18,24 +18,24 @@
 package org.apache.shardingsphere.sharding.distsql.handler.update;
 
 import org.apache.shardingsphere.distsql.segment.AlgorithmSegment;
+import org.apache.shardingsphere.infra.algorithm.core.exception.InvalidAlgorithmDefinitionException;
 import org.apache.shardingsphere.infra.algorithm.core.exception.MissingRequiredAlgorithmException;
-import org.apache.shardingsphere.infra.algorithm.core.exception.InvalidAlgorithmConfigurationException;
 import org.apache.shardingsphere.infra.exception.kernel.metadata.rule.DuplicateRuleException;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
+import org.apache.shardingsphere.infra.util.props.PropertiesBuilder;
+import org.apache.shardingsphere.infra.util.props.PropertiesBuilder.Property;
 import org.apache.shardingsphere.sharding.api.config.ShardingRuleConfiguration;
 import org.apache.shardingsphere.sharding.api.config.strategy.sharding.NoneShardingStrategyConfiguration;
 import org.apache.shardingsphere.sharding.api.config.strategy.sharding.StandardShardingStrategyConfiguration;
 import org.apache.shardingsphere.sharding.distsql.statement.CreateDefaultShardingStrategyStatement;
 import org.apache.shardingsphere.sharding.rule.ShardingRule;
-import org.apache.shardingsphere.test.util.PropertiesBuilder;
-import org.apache.shardingsphere.test.util.PropertiesBuilder.Property;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Properties;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
@@ -58,7 +58,7 @@ class CreateDefaultShardingStrategyExecutorTest {
         ShardingRule rule = mock(ShardingRule.class);
         when(rule.getConfiguration()).thenReturn(new ShardingRuleConfiguration());
         executor.setRule(rule);
-        assertThrows(InvalidAlgorithmConfigurationException.class, () -> executor.checkBeforeUpdate(statement));
+        assertThrows(InvalidAlgorithmDefinitionException.class, () -> executor.checkBeforeUpdate(statement));
     }
     
     @Test
@@ -89,7 +89,7 @@ class CreateDefaultShardingStrategyExecutorTest {
         when(rule.getConfiguration()).thenReturn(currentRuleConfig);
         executor.setRule(rule);
         CreateDefaultShardingStrategyStatement statement = new CreateDefaultShardingStrategyStatement(false, "TABLE", "standard", "order_id,user_id", null);
-        assertThrows(InvalidAlgorithmConfigurationException.class, () -> executor.checkBeforeUpdate(statement));
+        assertThrows(InvalidAlgorithmDefinitionException.class, () -> executor.checkBeforeUpdate(statement));
     }
     
     @Test

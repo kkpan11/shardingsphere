@@ -18,31 +18,36 @@
 package org.apache.shardingsphere.proxy.backend.handler.distsql.ral.queryable.export;
 
 import lombok.SneakyThrows;
-import org.apache.shardingsphere.distsql.statement.ral.queryable.export.ExportDatabaseConfigurationStatement;
+import org.apache.shardingsphere.distsql.handler.engine.query.DistSQLQueryExecutor;
+import org.apache.shardingsphere.distsql.statement.type.ral.queryable.export.ExportDatabaseConfigurationStatement;
 import org.apache.shardingsphere.infra.algorithm.core.config.AlgorithmConfiguration;
+import org.apache.shardingsphere.infra.config.keygen.impl.ColumnKeyGenerateStrategiesRuleConfiguration;
 import org.apache.shardingsphere.infra.datasource.pool.props.creator.DataSourcePoolPropertiesCreator;
 import org.apache.shardingsphere.infra.datasource.pool.props.domain.DataSourcePoolProperties;
 import org.apache.shardingsphere.infra.merge.result.impl.local.LocalDataQueryResultRow;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.infra.metadata.database.resource.unit.StorageUnit;
+import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
+import org.apache.shardingsphere.infra.util.props.PropertiesBuilder;
+import org.apache.shardingsphere.infra.util.props.PropertiesBuilder.Property;
 import org.apache.shardingsphere.mode.manager.ContextManager;
 import org.apache.shardingsphere.sharding.api.config.ShardingRuleConfiguration;
 import org.apache.shardingsphere.sharding.api.config.rule.ShardingTableRuleConfiguration;
-import org.apache.shardingsphere.sharding.api.config.strategy.keygen.KeyGenerateStrategyConfiguration;
 import org.apache.shardingsphere.sharding.api.config.strategy.sharding.NoneShardingStrategyConfiguration;
 import org.apache.shardingsphere.sharding.api.config.strategy.sharding.StandardShardingStrategyConfiguration;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dal.FromDatabaseSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.DatabaseSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.value.identifier.IdentifierValue;
-import org.apache.shardingsphere.test.fixture.jdbc.MockedDataSource;
-import org.apache.shardingsphere.test.util.PropertiesBuilder;
-import org.apache.shardingsphere.test.util.PropertiesBuilder.Property;
+import org.apache.shardingsphere.test.infra.fixture.jdbc.MockedDataSource;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import javax.sql.DataSource;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
@@ -53,13 +58,26 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class ExportDatabaseConfigurationExecutorTest {
+    
+    @TempDir
+    private Path tempDir;
+    
+    private final ExportDatabaseConfigurationExecutor executor = (ExportDatabaseConfigurationExecutor) TypedSPILoader.getService(
+            DistSQLQueryExecutor.class, ExportDatabaseConfigurationStatement.class);
+    
+    @Test
+    void assertGetColumnNames() throws IOException {
+        Path tempFile = Files.createTempFile("export-db-config-", ".yaml");
+        ExportDatabaseConfigurationStatement sqlStatement = new ExportDatabaseConfigurationStatement(tempFile.toString(), mock(FromDatabaseSegment.class));
+        assertThat(executor.getColumnNames(sqlStatement), is(Collections.singleton("result")));
+    }
     
     @Test
     void assertExecute() {
@@ -68,9 +86,8 @@ class ExportDatabaseConfigurationExecutorTest {
         Map<String, StorageUnit> storageUnits = createStorageUnits();
         when(database.getResourceMetaData().getStorageUnits()).thenReturn(storageUnits);
         when(database.getRuleMetaData().getConfigurations()).thenReturn(Collections.singleton(createShardingRuleConfiguration()));
-        ExportDatabaseConfigurationExecutor executor = new ExportDatabaseConfigurationExecutor();
         executor.setDatabase(database);
-        Collection<LocalDataQueryResultRow> actual = executor.getRows(new ExportDatabaseConfigurationStatement(mock(DatabaseSegment.class), null), mock(ContextManager.class));
+        Collection<LocalDataQueryResultRow> actual = executor.getRows(new ExportDatabaseConfigurationStatement(null, mock(FromDatabaseSegment.class)), mock(ContextManager.class));
         assertThat(actual.size(), is(1));
         LocalDataQueryResultRow row = actual.iterator().next();
         assertThat(row.getCell(1), is(loadExpectedRow()));
@@ -81,11 +98,33 @@ class ExportDatabaseConfigurationExecutorTest {
                 .collect(Collectors.toMap(Entry::getKey, entry -> DataSourcePoolPropertiesCreator.create(entry.getValue()), (oldValue, currentValue) -> oldValue, LinkedHashMap::new));
         Map<String, StorageUnit> result = new LinkedHashMap<>(propsMap.size(), 1F);
         for (Entry<String, DataSourcePoolProperties> entry : propsMap.entrySet()) {
-            StorageUnit storageUnit = mock(StorageUnit.class, RETURNS_DEEP_STUBS);
+            StorageUnit storageUnit = mock(StorageUnit.class);
             when(storageUnit.getDataSourcePoolProperties()).thenReturn(entry.getValue());
             result.put(entry.getKey(), storageUnit);
         }
         return result;
+    }
+    
+    private ShardingRuleConfiguration createShardingRuleConfiguration() {
+        ShardingRuleConfiguration result = new ShardingRuleConfiguration();
+        result.getTables().add(createTableRuleConfiguration());
+        result.setDefaultDatabaseShardingStrategy(new StandardShardingStrategyConfiguration("order_id", "ds_inline"));
+        result.setDefaultTableShardingStrategy(new NoneShardingStrategyConfiguration());
+        result.getKeyGenerators().put("snowflake", new AlgorithmConfiguration("SNOWFLAKE", new Properties()));
+        result.getKeyGenerateStrategies().put("t_order_order_id", new ColumnKeyGenerateStrategiesRuleConfiguration("snowflake", "t_order", "order_id"));
+        result.getShardingAlgorithms().put("ds_inline", new AlgorithmConfiguration("INLINE", PropertiesBuilder.build(new Property("algorithm-expression", "ds_${order_id % 2}"))));
+        return result;
+    }
+    
+    private ShardingTableRuleConfiguration createTableRuleConfiguration() {
+        return new ShardingTableRuleConfiguration("t_order", "ds_${0..1}.t_order_${0..1}");
+    }
+    
+    @SneakyThrows({IOException.class, URISyntaxException.class})
+    private String loadExpectedRow() {
+        URL url = Objects.requireNonNull(ExportDatabaseConfigurationExecutorTest.class.getResource("/expected/export-database-configuration.yaml"));
+        return Files.readAllLines(Paths.get(url.toURI())).stream().filter(each -> !each.startsWith("#") && !each.trim().isEmpty()).collect(Collectors.joining(System.lineSeparator()))
+                + System.lineSeparator();
     }
     
     @Test
@@ -94,13 +133,26 @@ class ExportDatabaseConfigurationExecutorTest {
         when(database.getName()).thenReturn("empty_db");
         when(database.getResourceMetaData().getStorageUnits()).thenReturn(Collections.emptyMap());
         when(database.getRuleMetaData().getConfigurations()).thenReturn(Collections.emptyList());
-        ExportDatabaseConfigurationStatement sqlStatement = new ExportDatabaseConfigurationStatement(new DatabaseSegment(0, 0, new IdentifierValue("empty_db")), null);
-        ExportDatabaseConfigurationExecutor executor = new ExportDatabaseConfigurationExecutor();
         executor.setDatabase(database);
-        Collection<LocalDataQueryResultRow> actual = executor.getRows(sqlStatement, mock(ContextManager.class));
+        Collection<LocalDataQueryResultRow> actual = executor.getRows(
+                new ExportDatabaseConfigurationStatement(null, new FromDatabaseSegment(0, new DatabaseSegment(0, 0, new IdentifierValue("empty_db")))), mock(ContextManager.class));
         assertThat(actual.size(), is(1));
         LocalDataQueryResultRow row = actual.iterator().next();
         assertThat(row.getCell(1), is("databaseName: empty_db" + System.lineSeparator()));
+    }
+    
+    @Test
+    void assertExecuteWithFilePath() throws IOException {
+        ShardingSphereDatabase database = mock(ShardingSphereDatabase.class, RETURNS_DEEP_STUBS);
+        when(database.getName()).thenReturn("file_db");
+        when(database.getResourceMetaData().getStorageUnits()).thenReturn(Collections.emptyMap());
+        when(database.getRuleMetaData().getConfigurations()).thenReturn(Collections.emptyList());
+        Path tempFile = tempDir.resolve("export-db-config.yaml");
+        executor.setDatabase(database);
+        Collection<LocalDataQueryResultRow> actual = executor.getRows(new ExportDatabaseConfigurationStatement(tempFile.toString(), mock(FromDatabaseSegment.class)), mock(ContextManager.class));
+        LocalDataQueryResultRow row = actual.iterator().next();
+        assertThat(row.getCell(1), is(String.format("Successfully exported to: '%s'", tempFile)));
+        assertThat(new String(Files.readAllBytes(tempFile)), is("databaseName: file_db" + System.lineSeparator()));
     }
     
     private Map<String, DataSource> createDataSourceMap() {
@@ -118,28 +170,5 @@ class ExportDatabaseConfigurationExecutorTest {
         result.setMaxPoolSize(50);
         result.setMinPoolSize(1);
         return result;
-    }
-    
-    private ShardingRuleConfiguration createShardingRuleConfiguration() {
-        ShardingRuleConfiguration result = new ShardingRuleConfiguration();
-        result.getTables().add(createTableRuleConfiguration());
-        result.setDefaultDatabaseShardingStrategy(new StandardShardingStrategyConfiguration("order_id", "ds_inline"));
-        result.setDefaultTableShardingStrategy(new NoneShardingStrategyConfiguration());
-        result.getKeyGenerators().put("snowflake", new AlgorithmConfiguration("SNOWFLAKE", new Properties()));
-        result.getShardingAlgorithms().put("ds_inline", new AlgorithmConfiguration("INLINE", PropertiesBuilder.build(new Property("algorithm-expression", "ds_${order_id % 2}"))));
-        return result;
-    }
-    
-    private ShardingTableRuleConfiguration createTableRuleConfiguration() {
-        ShardingTableRuleConfiguration result = new ShardingTableRuleConfiguration("t_order", "ds_${0..1}.t_order_${0..1}");
-        result.setKeyGenerateStrategy(new KeyGenerateStrategyConfiguration("order_id", "snowflake"));
-        return result;
-    }
-    
-    @SneakyThrows({IOException.class, URISyntaxException.class})
-    private String loadExpectedRow() {
-        URL url = Objects.requireNonNull(ExportDatabaseConfigurationExecutorTest.class.getResource("/expected/export-database-configuration.yaml"));
-        return Files.readAllLines(Paths.get(url.toURI())).stream().filter(each -> !each.startsWith("#") && !each.trim().isEmpty()).collect(Collectors.joining(System.lineSeparator()))
-                + System.lineSeparator();
     }
 }

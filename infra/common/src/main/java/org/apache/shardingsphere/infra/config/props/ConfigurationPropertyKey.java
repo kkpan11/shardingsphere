@@ -19,9 +19,8 @@ package org.apache.shardingsphere.infra.config.props;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
+import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.props.TypedPropertyKey;
-import org.slf4j.event.Level;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -33,11 +32,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Getter
 public enum ConfigurationPropertyKey implements TypedPropertyKey {
-    
-    /**
-     * The system log level.
-     */
-    SYSTEM_LOG_LEVEL("system-log-level", Level.INFO.toString(), Level.class, false),
     
     /**
      * Whether show SQL in log.
@@ -58,6 +52,12 @@ public enum ConfigurationPropertyKey implements TypedPropertyKey {
      * Max opened connection size for each query.
      */
     MAX_CONNECTIONS_SIZE_PER_QUERY("max-connections-size-per-query", String.valueOf(1), int.class, false),
+    
+    /**
+     * Max union size per datasource for aggregate rewrite.
+     * When route units count for a datasource exceeds this value, they will be split into batches.
+     */
+    MAX_UNION_SIZE_PER_DATASOURCE("max-union-size-per-datasource", String.valueOf(Integer.MAX_VALUE), int.class, false),
     
     /**
      * Whether validate table metadata consistency when application startup or updated.
@@ -96,6 +96,11 @@ public enum ConfigurationPropertyKey implements TypedPropertyKey {
     PROXY_FRONTEND_MAX_CONNECTIONS("proxy-frontend-max-connections", "0", int.class, false),
     
     /**
+     * Proxy frontend connection idle timeout in seconds.
+     */
+    PROXY_FRONTEND_CONNECTION_IDLE_TIMEOUT("proxy-frontend-connection-idle-timeout", "28800", long.class, false),
+    
+    /**
      * Proxy default start port.
      */
     PROXY_DEFAULT_PORT("proxy-default-port", "3307", int.class, true),
@@ -128,7 +133,12 @@ public enum ConfigurationPropertyKey implements TypedPropertyKey {
     /**
      * Agent plugins enabled.
      */
-    AGENT_PLUGINS_ENABLED("agent-plugins-enabled", String.valueOf(Boolean.TRUE), boolean.class, false);
+    AGENT_PLUGINS_ENABLED("agent-plugins-enabled", String.valueOf(Boolean.TRUE), boolean.class, false),
+    
+    /**
+     * Maximum size of Groovy inline expression parsing cache.
+     */
+    GROOVY_INLINE_EXPRESSION_PARSING_CACHE_MAX_SIZE("groovy-inline-expression-parsing-cache-max-size", "1000", long.class, false);
     
     private final String key;
     

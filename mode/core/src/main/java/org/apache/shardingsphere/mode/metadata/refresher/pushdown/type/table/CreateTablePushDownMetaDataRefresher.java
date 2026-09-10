@@ -17,47 +17,66 @@
 
 package org.apache.shardingsphere.mode.metadata.refresher.pushdown.type.table;
 
+import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.config.props.ConfigurationProperties;
-import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
-import org.apache.shardingsphere.infra.metadata.database.rule.RuleMetaData;
-import org.apache.shardingsphere.infra.metadata.database.schema.builder.GenericSchemaBuilder;
-import org.apache.shardingsphere.infra.metadata.database.schema.builder.GenericSchemaBuilderMaterial;
+import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereIndex;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereSchema;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereTable;
-import org.apache.shardingsphere.infra.rule.attribute.datanode.MutableDataNodeRuleAttribute;
 import org.apache.shardingsphere.mode.metadata.refresher.pushdown.PushDownMetaDataRefresher;
 import org.apache.shardingsphere.mode.metadata.refresher.util.TableRefreshUtils;
 import org.apache.shardingsphere.mode.persist.service.MetaDataManagerPersistService;
-import org.apache.shardingsphere.sql.parser.statement.core.statement.ddl.CreateTableStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.constraint.ConstraintDefinitionSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.index.IndexSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.column.ColumnSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.type.ddl.table.CreateTableStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.value.identifier.IdentifierValue;
 
 import java.sql.SQLException;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
-import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Create table push down meta data refresher.
  */
 public final class CreateTablePushDownMetaDataRefresher implements PushDownMetaDataRefresher<CreateTableStatement> {
     
+    private final TableMetaDataRefresherLoader metaDataLoader = new TableMetaDataRefresherLoader();
+    
     @Override
     public void refresh(final MetaDataManagerPersistService metaDataManagerPersistService, final ShardingSphereDatabase database, final String logicDataSourceName,
                         final String schemaName, final DatabaseType databaseType, final CreateTableStatement sqlStatement, final ConfigurationProperties props) throws SQLException {
-        String tableName = TableRefreshUtils.getTableName(sqlStatement.getTable().getTableName().getIdentifier(), databaseType);
-        RuleMetaData ruleMetaData = new RuleMetaData(new LinkedList<>(database.getRuleMetaData().getRules()));
-        if (TableRefreshUtils.isSingleTable(tableName, database)) {
-            ruleMetaData.getAttributes(MutableDataNodeRuleAttribute.class).forEach(each -> each.put(logicDataSourceName, schemaName, tableName));
-        }
-        ShardingSphereTable loadedTable = loadTable(database, schemaName, tableName, ruleMetaData, props);
+        ShardingSphereTable loadedTable = metaDataLoader.loadCreatedTable(database, logicDataSourceName, schemaName, sqlStatement.getTable().getTableName().getIdentifier(), props,
+                createRevisionCandidateSchemas(database, schemaName, sqlStatement, props));
         metaDataManagerPersistService.createTable(database, schemaName, loadedTable);
     }
     
-    private ShardingSphereTable loadTable(final ShardingSphereDatabase database, final String schemaName, final String tableName,
-                                          final RuleMetaData ruleMetaData, final ConfigurationProperties props) throws SQLException {
-        GenericSchemaBuilderMaterial material = new GenericSchemaBuilderMaterial(database.getResourceMetaData().getStorageUnits(), ruleMetaData.getRules(), props, schemaName);
-        Map<String, ShardingSphereSchema> schemas = GenericSchemaBuilder.build(Collections.singletonList(tableName), database.getProtocolType(), material);
-        return schemas.get(schemaName).getTable(tableName);
+    private Collection<ShardingSphereSchema> createRevisionCandidateSchemas(final ShardingSphereDatabase database, final String schemaName,
+                                                                            final CreateTableStatement sqlStatement, final ConfigurationProperties props) {
+        Collection<ShardingSphereIndex> indexes = createRevisionCandidateIndexes(sqlStatement);
+        if (indexes.isEmpty()) {
+            return database.getAllSchemas();
+        }
+        Collection<ShardingSphereSchema> result = new LinkedList<>(database.getAllSchemas());
+        String tableName = TableRefreshUtils.getTableLoadCandidateName(database, sqlStatement.getTable().getTableName().getIdentifier());
+        result.add(new ShardingSphereSchema(schemaName, database.getProtocolType(),
+                Collections.singleton(new ShardingSphereTable(tableName, Collections.emptyList(), indexes, Collections.emptyList())), Collections.emptyList()));
+        return result;
+    }
+    
+    private Collection<ShardingSphereIndex> createRevisionCandidateIndexes(final CreateTableStatement sqlStatement) {
+        Collection<ShardingSphereIndex> result = new LinkedList<>();
+        for (ConstraintDefinitionSegment each : sqlStatement.getConstraintDefinitions()) {
+            if (!each.getIndexName().isPresent()) {
+                continue;
+            }
+            IndexSegment indexSegment = each.getIndexName().get();
+            Collection<String> columns = each.getIndexColumns().stream().map(ColumnSegment::getIdentifier).map(IdentifierValue::getValue).collect(Collectors.toList());
+            result.add(new ShardingSphereIndex(indexSegment.getIndexName().getIdentifier().getValue(), columns, each.isUniqueKey() || indexSegment.isUniqueKey()));
+        }
+        return result;
     }
     
     @Override

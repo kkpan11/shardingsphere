@@ -5,9 +5,8 @@ weight = 2
 
 ## Background
 
-ShardingSphere built-in algorithms provide a variety of sharding algorithms, which can be divided into automatic sharding algorithms, standard sharding algorithms, composite sharding algorithms, and hint sharding algorithms, and can meet the needs of most business scenarios of users.
-
-Additionally, considering the complexity of business scenarios, the built-in algorithm also provides a way to customize the sharding algorithm. Users can complete complex sharding logic by writing java code.
+ShardingSphere provides built-in sharding algorithms, including automatic sharding algorithms, standard sharding algorithms, composite sharding algorithms, and hint sharding algorithms.
+Users can implement the corresponding SPI to provide a custom sharding algorithm for complex sharding logic.
 
 It should be noted that the sharding logic of the automatic sharding algorithm is automatically managed by ShardingSphere and needs to be used by configuring the autoTables sharding rules.
 
@@ -21,9 +20,12 @@ Type: MOD
 
 Attributes:
 
-| *Name*         | *DataType* | *Description*  |
-|----------------|------------|----------------|
-| sharding-count | int        | Sharding count |
+| *Name*           | *DataType* | *Description*                                | *Default Value* |
+|------------------|------------|------------------------------------------------|-----------------|
+| sharding-count   | int        | Sharding count                                 | -               |
+| start-offset (?) | int        | Start offset for extracting the sharding value | 0               |
+| stop-offset (?)  | int        | Stop offset for extracting the sharding value  | 0               |
+| zero-padding (?) | boolean    | Whether to pad the sharding suffix with zeros  | false           |
 
 #### Hash Modulo Sharding Algorithm
 
@@ -31,9 +33,10 @@ Type: HASH_MOD
 
 Attributes:
 
-| *Name*         | *DataType* | *Description*  |
-|----------------|------------|----------------|
-| sharding-count | int        | Sharding count |
+| *Name*                          | *DataType* | *Description*                                                                                                                         | *Default Value* |
+|---------------------------------|------------|---------------------------------------------------------------------------------------------------------------------------------------|-----------------|
+| sharding-count                  | int        | Sharding count                                                                                                                        | -               |
+| normalize-numeric-int-range (?) | boolean    | Whether to normalize `Long` and `BigInteger` values in integer range to integer semantics for consistent routing across numeric types | false           |
 
 #### Volume Based Range Sharding Algorithm
 
@@ -79,7 +82,7 @@ With Groovy expressions that uses the default implementation of the `InlineExpre
 `InlineShardingStrategy` provides single-key support for the sharding operation of `=` and `IN` in SQL.
 Simple sharding algorithms can be used through a simple configuration to avoid laborious Java code developments.
 For example, `t_user_$->{u_id % 8}` means table t_user is divided into 8 tables according to u_id, with table names from `t_user_0` to `t_user_7`.
-Please refer to [Inline Expression](/en/dev-manual/sharding/#implementation-classes) for more details.
+Please refer to [Inline Expression](/en/dev-manual/sharding/#inlineexpressionparser) for more details.
 
 Type: INLINE
 
@@ -131,7 +134,7 @@ Type: COMPLEX_INLINE
 
 Please refer to [Inline Expression](/en/features/sharding/concept/#row-value-expressions) for more details.
 
-Type: COMPLEX_INLINE
+Type: HINT_INLINE
 
 | *Name*               | *DataType* | *Description*                        | *Default Value* |
 |----------------------|------------|--------------------------------------|-----------------|
@@ -142,7 +145,7 @@ Type: COMPLEX_INLINE
 
 Realize custom extension by configuring the sharding strategy type and algorithm class name.
 `CLASS_BASED` allows additional custom properties to be passed into the algorithm class. The passed properties can be retrieved through the `java.util.Properties` class instance with the property name `props`. 
-Refer to Git's `org.apache.shardingsphere.example.extension.sharding.algortihm.classbased.fixture.ClassBasedStandardShardingAlgorithmFixture`.
+Users can implement the corresponding sharding algorithm interface and configure the fully-qualified class name with `algorithmClassName`.
 
 Type：CLASS_BASED
 
@@ -169,26 +172,17 @@ rules:
         standard:
           shardingColumn: order_id
           shardingAlgorithmName: t_order_inline
-      keyGenerateStrategy:
-        column: order_id
-        keyGeneratorName: snowflake
     t_order_item:
       actualDataNodes: ds_${0..1}.t_order_item_${0..1}
       tableStrategy:
         standard:
           shardingColumn: order_id
           shardingAlgorithmName: t_order_item_inline
-      keyGenerateStrategy:
-        column: order_item_id
-        keyGeneratorName: snowflake
     t_account:
       actualDataNodes: ds_${0..1}.t_account_${0..1}
       tableStrategy:
         standard:
           shardingAlgorithmName: t_account_inline
-      keyGenerateStrategy:
-        column: account_id
-        keyGeneratorName: snowflake
   defaultShardingColumn: account_id
   bindingTables:
     - t_order,t_order_item
@@ -198,6 +192,22 @@ rules:
       shardingAlgorithmName: database_inline
   defaultTableStrategy:
     none:
+  keyGenerateStrategies:
+    t_order_order_id:
+      keyGenerateType: column
+      keyGeneratorName: snowflake
+      logicTable: t_order
+      keyGenerateColumn: order_id
+    t_order_item_order_item_id:
+      keyGenerateType: column
+      keyGeneratorName: snowflake
+      logicTable: t_order_item
+      keyGenerateColumn: order_item_id
+    t_account_account_id:
+      keyGenerateType: column
+      keyGeneratorName: snowflake
+      logicTable: t_account
+      keyGenerateColumn: account_id
   
   shardingAlgorithms:
     database_inline:

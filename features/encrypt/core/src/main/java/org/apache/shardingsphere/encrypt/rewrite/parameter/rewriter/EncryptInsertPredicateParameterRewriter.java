@@ -21,7 +21,7 @@ import lombok.RequiredArgsConstructor;
 import org.apache.shardingsphere.encrypt.rewrite.condition.EncryptCondition;
 import org.apache.shardingsphere.encrypt.rule.EncryptRule;
 import org.apache.shardingsphere.infra.binder.context.statement.SQLStatementContext;
-import org.apache.shardingsphere.infra.binder.context.statement.dml.InsertStatementContext;
+import org.apache.shardingsphere.infra.binder.context.statement.type.dml.InsertStatementContext;
 import org.apache.shardingsphere.infra.rewrite.parameter.builder.ParameterBuilder;
 import org.apache.shardingsphere.infra.rewrite.parameter.rewriter.ParameterRewriter;
 
@@ -36,19 +36,17 @@ public final class EncryptInsertPredicateParameterRewriter implements ParameterR
     
     private final EncryptRule rule;
     
-    private final String databaseName;
-    
     private final Collection<EncryptCondition> encryptConditions;
     
     @Override
     public boolean isNeedRewrite(final SQLStatementContext sqlStatementContext) {
         return sqlStatementContext instanceof InsertStatementContext && null != ((InsertStatementContext) sqlStatementContext).getInsertSelectContext()
-                && !((InsertStatementContext) sqlStatementContext).getInsertSelectContext().getSelectStatementContext().getWhereSegments().isEmpty();
+                && !((InsertStatementContext) sqlStatementContext).getInsertSelectContext().getSelectStatementContext().getWhereSegments().isEmpty() && !encryptConditions.isEmpty();
     }
     
     @Override
     public void rewrite(final ParameterBuilder paramBuilder, final SQLStatementContext sqlStatementContext, final List<Object> params) {
-        EncryptPredicateParameterRewriter rewriter = new EncryptPredicateParameterRewriter(rule, databaseName, encryptConditions);
+        EncryptPredicateParameterRewriter rewriter = new EncryptPredicateParameterRewriter(rule, encryptConditions);
         rewriter.rewrite(paramBuilder, ((InsertStatementContext) sqlStatementContext).getInsertSelectContext().getSelectStatementContext(), params);
     }
 }

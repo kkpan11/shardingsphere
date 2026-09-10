@@ -17,15 +17,16 @@
 
 package org.apache.shardingsphere.encrypt.checker.sql.projection;
 
+import org.apache.shardingsphere.encrypt.enums.EncryptColumnItemType;
 import org.apache.shardingsphere.encrypt.rule.EncryptRule;
 import org.apache.shardingsphere.encrypt.spi.EncryptAlgorithm;
 import org.apache.shardingsphere.infra.annotation.HighFrequencyInvocation;
 import org.apache.shardingsphere.infra.binder.context.segment.select.projection.Projection;
 import org.apache.shardingsphere.infra.binder.context.segment.select.projection.impl.ColumnProjection;
 import org.apache.shardingsphere.infra.binder.context.statement.SQLStatementContext;
-import org.apache.shardingsphere.infra.binder.context.statement.dml.SelectStatementContext;
+import org.apache.shardingsphere.infra.binder.context.statement.type.dml.SelectStatementContext;
 import org.apache.shardingsphere.infra.checker.SupportedSQLChecker;
-import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.exception.ShardingSpherePreconditions;
 import org.apache.shardingsphere.infra.exception.generic.UnsupportedSQLOperationException;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereSchema;
@@ -45,7 +46,7 @@ public final class EncryptSelectProjectionSupportedChecker implements SupportedS
     
     @Override
     public boolean isCheck(final SQLStatementContext sqlStatementContext) {
-        return sqlStatementContext instanceof SelectStatementContext && !((SelectStatementContext) sqlStatementContext).getTablesContext().getSimpleTables().isEmpty();
+        return sqlStatementContext instanceof SelectStatementContext && !sqlStatementContext.getTablesContext().getSimpleTables().isEmpty();
     }
     
     @Override
@@ -86,9 +87,11 @@ public final class EncryptSelectProjectionSupportedChecker implements SupportedS
     
     private boolean containsEncryptProjectionInCombineSegment(final EncryptRule rule, final Projection leftProjection, final Projection rightProjection) {
         ColumnSegmentBoundInfo leftColumnInfo = getColumnSegmentBoundInfo(leftProjection);
-        EncryptAlgorithm leftColumnEncryptor = rule.findQueryEncryptor(leftColumnInfo.getOriginalTable().getValue(), leftColumnInfo.getOriginalColumn().getValue()).orElse(null);
+        EncryptAlgorithm leftColumnEncryptor =
+                rule.findEncryptor(leftColumnInfo.getOriginalTable().getValue(), leftColumnInfo.getOriginalColumn().getValue(), EncryptColumnItemType.CIPHER).orElse(null);
         ColumnSegmentBoundInfo rightColumnInfo = getColumnSegmentBoundInfo(rightProjection);
-        EncryptAlgorithm rightColumnEncryptor = rule.findQueryEncryptor(rightColumnInfo.getOriginalTable().getValue(), rightColumnInfo.getOriginalColumn().getValue()).orElse(null);
+        EncryptAlgorithm rightColumnEncryptor =
+                rule.findEncryptor(rightColumnInfo.getOriginalTable().getValue(), rightColumnInfo.getOriginalColumn().getValue(), EncryptColumnItemType.CIPHER).orElse(null);
         return null != leftColumnEncryptor || null != rightColumnEncryptor;
     }
     

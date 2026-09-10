@@ -15,9 +15,6 @@
 # limitations under the License.
 #
 
-ignore:
-  - '**/*.md'
-
 pipeline:
   - '.github/workflows/e2e-operation.yml'
   - 'infra/**/src/main/**'
@@ -51,6 +48,7 @@ showprocesslist:
 transaction:
   - '.github/workflows/e2e-operation.yml'
   - 'infra/common/src/main/**'
+  - 'infra/distsql-handler/src/main/**'
   - 'mode/**/src/main/**'
   - 'proxy/**/src/main/**'
   - 'jdbc/src/main/**'

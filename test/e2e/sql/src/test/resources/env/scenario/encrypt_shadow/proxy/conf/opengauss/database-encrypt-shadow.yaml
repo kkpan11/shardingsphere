@@ -20,21 +20,23 @@ databaseName: encrypt_shadow
 dataSources:
   db:
     url: jdbc:opengauss://opengauss.encrypt_shadow.host:5432/db
+    driverClassName: org.opengauss.Driver
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   encrypt_shadow_db:
     url: jdbc:opengauss://opengauss.encrypt_shadow.host:5432/encrypt_shadow_db
+    driverClassName: org.opengauss.Driver
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
 
 rules:

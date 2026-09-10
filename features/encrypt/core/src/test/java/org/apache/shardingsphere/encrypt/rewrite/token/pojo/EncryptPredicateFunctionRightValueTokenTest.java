@@ -25,8 +25,8 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 class EncryptPredicateFunctionRightValueTokenTest {
     
@@ -42,7 +42,7 @@ class EncryptPredicateFunctionRightValueTokenTest {
         functionSegment.getParameters().add(new LiteralExpressionSegment(0, 0, "%"));
         EncryptPredicateFunctionRightValueToken actual =
                 new EncryptPredicateFunctionRightValueToken(0, 0, functionSegment.getFunctionName(), functionSegment.getParameters(), indexValues, Collections.emptyList());
-        assertThat(actual.toString(), is("CONCAT ('%', 'abc', '%')"));
+        assertThat(actual.toString(), is("CONCAT('%', 'abc', '%')"));
     }
     
     @Test
@@ -59,6 +59,6 @@ class EncryptPredicateFunctionRightValueTokenTest {
         functionSegment.getParameters().add(nestedFunctionSegment);
         EncryptPredicateFunctionRightValueToken actual =
                 new EncryptPredicateFunctionRightValueToken(0, 0, functionSegment.getFunctionName(), functionSegment.getParameters(), indexValues, Collections.emptyList());
-        assertThat(actual.toString(), is("CONCAT ('%', CONCAT ('abc', '%'))"));
+        assertThat(actual.toString(), is("CONCAT('%', CONCAT('abc', '%'))"));
     }
 }

@@ -18,7 +18,7 @@
 package org.apache.shardingsphere.shadow.distsql.handler.query;
 
 import org.apache.shardingsphere.distsql.handler.executor.rql.resource.InUsedStorageUnitRetriever;
-import org.apache.shardingsphere.distsql.statement.rql.rule.database.ShowRulesUsedStorageUnitStatement;
+import org.apache.shardingsphere.distsql.statement.type.rql.rule.database.ShowRulesUsedStorageUnitStatement;
 import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 import org.apache.shardingsphere.shadow.config.datasource.ShadowDataSourceConfiguration;
 import org.apache.shardingsphere.shadow.rule.ShadowRule;
@@ -26,8 +26,8 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -38,15 +38,21 @@ class InUsedShadowStorageUnitRetrieverTest {
     private final InUsedStorageUnitRetriever<ShadowRule> retriever = TypedSPILoader.getService(InUsedStorageUnitRetriever.class, ShadowRule.class);
     
     @Test
-    void assertGetInUsedResourcesWithShadowDataSource() {
+    void assertGetInUsedResourcesWithProductionDataSource() {
         ShowRulesUsedStorageUnitStatement sqlStatement = new ShowRulesUsedStorageUnitStatement("prod_ds", null);
         assertThat(retriever.getInUsedResources(sqlStatement, mockRule()), is(Collections.singletonList("foo_ds")));
     }
     
     @Test
-    void assertGetInUsedResourcesWithProductionDataSource() {
+    void assertGetInUsedResourcesWithShadowDataSource() {
         ShowRulesUsedStorageUnitStatement sqlStatement = new ShowRulesUsedStorageUnitStatement("shadow_ds", null);
         assertThat(retriever.getInUsedResources(sqlStatement, mockRule()), is(Collections.singletonList("foo_ds")));
+    }
+    
+    @Test
+    void assertGetInUsedResourcesWithDifferentCaseDataSource() {
+        ShowRulesUsedStorageUnitStatement sqlStatement = new ShowRulesUsedStorageUnitStatement("PROD_DS", null);
+        assertThat(retriever.getInUsedResources(sqlStatement, mockRule()), is(Collections.emptyList()));
     }
     
     private ShadowRule mockRule() {

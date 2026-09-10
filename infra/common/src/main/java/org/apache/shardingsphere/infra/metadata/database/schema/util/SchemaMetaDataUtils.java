@@ -20,17 +20,22 @@ package org.apache.shardingsphere.infra.metadata.database.schema.util;
 import com.google.common.collect.Lists;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import org.apache.shardingsphere.database.connector.core.GlobalDataSourceRegistry;
+import org.apache.shardingsphere.database.connector.core.metadata.data.loader.MetaDataLoaderMaterial;
+import org.apache.shardingsphere.database.connector.core.metadata.database.metadata.option.schema.DialectSchemaOption;
+import org.apache.shardingsphere.database.connector.core.metadata.database.metadata.option.schema.DialectSchemaSemantics;
+import org.apache.shardingsphere.database.connector.core.metadata.identifier.DefaultSchemaNameResolver;
+import org.apache.shardingsphere.database.connector.core.metadata.identifier.IdentifierScope;
+import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
+import org.apache.shardingsphere.database.connector.core.type.DatabaseTypeRegistry;
 import org.apache.shardingsphere.infra.config.props.ConfigurationPropertyKey;
-import org.apache.shardingsphere.infra.database.core.GlobalDataSourceRegistry;
-import org.apache.shardingsphere.infra.database.core.metadata.data.loader.MetaDataLoaderMaterial;
-import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
-import org.apache.shardingsphere.infra.database.core.type.DatabaseTypeRegistry;
 import org.apache.shardingsphere.infra.datanode.DataNode;
 import org.apache.shardingsphere.infra.datanode.DataNodes;
-import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.exception.ShardingSpherePreconditions;
 import org.apache.shardingsphere.infra.exception.kernel.metadata.datanode.UnsupportedActualDataNodeStructureException;
 import org.apache.shardingsphere.infra.metadata.database.resource.unit.StorageUnit;
 import org.apache.shardingsphere.infra.metadata.database.schema.builder.GenericSchemaBuilderMaterial;
+import org.apache.shardingsphere.sql.parser.statement.core.value.identifier.IdentifierValue;
 
 import javax.sql.DataSource;
 import java.util.ArrayList;
@@ -53,34 +58,45 @@ public final class SchemaMetaDataUtils {
      * Get meta data loader materials.
      *
      * @param tableNames table name collection
+     * @param protocolType protocol type
      * @param material material
      * @return meta data loader materials
      */
-    public static Collection<MetaDataLoaderMaterial> getMetaDataLoaderMaterials(final Collection<String> tableNames, final GenericSchemaBuilderMaterial material) {
+    public static Collection<MetaDataLoaderMaterial> getMetaDataLoaderMaterials(final Collection<String> tableNames, final DatabaseType protocolType,
+                                                                                final GenericSchemaBuilderMaterial material) {
         Map<String, Collection<String>> dataSourceTableGroups = new LinkedHashMap<>();
         Collection<DatabaseType> unsupportedThreeTierStorageStructureDatabaseTypes = getUnsupportedThreeTierStorageStructureDatabaseTypes(material.getStorageUnits().values());
         DataNodes dataNodes = new DataNodes(material.getRules());
         boolean checkMetaDataEnable = material.getProps().getValue(ConfigurationPropertyKey.CHECK_TABLE_METADATA_ENABLED);
         for (String each : tableNames) {
             checkDataSourceTypeIncludeInstanceAndSetDatabaseTableMap(unsupportedThreeTierStorageStructureDatabaseTypes, dataNodes, each);
+            boolean tableNameLoadedFromStorage = dataNodes.isDataNodeTableNameLoadedFromStorage(each);
             if (checkMetaDataEnable) {
-                addAllActualTableDataNode(material, dataSourceTableGroups, dataNodes, each);
+                addAllActualTableDataNode(material, dataSourceTableGroups, dataNodes, each, protocolType, tableNameLoadedFromStorage);
             } else {
-                addOneActualTableDataNode(material, dataSourceTableGroups, dataNodes, each);
+                addOneActualTableDataNode(material, dataSourceTableGroups, dataNodes, each, protocolType, tableNameLoadedFromStorage);
             }
         }
         Collection<MetaDataLoaderMaterial> result = new LinkedList<>();
         int loadTableMetadataBatchSize = material.getProps().getValue(ConfigurationPropertyKey.LOAD_TABLE_METADATA_BATCH_SIZE);
         for (Entry<String, Collection<String>> entry : dataSourceTableGroups.entrySet()) {
             DatabaseType storageType = material.getStorageUnits().get(entry.getKey()).getStorageType();
-            String defaultSchemaName = getDefaultSchemaNameByStorageType(storageType, material.getDefaultSchemaName());
+            String defaultSchemaName = getDefaultSchemaName(material, entry.getKey(), storageType);
             result.addAll(buildMaterials(material, entry.getKey(), entry.getValue(), storageType, defaultSchemaName, loadTableMetadataBatchSize));
         }
         return result;
     }
     
+    private static String getDefaultSchemaName(final GenericSchemaBuilderMaterial material, final String dataSourceName, final DatabaseType storageType) {
+        DialectSchemaOption schemaOption = new DatabaseTypeRegistry(storageType).getDialectDatabaseMetaData().getSchemaOption();
+        return schemaOption.isSchemaAvailable() || DialectSchemaSemantics.DATABASE_AS_SCHEMA == schemaOption.getSchemaSemantics()
+                ? DefaultSchemaNameResolver.resolveStorage(storageType, getDataSource(material, dataSourceName), material.getDefaultSchemaName())
+                : material.getDefaultSchemaName();
+    }
+    
     private static Collection<MetaDataLoaderMaterial> buildMaterials(final GenericSchemaBuilderMaterial material, final String dataSourceName, final Collection<String> actualTableNames,
-                                                                     final DatabaseType storageType, final String defaultSchemaName, final int loadTableMetadataBatchSize) {
+                                                                     final DatabaseType storageType, final String defaultSchemaName,
+                                                                     final int loadTableMetadataBatchSize) {
         Collection<MetaDataLoaderMaterial> result = new LinkedList<>();
         DataSource dataSource = getDataSource(material, dataSourceName);
         for (List<String> each : Lists.partition(new ArrayList<>(actualTableNames), loadTableMetadataBatchSize)) {
@@ -89,16 +105,12 @@ public final class SchemaMetaDataUtils {
         return result;
     }
     
-    private static String getDefaultSchemaNameByStorageType(final DatabaseType storageType, final String databaseName) {
-        return new DatabaseTypeRegistry(storageType).getDefaultSchemaName(databaseName);
-    }
-    
     private static DataSource getDataSource(final GenericSchemaBuilderMaterial material, final String dataSourceName) {
         return material.getStorageUnits().get(dataSourceName.contains(".") ? dataSourceName.split("\\.")[0] : dataSourceName).getDataSource();
     }
     
-    private static void checkDataSourceTypeIncludeInstanceAndSetDatabaseTableMap(final Collection<DatabaseType> notSupportThreeTierStructureStorageTypes, final DataNodes dataNodes,
-                                                                                 final String tableName) {
+    private static void checkDataSourceTypeIncludeInstanceAndSetDatabaseTableMap(final Collection<DatabaseType> notSupportThreeTierStructureStorageTypes,
+                                                                                 final DataNodes dataNodes, final String tableName) {
         for (DataNode dataNode : dataNodes.getDataNodes(tableName)) {
             ShardingSpherePreconditions.checkState(notSupportThreeTierStructureStorageTypes.isEmpty() || !dataNode.getDataSourceName().contains("."),
                     () -> new UnsupportedActualDataNodeStructureException(
@@ -116,32 +128,43 @@ public final class SchemaMetaDataUtils {
     }
     
     private static void addOneActualTableDataNode(final GenericSchemaBuilderMaterial material,
-                                                  final Map<String, Collection<String>> dataSourceTableGroups, final DataNodes dataNodes, final String table) {
+                                                  final Map<String, Collection<String>> dataSourceTableGroups, final DataNodes dataNodes, final String table,
+                                                  final DatabaseType protocolType, final boolean tableNameLoadedFromStorage) {
         Optional<DataNode> dataNode = dataNodes.getDataNodes(table).stream().filter(each -> isSameDataSourceNameSchemaName(material, each)).findFirst();
         if (!dataNode.isPresent() && !material.getStorageUnits().keySet().iterator().hasNext()) {
             return;
         }
         String dataSourceName = dataNode.map(DataNode::getDataSourceName).orElseGet(() -> material.getStorageUnits().keySet().iterator().next());
-        String tableName = dataNode.map(DataNode::getTableName).orElse(table);
+        String tableName = dataNode.map(optional -> getTableName(material, protocolType, optional, tableNameLoadedFromStorage))
+                .orElseGet(() -> normalizeTableName(material, protocolType, dataSourceName, table));
         addDataSourceTableGroups(dataSourceName, tableName, dataSourceTableGroups);
     }
     
     private static boolean isSameDataSourceNameSchemaName(final GenericSchemaBuilderMaterial material, final DataNode dataNode) {
         String dataSourceName = dataNode.getDataSourceName().contains(".") ? dataNode.getDataSourceName().split("\\.")[0] : dataNode.getDataSourceName();
-        if (!material.getStorageUnits().containsKey(dataSourceName)) {
-            return false;
-        }
-        return null == dataNode.getSchemaName() || dataNode.getSchemaName().equalsIgnoreCase(material.getDefaultSchemaName());
+        return material.getStorageUnits().containsKey(dataSourceName) && (null == dataNode.getSchemaName() || dataNode.getSchemaName().equalsIgnoreCase(material.getDefaultSchemaName()));
     }
     
     private static void addAllActualTableDataNode(final GenericSchemaBuilderMaterial material,
-                                                  final Map<String, Collection<String>> dataSourceTableGroups, final DataNodes dataNodes, final String table) {
+                                                  final Map<String, Collection<String>> dataSourceTableGroups, final DataNodes dataNodes, final String table,
+                                                  final DatabaseType protocolType, final boolean tableNameLoadedFromStorage) {
         Collection<DataNode> tableDataNodes = dataNodes.getDataNodes(table);
         if (tableDataNodes.isEmpty() && !material.getStorageUnits().isEmpty()) {
-            addDataSourceTableGroups(material.getStorageUnits().keySet().iterator().next(), table, dataSourceTableGroups);
+            String dataSourceName = material.getStorageUnits().keySet().iterator().next();
+            addDataSourceTableGroups(dataSourceName, normalizeTableName(material, protocolType, dataSourceName, table), dataSourceTableGroups);
         } else {
-            tableDataNodes.forEach(each -> addDataSourceTableGroups(each.getDataSourceName(), each.getTableName(), dataSourceTableGroups));
+            tableDataNodes.forEach(each -> addDataSourceTableGroups(each.getDataSourceName(), getTableName(material, protocolType, each, tableNameLoadedFromStorage), dataSourceTableGroups));
         }
+    }
+    
+    private static String getTableName(final GenericSchemaBuilderMaterial material, final DatabaseType protocolType, final DataNode dataNode,
+                                       final boolean tableNameLoadedFromStorage) {
+        return tableNameLoadedFromStorage ? dataNode.getTableName() : normalizeTableName(material, protocolType, dataNode.getDataSourceName(), dataNode.getTableName());
+    }
+    
+    private static String normalizeTableName(final GenericSchemaBuilderMaterial material, final DatabaseType protocolType, final String dataSourceName, final String tableName) {
+        DatabaseType storageType = material.getStorageUnits().get(dataSourceName).getStorageType();
+        return protocolType.equals(storageType) ? tableName : material.getIdentifierContext().normalizeStorage(IdentifierScope.TABLE, new IdentifierValue(tableName));
     }
     
     private static void addDataSourceTableGroups(final String dataSourceName, final String tableName, final Map<String, Collection<String>> dataSourceTableGroups) {

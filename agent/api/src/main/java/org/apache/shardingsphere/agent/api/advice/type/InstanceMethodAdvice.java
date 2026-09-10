@@ -17,8 +17,8 @@
 
 package org.apache.shardingsphere.agent.api.advice.type;
 
-import org.apache.shardingsphere.agent.api.advice.TargetAdviceMethod;
 import org.apache.shardingsphere.agent.api.advice.AgentAdvice;
+import org.apache.shardingsphere.agent.api.advice.TargetAdviceMethod;
 import org.apache.shardingsphere.agent.api.advice.TargetAdviceObject;
 
 /**
@@ -40,7 +40,7 @@ public interface InstanceMethodAdvice extends AgentAdvice {
     
     /**
      * Intercept the target method and weave the method after origin method.
-     * It will invoke after the origin calling
+     * It will invoke after the origin calling.
      *
      * @param target the target object
      * @param method the target method

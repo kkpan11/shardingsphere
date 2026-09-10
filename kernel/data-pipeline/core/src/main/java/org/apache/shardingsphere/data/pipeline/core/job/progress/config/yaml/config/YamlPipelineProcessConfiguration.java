@@ -19,8 +19,8 @@ package org.apache.shardingsphere.data.pipeline.core.job.progress.config.yaml.co
 
 import lombok.Getter;
 import lombok.Setter;
-import org.apache.shardingsphere.infra.util.yaml.YamlConfiguration;
 import org.apache.shardingsphere.infra.algorithm.core.yaml.YamlAlgorithmConfiguration;
+import org.apache.shardingsphere.infra.util.yaml.YamlConfiguration;
 
 /**
  * YAML pipeline process configuration.
@@ -34,9 +34,4 @@ public final class YamlPipelineProcessConfiguration implements YamlConfiguration
     private YamlPipelineWriteConfiguration write = new YamlPipelineWriteConfiguration();
     
     private YamlAlgorithmConfiguration streamChannel;
-    
-    @Override
-    public boolean isEmpty() {
-        return null == streamChannel;
-    }
 }

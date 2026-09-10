@@ -17,10 +17,10 @@
 
 package org.apache.shardingsphere.example.parser.oracle.statement;
 
-import org.apache.shardingsphere.sql.parser.api.CacheOption;
-import org.apache.shardingsphere.sql.parser.api.SQLParserEngine;
-import org.apache.shardingsphere.sql.parser.api.SQLStatementVisitorEngine;
-import org.apache.shardingsphere.sql.parser.core.ParseASTNode;
+import org.apache.shardingsphere.sql.parser.engine.api.CacheOption;
+import org.apache.shardingsphere.sql.parser.engine.api.SQLParserEngine;
+import org.apache.shardingsphere.sql.parser.engine.api.SQLStatementVisitorEngine;
+import org.apache.shardingsphere.sql.parser.engine.core.ParseASTNode;
 import org.apache.shardingsphere.sql.parser.statement.core.statement.SQLStatement;
 
 import java.util.Arrays;
@@ -38,7 +38,7 @@ public final class OracleParserStatementExample {
     
     private static final String DDL_CREATE_SQL = "CREATE TABLE table2 (id BIGINT(20) PRIMARY KEY, name VARCHAR(20), age INT(2))";
     
-    private static final String DDL_DROP_SQL = "DROP TABLE table1, table2;";
+    private static final String DDL_DROP_SQL = "DROP TABLE table1;";
     
     private static final String DDL_ALTER_SQL = "ALTER TABLE table1 DROP age;";
 

@@ -17,9 +17,9 @@
 
 package org.apache.shardingsphere.distsql.handler.executor.rdl.resource;
 
-import org.apache.groovy.util.Maps;
+import com.google.common.collect.ImmutableMap;
 import org.apache.shardingsphere.distsql.handler.fixture.DistSQLHandlerFixtureRule;
-import org.apache.shardingsphere.distsql.statement.rdl.resource.unit.type.UnregisterStorageUnitStatement;
+import org.apache.shardingsphere.distsql.statement.type.rdl.resource.unit.type.UnregisterStorageUnitStatement;
 import org.apache.shardingsphere.infra.datasource.pool.props.domain.DataSourcePoolProperties;
 import org.apache.shardingsphere.infra.exception.kernel.metadata.resource.storageunit.InUsedStorageUnitException;
 import org.apache.shardingsphere.infra.exception.kernel.metadata.resource.storageunit.MissingRequiredStorageUnitsException;
@@ -33,7 +33,7 @@ import org.apache.shardingsphere.infra.rule.attribute.datasource.DataSourceMappe
 import org.apache.shardingsphere.mode.manager.ContextManager;
 import org.apache.shardingsphere.mode.metadata.MetaDataContexts;
 import org.apache.shardingsphere.mode.persist.service.MetaDataManagerPersistService;
-import org.apache.shardingsphere.test.fixture.jdbc.MockedDataSource;
+import org.apache.shardingsphere.test.infra.fixture.jdbc.MockedDataSource;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -70,6 +70,7 @@ class UnregisterStorageUnitExecutorTest {
         when(database.getName()).thenReturn("foo_db");
         StorageUnit storageUnit = createStorageUnit();
         when(database.getResourceMetaData().getStorageUnits()).thenReturn(Collections.singletonMap("foo_ds", storageUnit));
+        when(database.getRuleMetaData().getRules()).thenReturn(Collections.singleton(new DistSQLHandlerFixtureRule()));
         contextManager = mockContextManager();
         executor.setDatabase(database);
     }
@@ -77,7 +78,7 @@ class UnregisterStorageUnitExecutorTest {
     private static StorageUnit createStorageUnit() {
         DataSourcePoolProperties dataSourcePoolProps = mock(DataSourcePoolProperties.class, RETURNS_DEEP_STUBS);
         when(dataSourcePoolProps.getConnectionPropertySynonyms().getStandardProperties()).thenReturn(Collections.emptyMap());
-        when(dataSourcePoolProps.getConnectionPropertySynonyms().getStandardProperties()).thenReturn(Maps.of("url", "jdbc:mock://127.0.0.1/foo_db", "username", "test"));
+        when(dataSourcePoolProps.getConnectionPropertySynonyms().getStandardProperties()).thenReturn(ImmutableMap.of("url", "jdbc:mock://127.0.0.1/foo_db", "username", "test"));
         return new StorageUnit(mock(StorageNode.class), dataSourcePoolProps, new MockedDataSource());
     }
     

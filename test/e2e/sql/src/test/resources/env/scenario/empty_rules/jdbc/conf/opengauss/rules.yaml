@@ -20,213 +20,234 @@ databaseName: empty_rules
 dataSources:
   write_ds_0:
     url: jdbc:opengauss://opengauss.empty_rules.host:5432/write_ds_0?batchMode=OFF
+    driverClassName: org.opengauss.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   write_ds_1:
     url: jdbc:opengauss://opengauss.empty_rules.host:5432/write_ds_1?batchMode=OFF
+    driverClassName: org.opengauss.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   write_ds_2:
     url: jdbc:opengauss://opengauss.empty_rules.host:5432/write_ds_2?batchMode=OFF
+    driverClassName: org.opengauss.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   write_ds_3:
     url: jdbc:opengauss://opengauss.empty_rules.host:5432/write_ds_3?batchMode=OFF
+    driverClassName: org.opengauss.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   write_ds_4:
     url: jdbc:opengauss://opengauss.empty_rules.host:5432/write_ds_4?batchMode=OFF
+    driverClassName: org.opengauss.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   write_ds_5:
     url: jdbc:opengauss://opengauss.empty_rules.host:5432/write_ds_5?batchMode=OFF
+    driverClassName: org.opengauss.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   write_ds_6:
     url: jdbc:opengauss://opengauss.empty_rules.host:5432/write_ds_6?batchMode=OFF
+    driverClassName: org.opengauss.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   write_ds_7:
     url: jdbc:opengauss://opengauss.empty_rules.host:5432/write_ds_7?batchMode=OFF
+    driverClassName: org.opengauss.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   write_ds_8:
     url: jdbc:opengauss://opengauss.empty_rules.host:5432/write_ds_8?batchMode=OFF
+    driverClassName: org.opengauss.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   write_ds_9:
     url: jdbc:opengauss://opengauss.empty_rules.host:5432/write_ds_9?batchMode=OFF
+    driverClassName: org.opengauss.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   read_ds_0:
     url: jdbc:opengauss://opengauss.empty_rules.host:5432/read_ds_0?batchMode=OFF
+    driverClassName: org.opengauss.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   read_ds_1:
     url: jdbc:opengauss://opengauss.empty_rules.host:5432/read_ds_1?batchMode=OFF
+    driverClassName: org.opengauss.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   read_ds_2:
     url: jdbc:opengauss://opengauss.empty_rules.host:5432/read_ds_2?batchMode=OFF
+    driverClassName: org.opengauss.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   read_ds_3:
     url: jdbc:opengauss://opengauss.empty_rules.host:5432/read_ds_3?batchMode=OFF
+    driverClassName: org.opengauss.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   read_ds_4:
     url: jdbc:opengauss://opengauss.empty_rules.host:5432/read_ds_4?batchMode=OFF
+    driverClassName: org.opengauss.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   read_ds_5:
     url: jdbc:opengauss://opengauss.empty_rules.host:5432/read_ds_5?batchMode=OFF
+    driverClassName: org.opengauss.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   read_ds_6:
     url: jdbc:opengauss://opengauss.empty_rules.host:5432/read_ds_6?batchMode=OFF
+    driverClassName: org.opengauss.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   read_ds_7:
     url: jdbc:opengauss://opengauss.empty_rules.host:5432/read_ds_7?batchMode=OFF
+    driverClassName: org.opengauss.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   read_ds_8:
     url: jdbc:opengauss://opengauss.empty_rules.host:5432/read_ds_8?batchMode=OFF
+    driverClassName: org.opengauss.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   read_ds_9:
     url: jdbc:opengauss://opengauss.empty_rules.host:5432/read_ds_9?batchMode=OFF
+    driverClassName: org.opengauss.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   rdl_test_0:
     url: jdbc:opengauss://opengauss.empty_rules.host:5432/rdl_test_0?batchMode=OFF
+    driverClassName: org.opengauss.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
 
 rules:
@@ -234,6 +255,18 @@ rules:
     tables:
       - "*.*.*"
   - !SHARDING
+    keyGenerateStrategies:
+      t_user_user_id:
+        keyGenerateType: column
+        keyGeneratorName: constant
+        logicTable: t_user
+        keyGenerateColumn: user_id
+      t_user_item_user_id:
+        keyGenerateType: column
+        keyGeneratorName: constant
+        logicTable: t_user_item
+        keyGenerateColumn: user_id
+
     autoTables:
       t_user:
         actualDataSources: write_ds_${0..9}
@@ -241,9 +274,6 @@ rules:
           standard:
             shardingColumn: user_id
             shardingAlgorithmName: mod
-        keyGenerateStrategy:
-          column: user_id
-          keyGeneratorName: constant
         auditStrategy:
           auditorNames:
             - auditor_constant
@@ -254,10 +284,6 @@ rules:
           standard:
             shardingColumn: user_id
             shardingAlgorithmName: mod
-        keyGenerateStrategy:
-          column: user_id
-          keyGeneratorName: constant
-
     shardingAlgorithms:
       mod:
         type: MOD
@@ -266,13 +292,13 @@ rules:
 
     keyGenerators:
       constant:
-        type: IT.FIXTURE
+        type: E2E.KEYGEN.FIXTURE
         props:
           worker-id: 1
 
     auditors:
       auditor_constant:
-        type: IT.AUDITOR.FIXTURE
+        type: E2E.AUDITOR.FIXTURE
 
   - !READWRITE_SPLITTING
     dataSourceGroups:

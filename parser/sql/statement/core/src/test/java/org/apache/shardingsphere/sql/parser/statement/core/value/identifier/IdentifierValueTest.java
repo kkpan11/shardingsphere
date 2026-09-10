@@ -19,8 +19,8 @@ package org.apache.shardingsphere.sql.parser.statement.core.value.identifier;
 
 import org.junit.jupiter.api.Test;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 class IdentifierValueTest {
     
@@ -43,15 +43,9 @@ class IdentifierValueTest {
     }
     
     @Test
-    void assertGetIdentifierValueWithBracket() {
-        String text = "ds_${[1,2]}.t_order";
-        assertThat(new IdentifierValue(text).getValue(), is("ds_${1,2}.t_order"));
-    }
-    
-    @Test
     void assertGetIdentifierValueWithReservedBracket() {
         String text = "ds_${[1,2]}.t_order";
-        assertThat(new IdentifierValue(text, "[]").getValue(), is("ds_${[1,2]}.t_order"));
+        assertThat(new IdentifierValue(text).getValue(), is("ds_${[1,2]}.t_order"));
     }
     
     @Test

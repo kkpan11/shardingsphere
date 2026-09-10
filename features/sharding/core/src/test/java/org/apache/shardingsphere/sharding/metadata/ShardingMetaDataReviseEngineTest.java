@@ -17,10 +17,11 @@
 
 package org.apache.shardingsphere.sharding.metadata;
 
+import org.apache.shardingsphere.database.connector.core.metadata.data.model.ColumnMetaData;
+import org.apache.shardingsphere.database.connector.core.metadata.data.model.SchemaMetaData;
+import org.apache.shardingsphere.database.connector.core.metadata.data.model.TableMetaData;
+import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.config.props.ConfigurationProperties;
-import org.apache.shardingsphere.infra.database.core.metadata.data.model.ColumnMetaData;
-import org.apache.shardingsphere.infra.database.core.metadata.data.model.SchemaMetaData;
-import org.apache.shardingsphere.infra.database.core.metadata.data.model.TableMetaData;
 import org.apache.shardingsphere.infra.metadata.database.schema.builder.GenericSchemaBuilderMaterial;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereColumn;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereSchema;
@@ -40,8 +41,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -53,7 +54,7 @@ class ShardingMetaDataReviseEngineTest {
     void assertReviseWithKeyGenerateStrategy() {
         GenericSchemaBuilderMaterial material = mock(GenericSchemaBuilderMaterial.class);
         when(material.getProps()).thenReturn(new ConfigurationProperties(new Properties()));
-        Map<String, ShardingSphereSchema> actual = new MetaDataReviseEngine(Collections.singleton(mockShardingRule()))
+        Map<String, ShardingSphereSchema> actual = new MetaDataReviseEngine(Collections.singleton(mockShardingRule()), mock(DatabaseType.class))
                 .revise(Collections.singletonMap("sharding_db", new SchemaMetaData("sharding_db", Collections.singleton(createTableMetaData()))), material);
         assertThat(actual.size(), is(1));
         assertTrue(actual.containsKey("sharding_db"));

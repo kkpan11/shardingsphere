@@ -20,103 +20,113 @@ databaseName: mask_encrypt_sharding
 dataSources:
   mask_encrypt_ds_0:
     url: jdbc:postgresql://postgresql.mask_encrypt_sharding.host:5432/mask_encrypt_ds_0?ssl=on&sslmode=prefer
+    driverClassName: org.postgresql.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   mask_encrypt_ds_1:
     url: jdbc:postgresql://postgresql.mask_encrypt_sharding.host:5432/mask_encrypt_ds_1?ssl=on&sslmode=prefer
+    driverClassName: org.postgresql.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   mask_encrypt_ds_2:
     url: jdbc:postgresql://postgresql.mask_encrypt_sharding.host:5432/mask_encrypt_ds_2?ssl=on&sslmode=prefer
+    driverClassName: org.postgresql.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   mask_encrypt_ds_3:
     url: jdbc:postgresql://postgresql.mask_encrypt_sharding.host:5432/mask_encrypt_ds_3?ssl=on&sslmode=prefer
+    driverClassName: org.postgresql.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   mask_encrypt_ds_4:
     url: jdbc:postgresql://postgresql.mask_encrypt_sharding.host:5432/mask_encrypt_ds_4?ssl=on&sslmode=prefer
+    driverClassName: org.postgresql.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   mask_encrypt_ds_5:
     url: jdbc:postgresql://postgresql.mask_encrypt_sharding.host:5432/mask_encrypt_ds_5?ssl=on&sslmode=prefer
+    driverClassName: org.postgresql.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   mask_encrypt_ds_6:
     url: jdbc:postgresql://postgresql.mask_encrypt_sharding.host:5432/mask_encrypt_ds_6?ssl=on&sslmode=prefer
+    driverClassName: org.postgresql.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   mask_encrypt_ds_7:
     url: jdbc:postgresql://postgresql.mask_encrypt_sharding.host:5432/mask_encrypt_ds_7?ssl=on&sslmode=prefer
+    driverClassName: org.postgresql.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   mask_encrypt_ds_8:
     url: jdbc:postgresql://postgresql.mask_encrypt_sharding.host:5432/mask_encrypt_ds_8?ssl=on&sslmode=prefer
+    driverClassName: org.postgresql.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   mask_encrypt_ds_9:
     url: jdbc:postgresql://postgresql.mask_encrypt_sharding.host:5432/mask_encrypt_ds_9?ssl=on&sslmode=prefer
+    driverClassName: org.postgresql.Driver
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
 
 rules:

@@ -18,14 +18,14 @@
 package org.apache.shardingsphere.sharding.distsql.handler.update;
 
 import lombok.Setter;
-import org.apache.shardingsphere.distsql.handler.engine.update.rdl.rule.spi.database.DatabaseRuleAlterExecutor;
+import org.apache.shardingsphere.distsql.handler.engine.update.rdl.rule.spi.database.type.DatabaseRuleAlterExecutor;
 import org.apache.shardingsphere.distsql.handler.required.DistSQLExecutorCurrentRuleRequired;
 import org.apache.shardingsphere.distsql.segment.AlgorithmSegment;
 import org.apache.shardingsphere.infra.algorithm.core.config.AlgorithmConfiguration;
+import org.apache.shardingsphere.infra.algorithm.core.exception.InvalidAlgorithmDefinitionException;
 import org.apache.shardingsphere.infra.algorithm.core.exception.MissingRequiredAlgorithmException;
-import org.apache.shardingsphere.infra.algorithm.core.exception.InvalidAlgorithmConfigurationException;
-import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
-import org.apache.shardingsphere.infra.exception.core.external.sql.identifier.SQLExceptionIdentifier;
+import org.apache.shardingsphere.infra.exception.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.exception.external.sql.identifier.SQLExceptionIdentifier;
 import org.apache.shardingsphere.infra.exception.kernel.metadata.rule.MissingRequiredRuleException;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.sharding.api.config.ShardingRuleConfiguration;
@@ -59,9 +59,9 @@ public final class AlterDefaultShardingStrategyExecutor implements DatabaseRuleA
     }
     
     private void checkAlgorithm(final AlterDefaultShardingStrategyStatement sqlStatement) {
-        ShardingSpherePreconditions.checkState(ShardingStrategyType.isValidType(sqlStatement.getStrategyType()), () -> new InvalidAlgorithmConfigurationException(sqlStatement.getStrategyType()));
+        ShardingSpherePreconditions.checkState(ShardingStrategyType.isValidType(sqlStatement.getStrategyType()), () -> new InvalidAlgorithmDefinitionException(sqlStatement.getStrategyType()));
         ShardingSpherePreconditions.checkState(ShardingStrategyType.getValueOf(sqlStatement.getStrategyType()).isValid(sqlStatement.getShardingColumn()),
-                () -> new InvalidAlgorithmConfigurationException(sqlStatement.getStrategyType()));
+                () -> new InvalidAlgorithmDefinitionException(sqlStatement.getStrategyType()));
         ShardingSpherePreconditions.checkState(isAlgorithmDefinitionExists(sqlStatement), () -> new MissingRequiredAlgorithmException("Sharding", new SQLExceptionIdentifier("")));
     }
     

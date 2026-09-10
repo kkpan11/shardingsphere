@@ -19,8 +19,8 @@ package org.apache.shardingsphere.proxy.backend.handler.admin.executor.variable.
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.shardingsphere.infra.database.core.spi.DatabaseTypedSPILoader;
-import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
+import org.apache.shardingsphere.database.connector.core.spi.DatabaseTypedSPILoader;
+import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
 import org.apache.shardingsphere.proxy.backend.session.ConnectionSession;
 
 import java.util.Map;
@@ -47,6 +47,7 @@ public final class SessionVariableRecordExecutor {
     public void recordVariable(final String variableName, final String assignValue) {
         if (DatabaseTypedSPILoader.findService(ReplayedSessionVariableProvider.class, databaseType).map(optional -> optional.isNeedToReplay(variableName)).orElse(false)) {
             connectionSession.getRequiredSessionVariableRecorder().setVariable(variableName, assignValue);
+            connectionSession.getDatabaseConnectionManager().markSessionVariablesDirty();
         } else {
             log.debug("Set statement {} = {} was discarded.", variableName, assignValue);
         }
@@ -63,12 +64,17 @@ public final class SessionVariableRecordExecutor {
             log.debug("Set statement {} was discarded.", variables);
             return;
         }
+        boolean recorded = false;
         for (Entry<String, String> entry : variables.entrySet()) {
             if (replayedSessionVariableProvider.get().isNeedToReplay(entry.getKey())) {
                 connectionSession.getRequiredSessionVariableRecorder().setVariable(entry.getKey(), entry.getValue());
+                recorded = true;
             } else {
                 log.debug("Set statement {} = {} was discarded.", entry.getKey(), entry.getValue());
             }
+        }
+        if (recorded) {
+            connectionSession.getDatabaseConnectionManager().markSessionVariablesDirty();
         }
     }
 }

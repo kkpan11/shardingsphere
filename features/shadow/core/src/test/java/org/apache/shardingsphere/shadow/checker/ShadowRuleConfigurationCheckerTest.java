@@ -21,6 +21,8 @@ import org.apache.shardingsphere.infra.algorithm.core.config.AlgorithmConfigurat
 import org.apache.shardingsphere.infra.algorithm.core.exception.MissingRequiredAlgorithmException;
 import org.apache.shardingsphere.infra.config.rule.checker.DatabaseRuleConfigurationChecker;
 import org.apache.shardingsphere.infra.spi.type.ordered.OrderedSPILoader;
+import org.apache.shardingsphere.infra.util.props.PropertiesBuilder;
+import org.apache.shardingsphere.infra.util.props.PropertiesBuilder.Property;
 import org.apache.shardingsphere.shadow.config.ShadowRuleConfiguration;
 import org.apache.shardingsphere.shadow.config.datasource.ShadowDataSourceConfiguration;
 import org.apache.shardingsphere.shadow.config.table.ShadowTableConfiguration;
@@ -28,9 +30,7 @@ import org.apache.shardingsphere.shadow.exception.metadata.MissingRequiredProduc
 import org.apache.shardingsphere.shadow.exception.metadata.MissingRequiredShadowDataSourceException;
 import org.apache.shardingsphere.shadow.exception.metadata.NotImplementHintShadowAlgorithmException;
 import org.apache.shardingsphere.shadow.exception.metadata.ShadowDataSourceMappingNotFoundException;
-import org.apache.shardingsphere.test.fixture.jdbc.MockedDataSource;
-import org.apache.shardingsphere.test.util.PropertiesBuilder;
-import org.apache.shardingsphere.test.util.PropertiesBuilder.Property;
+import org.apache.shardingsphere.test.infra.fixture.jdbc.MockedDataSource;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -39,14 +39,13 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
-import java.util.LinkedList;
 import java.util.Map;
 import java.util.Properties;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class ShadowRuleConfigurationCheckerTest {
     
@@ -69,7 +68,7 @@ class ShadowRuleConfigurationCheckerTest {
         result.setShadowAlgorithms(Collections.singletonMap("foo-algo", new AlgorithmConfiguration("SQL_HINT", new Properties())));
         result.setDefaultShadowAlgorithmName("bar-algo");
         result.setDataSources(Collections.singleton(new ShadowDataSourceConfiguration("foo_ds", "prod_ds", "shadow_ds")));
-        result.setTables(Collections.singletonMap("foo_tbl", new ShadowTableConfiguration(Collections.singletonList("foo_ds"), new LinkedList<>(Collections.singleton("foo-algo")))));
+        result.setTables(Collections.singletonMap("foo_tbl", new ShadowTableConfiguration(Collections.singletonList("foo_ds"), Collections.singleton("foo-algo"))));
         return result;
     }
     
@@ -85,7 +84,7 @@ class ShadowRuleConfigurationCheckerTest {
                 PropertiesBuilder.build(new Property("column", "foo_id"), new Property("operation", "insert"), new Property("regex", "[1]")))));
         result.setDefaultShadowAlgorithmName("foo-algo");
         result.setDataSources(Collections.singleton(new ShadowDataSourceConfiguration("foo_ds", "prod_ds", "shadow_ds")));
-        result.setTables(Collections.singletonMap("foo_tbl", new ShadowTableConfiguration(Collections.singletonList("foo_ds"), new LinkedList<>(Collections.singleton("foo-algo")))));
+        result.setTables(Collections.singletonMap("foo_tbl", new ShadowTableConfiguration(Collections.singletonList("foo_ds"), Collections.singleton("foo-algo"))));
         return result;
     }
     
@@ -100,7 +99,7 @@ class ShadowRuleConfigurationCheckerTest {
         result.setShadowAlgorithms(Collections.singletonMap("foo-algo", new AlgorithmConfiguration("SQL_HINT", new Properties())));
         result.setDefaultShadowAlgorithmName("foo-algo");
         result.setDataSources(Collections.singleton(new ShadowDataSourceConfiguration("foo_ds", "prod_ds", "shadow_ds")));
-        result.setTables(Collections.singletonMap("foo_tbl", new ShadowTableConfiguration(Collections.singletonList("bar_ds"), new LinkedList<>(Collections.singleton("foo-algo")))));
+        result.setTables(Collections.singletonMap("foo_tbl", new ShadowTableConfiguration(Collections.singletonList("bar_ds"), Collections.singleton("foo-algo"))));
         return result;
     }
     
@@ -115,7 +114,7 @@ class ShadowRuleConfigurationCheckerTest {
         result.setShadowAlgorithms(Collections.singletonMap("foo-algo", new AlgorithmConfiguration("SQL_HINT", new Properties())));
         result.setDefaultShadowAlgorithmName("foo-algo");
         result.setDataSources(Collections.singleton(new ShadowDataSourceConfiguration("foo_ds", "prod_ds", "shadow_ds")));
-        result.setTables(Collections.singletonMap("foo_tbl", new ShadowTableConfiguration(Collections.singletonList("foo_ds"), new LinkedList<>(Collections.singleton("bar-algo")))));
+        result.setTables(Collections.singletonMap("foo_tbl", new ShadowTableConfiguration(Collections.singletonList("foo_ds"), Collections.singleton("bar-algo"))));
         return result;
     }
     
@@ -129,7 +128,7 @@ class ShadowRuleConfigurationCheckerTest {
         ShadowRuleConfiguration result = new ShadowRuleConfiguration();
         result.setShadowAlgorithms(Collections.singletonMap("foo-algo", new AlgorithmConfiguration("SQL_HINT", new Properties())));
         result.setDataSources(Collections.singleton(new ShadowDataSourceConfiguration("foo_ds", "no_prod_ds", "shadow_ds")));
-        result.setTables(Collections.singletonMap("foo_tbl", new ShadowTableConfiguration(Collections.singletonList("foo_ds"), new LinkedList<>(Collections.singleton("foo-algo")))));
+        result.setTables(Collections.singletonMap("foo_tbl", new ShadowTableConfiguration(Collections.singletonList("foo_ds"), Collections.singleton("foo-algo"))));
         return result;
     }
     
@@ -143,7 +142,7 @@ class ShadowRuleConfigurationCheckerTest {
         ShadowRuleConfiguration result = new ShadowRuleConfiguration();
         result.setShadowAlgorithms(Collections.singletonMap("foo-algo", new AlgorithmConfiguration("SQL_HINT", new Properties())));
         result.setDataSources(Collections.singleton(new ShadowDataSourceConfiguration("foo_ds", "prod_ds", "no_shadow_ds")));
-        result.setTables(Collections.singletonMap("foo_tbl", new ShadowTableConfiguration(Collections.singletonList("foo_ds"), new LinkedList<>(Collections.singleton("foo-algo")))));
+        result.setTables(Collections.singletonMap("foo_tbl", new ShadowTableConfiguration(Collections.singletonList("foo_ds"), Collections.singleton("foo-algo"))));
         return result;
     }
     
@@ -156,7 +155,7 @@ class ShadowRuleConfigurationCheckerTest {
         ShadowRuleConfiguration result = new ShadowRuleConfiguration();
         result.setShadowAlgorithms(Collections.singletonMap("foo-algo", new AlgorithmConfiguration("SQL_HINT", new Properties())));
         result.setDataSources(Collections.singleton(new ShadowDataSourceConfiguration("foo_ds", "prod_ds", "shadow_ds")));
-        result.setTables(Collections.singletonMap("foo_tbl", new ShadowTableConfiguration(Collections.singletonList("foo_ds"), new LinkedList<>(Collections.singleton("foo-algo")))));
+        result.setTables(Collections.singletonMap("foo_tbl", new ShadowTableConfiguration(Collections.singletonList("foo_ds"), Collections.singleton("foo-algo"))));
         return result;
     }
     
@@ -170,7 +169,7 @@ class ShadowRuleConfigurationCheckerTest {
         result.setShadowAlgorithms(Collections.singletonMap("foo-algo", new AlgorithmConfiguration("SQL_HINT", new Properties())));
         result.setDefaultShadowAlgorithmName("foo-algo");
         result.setDataSources(Collections.singleton(new ShadowDataSourceConfiguration("foo_ds", "prod_ds", "shadow_ds")));
-        result.setTables(Collections.singletonMap("foo_tbl", new ShadowTableConfiguration(Collections.singletonList("foo_ds"), new LinkedList<>(Collections.singleton("foo-algo")))));
+        result.setTables(Collections.singletonMap("foo_tbl", new ShadowTableConfiguration(Collections.singletonList("foo_ds"), Collections.singleton("foo-algo"))));
         return result;
     }
     

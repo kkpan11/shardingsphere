@@ -19,11 +19,12 @@ package org.apache.shardingsphere.transaction.xa;
 
 import com.cedarsoftware.util.CaseInsensitiveMap;
 import lombok.SneakyThrows;
-import org.apache.shardingsphere.infra.database.core.checker.DialectDatabasePrivilegeChecker;
-import org.apache.shardingsphere.infra.database.core.checker.PrivilegeCheckType;
-import org.apache.shardingsphere.infra.database.core.spi.DatabaseTypedSPILoader;
-import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
-import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
+import org.apache.shardingsphere.database.connector.core.checker.DialectDatabasePrivilegeChecker;
+import org.apache.shardingsphere.database.connector.core.checker.PrivilegeCheckType;
+import org.apache.shardingsphere.database.connector.core.spi.DatabaseTypedSPILoader;
+import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
+import org.apache.shardingsphere.infra.exception.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.session.connection.transaction.TransactionOptionReplayCallback;
 import org.apache.shardingsphere.infra.spi.exception.ServiceProviderNotFoundException;
 import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 import org.apache.shardingsphere.transaction.api.TransactionType;
@@ -95,9 +96,9 @@ public final class XAShardingSphereTransactionManager implements ShardingSphereD
     }
     
     @Override
-    public Connection getConnection(final String databaseName, final String dataSourceName) throws SQLException {
+    public Connection getConnection(final String databaseName, final String dataSourceName, final TransactionOptionReplayCallback transactionOptionReplayCallback) throws SQLException {
         try {
-            return cachedDataSources.get(databaseName + "." + dataSourceName).getConnection();
+            return cachedDataSources.get(databaseName + "." + dataSourceName).getConnection(transactionOptionReplayCallback);
         } catch (final SystemException | RollbackException ex) {
             throw new SQLException(ex);
         }

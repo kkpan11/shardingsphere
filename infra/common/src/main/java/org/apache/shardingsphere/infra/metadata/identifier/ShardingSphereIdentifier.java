@@ -18,39 +18,26 @@
 package org.apache.shardingsphere.infra.metadata.identifier;
 
 import com.cedarsoftware.util.CaseInsensitiveMap.CaseInsensitiveString;
-import org.apache.shardingsphere.infra.database.core.metadata.database.enums.QuoteCharacter;
-import org.apache.shardingsphere.infra.database.core.spi.DatabaseTypedSPILoader;
-import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
-import org.apache.shardingsphere.sql.parser.statement.core.value.identifier.IdentifierValue;
+import lombok.Getter;
+
+import java.util.Objects;
 
 /**
  * ShardingSphere identifier.
  */
 public final class ShardingSphereIdentifier {
     
-    private final boolean isCaseSensitive;
-    
     private final CaseInsensitiveString value;
     
+    @Getter
+    private final String standardizeValue;
+    
+    private final boolean caseSensitive;
+    
     public ShardingSphereIdentifier(final String value) {
-        isCaseSensitive = false;
-        this.value = new CaseInsensitiveString(value);
-    }
-    
-    public ShardingSphereIdentifier(final String value, final DatabaseType databaseType) {
-        isCaseSensitive = DatabaseTypedSPILoader.findService(DatabaseDialectIdentifierHandler.class, databaseType).map(DatabaseDialectIdentifierHandler::isCaseSensitive).orElse(false);
-        this.value = new CaseInsensitiveString(value);
-    }
-    
-    public ShardingSphereIdentifier(final IdentifierValue value) {
-        isCaseSensitive = QuoteCharacter.NONE != value.getQuoteCharacter();
-        this.value = new CaseInsensitiveString(value.getValue());
-    }
-    
-    public ShardingSphereIdentifier(final IdentifierValue value, final DatabaseType databaseType) {
-        isCaseSensitive = QuoteCharacter.NONE != value.getQuoteCharacter()
-                && DatabaseTypedSPILoader.findService(DatabaseDialectIdentifierHandler.class, databaseType).map(DatabaseDialectIdentifierHandler::isCaseSensitive).orElse(false);
-        this.value = new CaseInsensitiveString(value.getValue());
+        this.value = null == value ? null : CaseInsensitiveString.of(value);
+        standardizeValue = value;
+        caseSensitive = false;
     }
     
     /**
@@ -59,7 +46,7 @@ public final class ShardingSphereIdentifier {
      * @return identifier value
      */
     public String getValue() {
-        return value.toString();
+        return null == value ? null : value.toString();
     }
     
     @Override
@@ -67,15 +54,25 @@ public final class ShardingSphereIdentifier {
         if (!(obj instanceof ShardingSphereIdentifier)) {
             return false;
         }
-        if (null == getValue() && null == ((ShardingSphereIdentifier) obj).getValue()) {
+        ShardingSphereIdentifier other = (ShardingSphereIdentifier) obj;
+        if (null == getValue() && null == other.getValue()) {
             return true;
         }
-        return isCaseSensitive ? String.valueOf(getValue()).equals(((ShardingSphereIdentifier) obj).getValue()) : value.equals(((ShardingSphereIdentifier) obj).value);
+        if (null == standardizeValue || null == other.getStandardizeValue()) {
+            return false;
+        }
+        return caseSensitive ? standardizeValue.equals(other.getStandardizeValue()) : Objects.equals(value, other.value);
     }
     
     @Override
     public int hashCode() {
-        return isCaseSensitive ? String.valueOf(getValue()).hashCode() : value.hashCode();
+        if (null == standardizeValue) {
+            return 0;
+        }
+        if (caseSensitive) {
+            return standardizeValue.hashCode();
+        }
+        return null == value ? 0 : value.hashCode();
     }
     
     @Override

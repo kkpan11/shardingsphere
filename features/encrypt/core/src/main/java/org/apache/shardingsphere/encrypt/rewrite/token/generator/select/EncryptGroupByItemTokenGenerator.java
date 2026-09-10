@@ -19,18 +19,21 @@ package org.apache.shardingsphere.encrypt.rewrite.token.generator.select;
 
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
+import org.apache.shardingsphere.database.connector.core.metadata.database.enums.QuoteCharacter;
+import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
+import org.apache.shardingsphere.database.connector.core.type.DatabaseTypeRegistry;
+import org.apache.shardingsphere.encrypt.enums.EncryptDerivedColumnSuffix;
 import org.apache.shardingsphere.encrypt.rule.EncryptRule;
 import org.apache.shardingsphere.encrypt.rule.column.EncryptColumn;
 import org.apache.shardingsphere.encrypt.rule.table.EncryptTable;
 import org.apache.shardingsphere.infra.annotation.HighFrequencyInvocation;
+import org.apache.shardingsphere.infra.binder.context.segment.select.groupby.GroupByContext;
 import org.apache.shardingsphere.infra.binder.context.segment.select.orderby.OrderByItem;
 import org.apache.shardingsphere.infra.binder.context.segment.select.projection.Projection;
 import org.apache.shardingsphere.infra.binder.context.segment.select.projection.impl.ColumnProjection;
 import org.apache.shardingsphere.infra.binder.context.statement.SQLStatementContext;
-import org.apache.shardingsphere.infra.binder.context.statement.dml.SelectStatementContext;
-import org.apache.shardingsphere.infra.database.core.metadata.database.enums.QuoteCharacter;
-import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
-import org.apache.shardingsphere.infra.database.core.type.DatabaseTypeRegistry;
+import org.apache.shardingsphere.infra.binder.context.statement.type.dml.SelectStatementContext;
+import org.apache.shardingsphere.infra.metadata.identifier.DatabaseIdentifierContext;
 import org.apache.shardingsphere.infra.rewrite.sql.token.common.generator.CollectionSQLTokenGenerator;
 import org.apache.shardingsphere.infra.rewrite.sql.token.common.pojo.SQLToken;
 import org.apache.shardingsphere.infra.rewrite.sql.token.common.pojo.generic.SubstitutableColumnNameToken;
@@ -54,6 +57,8 @@ public final class EncryptGroupByItemTokenGenerator implements CollectionSQLToke
     
     private final EncryptRule rule;
     
+    private final DatabaseIdentifierContext identifierContext;
+    
     @Override
     public boolean isGenerateSQLToken(final SQLStatementContext sqlStatementContext) {
         return sqlStatementContext instanceof SelectStatementContext && containsGroupByItem((SelectStatementContext) sqlStatementContext);
@@ -73,17 +78,26 @@ public final class EncryptGroupByItemTokenGenerator implements CollectionSQLToke
     
     @Override
     public Collection<SQLToken> generateSQLTokens(final SelectStatementContext sqlStatementContext) {
+        return generateGroupBySQLTokens(sqlStatementContext);
+    }
+    
+    private Collection<SQLToken> generateGroupBySQLTokens(final SelectStatementContext selectStatementContext) {
         Collection<SQLToken> result = new LinkedList<>();
-        for (OrderByItem each : getGroupByItems(sqlStatementContext)) {
-            if (each.getSegment() instanceof ColumnOrderByItemSegment) {
-                ColumnSegment columnSegment = ((ColumnOrderByItemSegment) each.getSegment()).getColumn();
-                generateSQLToken(columnSegment, sqlStatementContext.getDatabaseType()).ifPresent(result::add);
+        GroupByContext groupByContext = selectStatementContext.getGroupByContext();
+        for (OrderByItem item : groupByContext.getItems()) {
+            if (item.getSegment() instanceof ColumnOrderByItemSegment) {
+                ColumnSegment columnSegment = ((ColumnOrderByItemSegment) item.getSegment()).getColumn();
+                generateSQLToken(columnSegment, selectStatementContext).ifPresent(result::add);
             }
+        }
+        for (SelectStatementContext each : selectStatementContext.getSubqueryContexts().values()) {
+            result.addAll(generateGroupBySQLTokens(each));
         }
         return result;
     }
     
-    private Optional<SubstitutableColumnNameToken> generateSQLToken(final ColumnSegment columnSegment, final DatabaseType databaseType) {
+    private Optional<SQLToken> generateSQLToken(final ColumnSegment columnSegment, final SelectStatementContext selectStatementContext) {
+        DatabaseType databaseType = selectStatementContext.getSqlStatement().getDatabaseType();
         Optional<EncryptTable> encryptTable = rule.findEncryptTable(columnSegment.getColumnBoundInfo().getOriginalTable().getValue());
         String columnName = columnSegment.getColumnBoundInfo().getOriginalColumn().getValue();
         if (!encryptTable.isPresent() || !encryptTable.get().isEncryptColumn(columnName)) {
@@ -92,28 +106,22 @@ public final class EncryptGroupByItemTokenGenerator implements CollectionSQLToke
         EncryptColumn encryptColumn = encryptTable.get().getEncryptColumn(columnName);
         int startIndex = columnSegment.getOwner().isPresent() ? columnSegment.getOwner().get().getStopIndex() + 2 : columnSegment.getStartIndex();
         int stopIndex = columnSegment.getStopIndex();
-        QuoteCharacter quoteCharacter = getQuoteCharacter(columnSegment, databaseType);
         return Optional.of(encryptColumn.getAssistedQuery()
-                .map(optional -> new SubstitutableColumnNameToken(startIndex, stopIndex, createColumnProjections(optional.getName(), quoteCharacter, databaseType),
+                .map(optional -> new SubstitutableColumnNameToken(startIndex, stopIndex,
+                        createColumnProjections(optional.getName(), columnSegment, databaseType, EncryptDerivedColumnSuffix.ASSISTED_QUERY),
                         databaseType))
                 .orElseGet(() -> new SubstitutableColumnNameToken(startIndex, stopIndex,
-                        createColumnProjections(encryptColumn.getCipher().getName(), quoteCharacter, databaseType), databaseType)));
+                        createColumnProjections(encryptColumn.getCipher().getName(), columnSegment, databaseType, EncryptDerivedColumnSuffix.CIPHER), databaseType)));
     }
     
-    private Collection<OrderByItem> getGroupByItems(final SelectStatementContext sqlStatementContext) {
-        Collection<OrderByItem> result = new LinkedList<>(sqlStatementContext.getGroupByContext().getItems());
-        for (SelectStatementContext each : sqlStatementContext.getSubqueryContexts().values()) {
-            result.addAll(getGroupByItems(each));
-        }
-        return result;
-    }
-    
-    private QuoteCharacter getQuoteCharacter(final ColumnSegment columnSegment, final DatabaseType databaseType) {
-        return TableSourceType.PHYSICAL_TABLE == columnSegment.getColumnBoundInfo().getTableSourceType() ? new DatabaseTypeRegistry(databaseType).getDialectDatabaseMetaData().getQuoteCharacter()
-                : columnSegment.getIdentifier().getQuoteCharacter();
-    }
-    
-    private Collection<Projection> createColumnProjections(final String columnName, final QuoteCharacter quoteCharacter, final DatabaseType databaseType) {
+    private Collection<Projection> createColumnProjections(final String actualColumnName, final ColumnSegment columnSegment, final DatabaseType databaseType,
+                                                           final EncryptDerivedColumnSuffix derivedColumnSuffix) {
+        String columnName = TableSourceType.TEMPORARY_TABLE == columnSegment.getColumnBoundInfo().getTableSourceType()
+                ? derivedColumnSuffix.getDerivedColumnName(columnSegment.getIdentifier().getValue(), identifierContext)
+                : actualColumnName;
+        QuoteCharacter quoteCharacter = TableSourceType.TEMPORARY_TABLE == columnSegment.getColumnBoundInfo().getTableSourceType()
+                ? columnSegment.getIdentifier().getQuoteCharacter()
+                : new DatabaseTypeRegistry(databaseType).getDialectDatabaseMetaData().getQuoteCharacter();
         return Collections.singleton(new ColumnProjection(null, new IdentifierValue(columnName, quoteCharacter), null, databaseType));
     }
 }

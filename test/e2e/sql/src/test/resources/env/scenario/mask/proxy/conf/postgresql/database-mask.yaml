@@ -20,12 +20,13 @@ databaseName: mask
 dataSources:
   encrypt:
     url: jdbc:postgresql://postgresql.mask.host:5432/mask
+    driverClassName: org.postgresql.Driver
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
 
 rules:

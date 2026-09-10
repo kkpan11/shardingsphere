@@ -20,8 +20,8 @@ package org.apache.shardingsphere.data.pipeline.mysql.sqlbuilder;
 import org.apache.shardingsphere.data.pipeline.core.exception.job.CreateTableSQLGenerateException;
 import org.apache.shardingsphere.data.pipeline.core.ingest.record.Column;
 import org.apache.shardingsphere.data.pipeline.core.ingest.record.DataRecord;
-import org.apache.shardingsphere.data.pipeline.core.sqlbuilder.segment.PipelineSQLSegmentBuilder;
 import org.apache.shardingsphere.data.pipeline.core.sqlbuilder.dialect.DialectPipelineSQLBuilder;
+import org.apache.shardingsphere.data.pipeline.core.sqlbuilder.segment.PipelineSQLSegmentBuilder;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -62,6 +62,13 @@ public final class MySQLPipelineSQLBuilder implements DialectPipelineSQLBuilder 
     @Override
     public Optional<String> buildCRC32SQL(final String qualifiedTableName, final String columnName) {
         return Optional.of(String.format("SELECT BIT_XOR(CAST(CRC32(%s) AS UNSIGNED)) AS checksum, COUNT(1) AS cnt FROM %s", columnName, qualifiedTableName));
+    }
+    
+    @Override
+    public String buildSplitByUniqueKeyRangedSubqueryClause(final String qualifiedTableName, final String uniqueKey, final boolean hasLowerBound) {
+        return hasLowerBound
+                ? String.format("SELECT %s FROM %s WHERE %s>? ORDER BY %s LIMIT ?", uniqueKey, qualifiedTableName, uniqueKey, uniqueKey)
+                : String.format("SELECT %s FROM %s ORDER BY %s LIMIT ?", uniqueKey, qualifiedTableName, uniqueKey);
     }
     
     @Override

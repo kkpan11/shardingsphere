@@ -30,8 +30,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
@@ -56,6 +56,29 @@ class PipelineTableMetaDataUtilsTest {
         when(tableMetaData.getPrimaryKeyColumns()).thenReturn(Collections.singletonList("foo_pk"));
         PipelineColumnMetaData columnMetaData = mock(PipelineColumnMetaData.class);
         when(tableMetaData.getColumnMetaData("foo_pk")).thenReturn(columnMetaData);
+        List<PipelineColumnMetaData> actual = PipelineTableMetaDataUtils.getUniqueKeyColumns("foo_schema", "foo_tbl", metaDataLoader);
+        assertThat(actual.size(), is(1));
+        assertThat(actual.get(0), is(columnMetaData));
+    }
+    
+    @Test
+    void assertGetUniqueKeyColumnsWithUniqueIndexNullable() {
+        PipelineIndexMetaData pipelineIndexMetaData = mock(PipelineIndexMetaData.class, RETURNS_DEEP_STUBS);
+        PipelineColumnMetaData columnMetaData = mock(PipelineColumnMetaData.class);
+        when(columnMetaData.isNullable()).thenReturn(true);
+        when(pipelineIndexMetaData.getColumns()).thenReturn(Collections.singletonList(columnMetaData));
+        when(tableMetaData.getUniqueIndexes()).thenReturn(Collections.singletonList(pipelineIndexMetaData));
+        List<PipelineColumnMetaData> actual = PipelineTableMetaDataUtils.getUniqueKeyColumns("foo_schema", "foo_tbl", metaDataLoader);
+        assertThat(actual.size(), is(0));
+    }
+    
+    @Test
+    void assertGetUniqueKeyColumnsWithUniqueIndexNotNull() {
+        PipelineIndexMetaData pipelineIndexMetaData = mock(PipelineIndexMetaData.class, RETURNS_DEEP_STUBS);
+        PipelineColumnMetaData columnMetaData = mock(PipelineColumnMetaData.class);
+        when(columnMetaData.isNullable()).thenReturn(false);
+        when(pipelineIndexMetaData.getColumns()).thenReturn(Collections.singletonList(columnMetaData));
+        when(tableMetaData.getUniqueIndexes()).thenReturn(Collections.singletonList(pipelineIndexMetaData));
         List<PipelineColumnMetaData> actual = PipelineTableMetaDataUtils.getUniqueKeyColumns("foo_schema", "foo_tbl", metaDataLoader);
         assertThat(actual.size(), is(1));
         assertThat(actual.get(0), is(columnMetaData));

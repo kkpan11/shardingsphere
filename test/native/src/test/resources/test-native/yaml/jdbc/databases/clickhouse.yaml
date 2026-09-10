@@ -18,36 +18,36 @@
 dataSources:
   ds_0:
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
-    driverClassName: com.clickhouse.jdbc.ClickHouseDriver
-    jdbcUrl: $${fixture.test-native.yaml.database.clickhouse.ds0.jdbc-url::}
-    username: default
-    password:
+    driverClassName: org.testcontainers.jdbc.ContainerDatabaseDriver
+    jdbcUrl: jdbc:tc:clickhouse:26.6.1.1193:///demo_ds_0?TC_INITSCRIPT=test-native/sql/clickhouse-init.sql
   ds_1:
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
-    driverClassName: com.clickhouse.jdbc.ClickHouseDriver
-    jdbcUrl: $${fixture.test-native.yaml.database.clickhouse.ds1.jdbc-url::}
-    username: default
-    password:
+    driverClassName: org.testcontainers.jdbc.ContainerDatabaseDriver
+    jdbcUrl: jdbc:tc:clickhouse:26.6.1.1193:///demo_ds_1?TC_INITSCRIPT=test-native/sql/clickhouse-init.sql
   ds_2:
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
-    driverClassName: com.clickhouse.jdbc.ClickHouseDriver
-    jdbcUrl: $${fixture.test-native.yaml.database.clickhouse.ds2.jdbc-url::}
-    username: default
-    password:
+    driverClassName: org.testcontainers.jdbc.ContainerDatabaseDriver
+    jdbcUrl: jdbc:tc:clickhouse:26.6.1.1193:///demo_ds_2?TC_INITSCRIPT=test-native/sql/clickhouse-init.sql
 
 rules:
   - !SHARDING
     tables:
       t_order:
         actualDataNodes: <LITERAL>ds_0.t_order, ds_1.t_order, ds_2.t_order
-        keyGenerateStrategy:
-          column: order_id
-          keyGeneratorName: snowflake
       t_order_item:
         actualDataNodes: <LITERAL>ds_0.t_order_item, ds_1.t_order_item, ds_2.t_order_item
-        keyGenerateStrategy:
-          column: order_item_id
-          keyGeneratorName: snowflake
+    keyGenerateStrategies:
+      t_order_order_id:
+        keyGenerateType: column
+        keyGeneratorName: snowflake
+        logicTable: t_order
+        keyGenerateColumn: order_id
+      t_order_item_order_item_id:
+        keyGenerateType: column
+        keyGeneratorName: snowflake
+        logicTable: t_order_item
+        keyGenerateColumn: order_item_id
+
     defaultDatabaseStrategy:
       standard:
         shardingColumn: user_id

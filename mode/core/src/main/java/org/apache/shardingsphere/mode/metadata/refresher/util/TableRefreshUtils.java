@@ -20,13 +20,17 @@ package org.apache.shardingsphere.mode.metadata.refresher.util;
 import com.google.common.base.Joiner;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import org.apache.shardingsphere.database.connector.core.metadata.identifier.IdentifierScope;
 import org.apache.shardingsphere.infra.config.rule.RuleConfiguration;
-import org.apache.shardingsphere.infra.database.core.metadata.database.enums.QuoteCharacter;
-import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
-import org.apache.shardingsphere.infra.database.core.type.DatabaseTypeRegistry;
 import org.apache.shardingsphere.infra.datanode.DataNode;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.infra.metadata.database.rule.RuleMetaData;
+import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereColumn;
+import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereIndex;
+import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereSchema;
+import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereTable;
+import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereView;
+import org.apache.shardingsphere.infra.metadata.identifier.DatabaseIdentifierContext;
 import org.apache.shardingsphere.infra.rule.ShardingSphereRule;
 import org.apache.shardingsphere.infra.rule.attribute.datanode.MutableDataNodeRuleAttribute;
 import org.apache.shardingsphere.infra.rule.attribute.table.TableMapperRuleAttribute;
@@ -37,24 +41,162 @@ import org.apache.shardingsphere.sql.parser.statement.core.value.identifier.Iden
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Stream;
 
 /**
- * Table refresh utils.
+ * Table refresh utility class.
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class TableRefreshUtils {
     
     /**
-     * Get table name.
+     * Get table load candidate name.
      *
+     * @param database database
      * @param tableIdentifierValue table identifier value
-     * @param databaseType database type
-     * @return table name
+     * @return table load candidate name
      */
-    public static String getTableName(final IdentifierValue tableIdentifierValue, final DatabaseType databaseType) {
-        return QuoteCharacter.NONE == tableIdentifierValue.getQuoteCharacter()
-                ? new DatabaseTypeRegistry(databaseType).formatTableNamePattern(tableIdentifierValue.getValue())
-                : tableIdentifierValue.getValue();
+    public static String getTableLoadCandidateName(final ShardingSphereDatabase database, final IdentifierValue tableIdentifierValue) {
+        return getLoadCandidateName(database, tableIdentifierValue, IdentifierScope.TABLE);
+    }
+    
+    /**
+     * Get view load candidate name.
+     *
+     * @param database database
+     * @param viewIdentifierValue view identifier value
+     * @return view load candidate name
+     */
+    public static String getViewLoadCandidateName(final ShardingSphereDatabase database, final IdentifierValue viewIdentifierValue) {
+        return getLoadCandidateName(database, viewIdentifierValue, IdentifierScope.VIEW);
+    }
+    
+    /**
+     * Get actual table name.
+     *
+     * @param database database
+     * @param schemaName schema name
+     * @param tableIdentifierValue table identifier value
+     * @return actual table name
+     */
+    public static String getActualTableName(final ShardingSphereDatabase database, final String schemaName,
+                                            final IdentifierValue tableIdentifierValue) {
+        return getActualObjectName(database, schemaName, tableIdentifierValue, IdentifierScope.TABLE,
+                schema -> schema.getAllTables().stream().map(ShardingSphereTable::getName));
+    }
+    
+    /**
+     * Get actual table names.
+     *
+     * @param database database
+     * @param schemaName schema name
+     * @param tableIdentifierValues table identifier values
+     * @return actual table names
+     */
+    public static Collection<String> getActualTableNames(final ShardingSphereDatabase database, final String schemaName,
+                                                         final Collection<IdentifierValue> tableIdentifierValues) {
+        Collection<String> result = new LinkedList<>();
+        for (IdentifierValue each : tableIdentifierValues) {
+            String actualTableName = getActualTableName(database, schemaName, each);
+            if (null != actualTableName) {
+                result.add(actualTableName);
+            }
+        }
+        return result;
+    }
+    
+    /**
+     * Get actual view names.
+     *
+     * @param database database
+     * @param schemaName schema name
+     * @param viewIdentifierValues view identifier values
+     * @return actual view names
+     */
+    public static Collection<String> getActualViewNames(final ShardingSphereDatabase database, final String schemaName,
+                                                        final Collection<IdentifierValue> viewIdentifierValues) {
+        Collection<String> result = new LinkedList<>();
+        for (IdentifierValue each : viewIdentifierValues) {
+            String actualViewName = getActualViewName(database, schemaName, each);
+            if (null != actualViewName) {
+                result.add(actualViewName);
+            }
+        }
+        return result;
+    }
+    
+    /**
+     * Get actual view name.
+     *
+     * @param database database
+     * @param schemaName schema name
+     * @param viewIdentifierValue view identifier value
+     * @return actual view name
+     */
+    public static String getActualViewName(final ShardingSphereDatabase database, final String schemaName,
+                                           final IdentifierValue viewIdentifierValue) {
+        return getActualObjectName(database, schemaName, viewIdentifierValue, IdentifierScope.VIEW,
+                schema -> schema.getAllViews().stream().map(ShardingSphereView::getName));
+    }
+    
+    /**
+     * Get actual index name.
+     *
+     * @param database database
+     * @param schemaName schema name
+     * @param tableName table name
+     * @param indexIdentifierValue index identifier value
+     * @return actual index name
+     */
+    public static String getActualIndexName(final ShardingSphereDatabase database, final String schemaName, final String tableName,
+                                            final IdentifierValue indexIdentifierValue) {
+        return getActualObjectName(database, schemaName, tableName, indexIdentifierValue, IdentifierScope.INDEX,
+                ShardingSphereTable::getAllIndexes, ShardingSphereIndex::getName);
+    }
+    
+    /**
+     * Get actual column names.
+     *
+     * @param database database
+     * @param schemaName schema name
+     * @param tableName table name
+     * @param columnIdentifierValues column identifier values
+     * @return actual column names
+     */
+    public static Collection<String> getActualColumnNames(final ShardingSphereDatabase database, final String schemaName, final String tableName,
+                                                          final Collection<IdentifierValue> columnIdentifierValues) {
+        Collection<String> result = new LinkedList<>();
+        for (IdentifierValue each : columnIdentifierValues) {
+            String actualColumnName = getActualObjectName(database, schemaName, tableName, each, IdentifierScope.COLUMN,
+                    ShardingSphereTable::getAllColumns, ShardingSphereColumn::getName);
+            if (null != actualColumnName) {
+                result.add(actualColumnName);
+            }
+        }
+        return result;
+    }
+    
+    /**
+     * Find actual table name by index name.
+     *
+     * @param database database
+     * @param schemaName schema name
+     * @param indexIdentifierValue index identifier value
+     * @return actual table name
+     */
+    public static Optional<String> findActualTableNameByIndex(final ShardingSphereDatabase database, final String schemaName,
+                                                              final IdentifierValue indexIdentifierValue) {
+        String actualSchemaName = SchemaRefreshUtils.getActualSchemaName(database, new IdentifierValue(schemaName));
+        ShardingSphereSchema schema = database.getSchema(actualSchemaName);
+        if (null == schema) {
+            return Optional.empty();
+        }
+        return schema.getAllTables().stream()
+                .filter(each -> each.getAllIndexes().stream().map(ShardingSphereIndex::getName)
+                        .anyMatch(indexName -> database.getIdentifierContext().matchesMetaData(IdentifierScope.INDEX, indexName, indexIdentifierValue)))
+                .map(ShardingSphereTable::getName)
+                .findFirst();
     }
     
     /**
@@ -117,5 +259,50 @@ public final class TableRefreshUtils {
     
     private static String joinDataNodeSegments(final String... segments) {
         return Joiner.on(".").join(segments);
+    }
+    
+    private static String getLoadCandidateName(final ShardingSphereDatabase database, final IdentifierValue identifierValue, final IdentifierScope scope) {
+        return database.getIdentifierContext().normalizeStorage(scope, identifierValue);
+    }
+    
+    private static String getActualObjectName(final ShardingSphereDatabase database, final String schemaName,
+                                              final IdentifierValue objectIdentifierValue,
+                                              final IdentifierScope scope, final Function<ShardingSphereSchema, Stream<String>> actualNameStream) {
+        String actualSchemaName = SchemaRefreshUtils.getActualSchemaName(database, new IdentifierValue(schemaName));
+        ShardingSphereSchema schema = database.getSchema(actualSchemaName);
+        if (null != schema) {
+            Optional<String> matchedName = actualNameStream.apply(schema)
+                    .filter(each -> database.getIdentifierContext().matchesMetaData(scope, each, objectIdentifierValue)).findFirst();
+            if (matchedName.isPresent()) {
+                return matchedName.get();
+            }
+        }
+        return database.getIdentifierContext().normalizeStorage(scope, objectIdentifierValue);
+    }
+    
+    private static <T> String getActualObjectName(final ShardingSphereDatabase database, final String schemaName, final String tableName,
+                                                  final IdentifierValue objectIdentifierValue, final IdentifierScope scope,
+                                                  final Function<ShardingSphereTable, Collection<T>> actualObjects, final Function<T, String> actualNameMapper) {
+        String actualSchemaName = SchemaRefreshUtils.getActualSchemaName(database, new IdentifierValue(schemaName));
+        ShardingSphereSchema schema = database.getSchema(actualSchemaName);
+        if (null != schema) {
+            String actualTableName = getActualTableName(database, actualSchemaName, new IdentifierValue(tableName));
+            ShardingSphereTable table = schema.getTable(actualTableName);
+            Optional<String> matchedName = getMatchedObjectName(table, objectIdentifierValue, database.getIdentifierContext(), scope, actualObjects, actualNameMapper);
+            if (matchedName.isPresent()) {
+                return matchedName.get();
+            }
+        }
+        return database.getIdentifierContext().normalizeStorage(scope, objectIdentifierValue);
+    }
+    
+    private static <T> Optional<String> getMatchedObjectName(final ShardingSphereTable table, final IdentifierValue objectIdentifierValue,
+                                                             final DatabaseIdentifierContext identifierContext, final IdentifierScope scope,
+                                                             final Function<ShardingSphereTable, Collection<T>> actualObjects, final Function<T, String> actualNameMapper) {
+        if (null == table) {
+            return Optional.empty();
+        }
+        return actualObjects.apply(table).stream().map(actualNameMapper)
+                .filter(each -> identifierContext.matchesMetaData(scope, each, objectIdentifierValue)).findFirst();
     }
 }

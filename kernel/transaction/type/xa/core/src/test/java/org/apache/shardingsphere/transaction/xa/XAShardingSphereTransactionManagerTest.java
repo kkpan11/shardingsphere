@@ -20,7 +20,7 @@ package org.apache.shardingsphere.transaction.xa;
 import com.atomikos.jdbc.AtomikosDataSourceBean;
 import com.zaxxer.hikari.HikariDataSource;
 import lombok.SneakyThrows;
-import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
+import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 import org.apache.shardingsphere.transaction.api.TransactionType;
 import org.apache.shardingsphere.transaction.xa.fixture.DataSourceUtils;
@@ -37,11 +37,12 @@ import java.sql.SQLException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.isA;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
 
 class XAShardingSphereTransactionManagerTest {
     
@@ -81,12 +82,12 @@ class XAShardingSphereTransactionManagerTest {
     @Test
     void assertGetConnection() throws SQLException {
         xaTransactionManager.begin();
-        Connection actual1 = xaTransactionManager.getConnection("sharding_db", "ds_0");
-        Connection actual2 = xaTransactionManager.getConnection("sharding_db", "ds_1");
-        Connection actual3 = xaTransactionManager.getConnection("sharding_db", "ds_2");
-        assertThat(actual1, instanceOf(Connection.class));
-        assertThat(actual2, instanceOf(Connection.class));
-        assertThat(actual3, instanceOf(Connection.class));
+        Connection actual1 = xaTransactionManager.getConnection("sharding_db", "ds_0", mock());
+        Connection actual2 = xaTransactionManager.getConnection("sharding_db", "ds_1", mock());
+        Connection actual3 = xaTransactionManager.getConnection("sharding_db", "ds_2", mock());
+        assertThat(actual1, isA(Connection.class));
+        assertThat(actual2, isA(Connection.class));
+        assertThat(actual3, isA(Connection.class));
         xaTransactionManager.commit(false);
     }
     
@@ -95,7 +96,7 @@ class XAShardingSphereTransactionManagerTest {
         ThreadLocal<Map<Transaction, Connection>> transactions = getEnlistedTransactions(getCachedDataSources().get("sharding_db.ds_1"));
         xaTransactionManager.begin();
         assertTrue(transactions.get().isEmpty());
-        xaTransactionManager.getConnection("sharding_db", "ds_1");
+        xaTransactionManager.getConnection("sharding_db", "ds_1", mock());
         assertThat(transactions.get().size(), is(1));
         executeNestedTransaction(transactions);
         assertThat(transactions.get().size(), is(1));
@@ -105,7 +106,7 @@ class XAShardingSphereTransactionManagerTest {
     
     private void executeNestedTransaction(final ThreadLocal<Map<Transaction, Connection>> transactions) throws SQLException {
         xaTransactionManager.begin();
-        xaTransactionManager.getConnection("sharding_db", "ds_1");
+        xaTransactionManager.getConnection("sharding_db", "ds_1", mock());
         assertThat(transactions.get().size(), is(2));
         xaTransactionManager.commit(false);
         assertThat(transactions.get().size(), is(1));

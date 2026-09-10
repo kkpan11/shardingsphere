@@ -20,183 +20,203 @@ databaseName: sharding_encrypt_shadow
 dataSources:
   db_0:
     url: jdbc:opengauss://opengauss.sharding_encrypt_shadow.host:5432/db_0
+    driverClassName: org.opengauss.Driver
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   db_1:
     url: jdbc:opengauss://opengauss.sharding_encrypt_shadow.host:5432/db_1
+    driverClassName: org.opengauss.Driver
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   db_2:
     url: jdbc:opengauss://opengauss.sharding_encrypt_shadow.host:5432/db_2
+    driverClassName: org.opengauss.Driver
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   db_3:
     url: jdbc:opengauss://opengauss.sharding_encrypt_shadow.host:5432/db_3
+    driverClassName: org.opengauss.Driver
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   db_4:
     url: jdbc:opengauss://opengauss.sharding_encrypt_shadow.host:5432/db_4
+    driverClassName: org.opengauss.Driver
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   db_5:
     url: jdbc:opengauss://opengauss.sharding_encrypt_shadow.host:5432/db_5
+    driverClassName: org.opengauss.Driver
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   db_6:
     url: jdbc:opengauss://opengauss.sharding_encrypt_shadow.host:5432/db_6
+    driverClassName: org.opengauss.Driver
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   db_7:
     url: jdbc:opengauss://opengauss.sharding_encrypt_shadow.host:5432/db_7
+    driverClassName: org.opengauss.Driver
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   db_8:
     url: jdbc:opengauss://opengauss.sharding_encrypt_shadow.host:5432/db_8
+    driverClassName: org.opengauss.Driver
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   db_9:
     url: jdbc:opengauss://opengauss.sharding_encrypt_shadow.host:5432/db_9
+    driverClassName: org.opengauss.Driver
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   shadow_db_0:
     url: jdbc:opengauss://opengauss.sharding_encrypt_shadow.host:5432/shadow_db_0
+    driverClassName: org.opengauss.Driver
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   shadow_db_1:
     url: jdbc:opengauss://opengauss.sharding_encrypt_shadow.host:5432/shadow_db_1
+    driverClassName: org.opengauss.Driver
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   shadow_db_2:
     url: jdbc:opengauss://opengauss.sharding_encrypt_shadow.host:5432/shadow_db_2
+    driverClassName: org.opengauss.Driver
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   shadow_db_3:
     url: jdbc:opengauss://opengauss.sharding_encrypt_shadow.host:5432/shadow_db_3
+    driverClassName: org.opengauss.Driver
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   shadow_db_4:
     url: jdbc:opengauss://opengauss.sharding_encrypt_shadow.host:5432/shadow_db_4
+    driverClassName: org.opengauss.Driver
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   shadow_db_5:
     url: jdbc:opengauss://opengauss.sharding_encrypt_shadow.host:5432/shadow_db_5
+    driverClassName: org.opengauss.Driver
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   shadow_db_6:
     url: jdbc:opengauss://opengauss.sharding_encrypt_shadow.host:5432/shadow_db_6
+    driverClassName: org.opengauss.Driver
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   shadow_db_7:
     url: jdbc:opengauss://opengauss.sharding_encrypt_shadow.host:5432/shadow_db_7
+    driverClassName: org.opengauss.Driver
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   shadow_db_8:
     url: jdbc:opengauss://opengauss.sharding_encrypt_shadow.host:5432/shadow_db_8
+    driverClassName: org.opengauss.Driver
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
   shadow_db_9:
     url: jdbc:opengauss://opengauss.sharding_encrypt_shadow.host:5432/shadow_db_9
+    driverClassName: org.opengauss.Driver
     username: test_user
-    password: Test@123
+    password: Test@9876
     connectionTimeoutMilliseconds: 30000
     idleTimeoutMilliseconds: 60000
     maxLifetimeMilliseconds: 1800000
-    maxPoolSize: 2
+    maxPoolSize: 8
     minPoolSize: 2
 
 rules:
@@ -210,15 +230,15 @@ rules:
         databaseStrategy:
           standard:
             shardingColumn: order_id
-            shardingAlgorithmName: it_standard_fixture
+            shardingAlgorithmName: e2e_standard_fixture
         tableStrategy:
           standard:
             shardingColumn: order_id
-            shardingAlgorithmName: it_standard_fixture
+            shardingAlgorithmName: e2e_standard_fixture
 
     shardingAlgorithms:
-      it_standard_fixture:
-        type: IT.STANDARD.FIXTURE
+      e2e_standard_fixture:
+        type: E2E.SHARDING.STANDARD.FIXTURE
 
   - !SHADOW
     dataSources:

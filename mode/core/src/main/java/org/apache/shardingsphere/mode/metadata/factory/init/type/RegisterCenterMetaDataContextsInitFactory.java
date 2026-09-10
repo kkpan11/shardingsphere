@@ -17,11 +17,15 @@
 
 package org.apache.shardingsphere.mode.metadata.factory.init.type;
 
-import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.config.database.DatabaseConfiguration;
 import org.apache.shardingsphere.infra.config.database.impl.DataSourceGeneratedDatabaseConfiguration;
 import org.apache.shardingsphere.infra.config.props.ConfigurationProperties;
+import org.apache.shardingsphere.infra.config.props.temporary.TemporaryConfigurationProperties;
+import org.apache.shardingsphere.infra.config.props.temporary.TemporaryConfigurationPropertyKey;
 import org.apache.shardingsphere.infra.config.rule.RuleConfiguration;
+import org.apache.shardingsphere.infra.database.DatabaseTypeEngine;
 import org.apache.shardingsphere.infra.datasource.pool.config.DataSourceConfiguration;
 import org.apache.shardingsphere.infra.datasource.pool.destroyer.DataSourcePoolDestroyer;
 import org.apache.shardingsphere.infra.instance.ComputeNodeInstanceContext;
@@ -33,32 +37,43 @@ import org.apache.shardingsphere.mode.manager.builder.ContextManagerBuilderParam
 import org.apache.shardingsphere.mode.metadata.MetaDataContexts;
 import org.apache.shardingsphere.mode.metadata.factory.init.MetaDataContextsInitFactory;
 import org.apache.shardingsphere.mode.metadata.persist.MetaDataPersistFacade;
+import org.apache.shardingsphere.mode.spi.repository.PersistRepository;
 
 import javax.sql.DataSource;
 import java.sql.SQLException;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
  * Register center meta data contexts init factory.
  */
-@RequiredArgsConstructor
+@Slf4j
 public final class RegisterCenterMetaDataContextsInitFactory extends MetaDataContextsInitFactory {
     
     private final MetaDataPersistFacade persistFacade;
     
     private final ComputeNodeInstanceContext instanceContext;
     
+    public RegisterCenterMetaDataContextsInitFactory(final PersistRepository repository, final ComputeNodeInstanceContext instanceContext) {
+        persistFacade = new MetaDataPersistFacade(repository);
+        this.instanceContext = instanceContext;
+    }
+    
     @Override
     public MetaDataContexts create(final ContextManagerBuilderParameter param) throws SQLException {
-        Map<String, DatabaseConfiguration> effectiveDatabaseConfigs = createEffectiveDatabaseConfigurations(getDatabaseNames(param.getDatabaseConfigs()), param.getDatabaseConfigs());
-        Collection<RuleConfiguration> globalRuleConfigs = persistFacade.getGlobalRuleService().load();
+        TemporaryConfigurationProperties tempProps = new TemporaryConfigurationProperties(persistFacade.getPropsService().load());
+        boolean isInstanceConnectionEnabled = tempProps.getValue(TemporaryConfigurationPropertyKey.INSTANCE_CONNECTION_ENABLED);
+        Map<String, DatabaseConfiguration> effectiveDatabaseConfigs =
+                createEffectiveDatabaseConfigurations(getDatabaseNames(param.getDatabaseConfigs()), param.getDatabaseConfigs(), isInstanceConnectionEnabled);
         // TODO load global data sources from persist service
         Map<String, DataSource> globalDataSources = param.getGlobalDataSources();
         ConfigurationProperties props = new ConfigurationProperties(persistFacade.getPropsService().load());
-        Collection<ShardingSphereDatabase> databases = ShardingSphereDatabasesFactory.create(effectiveDatabaseConfigs, loadSchemas(effectiveDatabaseConfigs.keySet()), props, instanceContext);
-        return create(globalRuleConfigs, globalDataSources, databases, props, persistFacade);
+        DatabaseType protocolType = DatabaseTypeEngine.getProtocolType(effectiveDatabaseConfigs, props);
+        Map<String, Collection<ShardingSphereSchema>> schemas = loadSchemas(effectiveDatabaseConfigs.keySet(), protocolType);
+        Collection<ShardingSphereDatabase> databases = ShardingSphereDatabasesFactory.create(effectiveDatabaseConfigs, schemas, props, instanceContext, protocolType);
+        return create(persistFacade.getGlobalRuleService().load(), globalDataSources, databases, props, persistFacade);
     }
     
     private Collection<String> getDatabaseNames(final Map<String, DatabaseConfiguration> databaseConfigs) {
@@ -67,15 +82,17 @@ public final class RegisterCenterMetaDataContextsInitFactory extends MetaDataCon
                 : persistFacade.getDatabaseMetaDataFacade().getDatabase().loadAllDatabaseNames();
     }
     
-    private Map<String, DatabaseConfiguration> createEffectiveDatabaseConfigurations(final Collection<String> databaseNames, final Map<String, DatabaseConfiguration> databaseConfigs) {
-        return databaseNames.stream().collect(Collectors.toMap(each -> each, each -> createEffectiveDatabaseConfiguration(each, databaseConfigs)));
+    private Map<String, DatabaseConfiguration> createEffectiveDatabaseConfigurations(final Collection<String> databaseNames, final Map<String, DatabaseConfiguration> databaseConfigs,
+                                                                                     final boolean isInstanceConnectionEnabled) {
+        return databaseNames.stream().collect(Collectors.toMap(each -> each, each -> createEffectiveDatabaseConfiguration(each, databaseConfigs, isInstanceConnectionEnabled)));
     }
     
-    private DatabaseConfiguration createEffectiveDatabaseConfiguration(final String databaseName, final Map<String, DatabaseConfiguration> databaseConfigs) {
+    private DatabaseConfiguration createEffectiveDatabaseConfiguration(final String databaseName, final Map<String, DatabaseConfiguration> databaseConfigs,
+                                                                       final boolean isInstanceConnectionEnabled) {
         closeGeneratedDataSources(databaseName, databaseConfigs);
         Map<String, DataSourceConfiguration> dataSources = persistFacade.loadDataSourceConfigurations(databaseName);
         Collection<RuleConfiguration> databaseRuleConfigs = persistFacade.getDatabaseRuleService().load(databaseName);
-        return new DataSourceGeneratedDatabaseConfiguration(dataSources, databaseRuleConfigs);
+        return new DataSourceGeneratedDatabaseConfiguration(dataSources, databaseRuleConfigs, isInstanceConnectionEnabled);
     }
     
     private void closeGeneratedDataSources(final String databaseName, final Map<String, ? extends DatabaseConfiguration> databaseConfigs) {
@@ -84,7 +101,14 @@ public final class RegisterCenterMetaDataContextsInitFactory extends MetaDataCon
         }
     }
     
-    private Map<String, Collection<ShardingSphereSchema>> loadSchemas(final Collection<String> databaseNames) {
-        return databaseNames.stream().collect(Collectors.toMap(each -> each, each -> persistFacade.getDatabaseMetaDataFacade().getSchema().load(each)));
+    private Map<String, Collection<ShardingSphereSchema>> loadSchemas(final Collection<String> databaseNames, final DatabaseType protocolType) {
+        Map<String, Collection<ShardingSphereSchema>> result = new HashMap<>(databaseNames.size());
+        for (String dbName : databaseNames) {
+            Collection<ShardingSphereSchema> schemas = persistFacade.getDatabaseMetaDataFacade().getSchema().load(dbName, protocolType);
+            if (null != schemas) {
+                result.put(dbName, schemas);
+            }
+        }
+        return result;
     }
 }

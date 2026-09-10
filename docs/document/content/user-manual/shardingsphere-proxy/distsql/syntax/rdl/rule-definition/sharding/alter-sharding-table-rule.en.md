@@ -16,25 +16,38 @@ AlterShardingTableRule ::=
   'ALTER' 'SHARDING' 'TABLE' 'RULE' (tableRuleDefinition | autoTableRuleDefinition) (',' (tableRuleDefinition | autoTableRuleDefinition))*
 
 tableRuleDefinition ::= 
-  ruleName '(' 'DATANODES' '(' dataNode (',' dataNode)* ')' (','  'DATABASE_STRATEGY' '(' strategyDefinition ')')? (','  'TABLE_STRATEGY' '(' strategyDefinition ')')? (','  'KEY_GENERATE_STRATEGY' '(' keyGenerateStrategyDefinition ')')? (',' 'AUDIT_STRATEGY' '(' auditStrategyDefinition ')')? ')'
+  ruleName '(' 'DATANODES' '(' dataNode (',' dataNode)* ')' (','  'DATABASE_STRATEGY' '(' strategyDefinition ')')? (','  'TABLE_STRATEGY' '(' strategyDefinition ')')? (','  'KEY_GENERATE_STRATEGY' '(' keyGenerateStrategyDefinition ')')? (',' auditStrategyDefinition)? ')'
 
 autoTableRuleDefinition ::=
-  ruleName '(' 'STORAGE_UNITS' '(' storageUnitName (',' storageUnitName)*  ')' ',' 'SHARDING_COLUMN' '=' columnName ',' algorithmDefinition (',' 'KEY_GENERATE_STRATEGY' '(' keyGenerateStrategyDefinition ')')? (',' 'AUDIT_STRATEGY' '(' auditStrategyDefinition ')')? ')'
+  ruleName '(' 'STORAGE_UNITS' '(' storageUnitName (',' storageUnitName)*  ')' ',' 'SHARDING_COLUMN' '=' columnName ',' algorithmDefinition (',' 'KEY_GENERATE_STRATEGY' '(' keyGenerateStrategyDefinition ')')? (',' auditStrategyDefinition)? ')'
 
 strategyDefinition ::=
-  'TYPE' '=' strategyType ',' ('SHARDING_COLUMN' | 'SHARDING_COLUMNS') '=' columnName ',' algorithmDefinition
+  'TYPE' '=' 'NONE'
+  | 'TYPE' '=' 'STANDARD' ',' 'SHARDING_COLUMN' '=' columnName ',' shardingAlgorithm
+  | 'TYPE' '=' 'COMPLEX' ',' 'SHARDING_COLUMNS' '=' columnName ',' columnName (',' columnName)* ',' shardingAlgorithm
+  | 'TYPE' '=' 'HINT' ',' shardingAlgorithm
+
+shardingAlgorithm ::=
+  'SHARDING_ALGORITHM' '(' algorithmDefinition ')'
 
 keyGenerateStrategyDefinition ::= 
-  'KEY_GENERATE_STRATEGY' '(' 'COLUMN' '=' columnName ',' algorithmDefinition ')' 
+  'COLUMN' '=' columnName ',' keyGenerateAlgorithmDefinition
+
+keyGenerateAlgorithmDefinition ::=
+  algorithmDefinition
+  | 'GENERATOR' '=' keyGeneratorName
 
 auditStrategyDefinition ::= 
-  'AUDIT_STRATEGY' '(' algorithmDefinition (',' algorithmDefinition)* ')'
+  'AUDIT_STRATEGY' '(' algorithmDefinition (',' algorithmDefinition)* ',' 'ALLOW_HINT_DISABLE' '=' boolean ')'
+
+boolean ::=
+  'TRUE' | 'FALSE'
 
 algorithmDefinition ::=
-  'TYPE' '(' 'NAME' '=' algorithmType (',' propertiesDefinition)?')'
+  'TYPE' '(' 'NAME' '=' algorithmType (',' propertiesDefinition)? ')'
 
 propertiesDefinition ::=
-  'PROPERTIES' '(' key '=' value (',' key '=' value)* ')'
+  'PROPERTIES' '(' (key '=' value (',' key '=' value)*)? ')'
 
 key ::=
   string
@@ -54,8 +67,8 @@ storageUnitName ::=
 columnName ::=
   identifier
 
-strategyType ::=
-  string
+keyGeneratorName ::=
+  identifier
 
 algorithmType ::=
   string
@@ -76,10 +89,7 @@ algorithmType ::=
       expressions to specify required resources;
     - `DATABASE_STRATEGY`, `TABLE_STRATEGY` are the database sharding strategy and the table sharding strategy, which
       are optional, and the default strategy is used when not configured;
-    - The attribute `TYPE` in `strategyDefinition` is used to specify the type
-      of [Sharding Algorithm](/en/user-manual/common-config/builtin-algorithm/sharding/#class-based-sharding-algorithm), currently only
-      supports `STANDARD`, `COMPLEX`. Using `COMPLEX` requires specifying multiple sharding columns
-      with `SHARDING_COLUMNS`.
+    - The attribute `TYPE` in `strategyDefinition` specifies the strategy type. `STANDARD`, `COMPLEX`, `HINT`, and `NONE` are supported. Using `COMPLEX` requires specifying multiple sharding columns with `SHARDING_COLUMNS`.
 - use auto sharding table rule:
     - `STORAGE_UNITS` can only use storage units that have been registered to the current database, and the required storage units can be
       specified by enumeration or INLINE expression;
@@ -92,6 +102,9 @@ algorithmType ::=
 - `KEY_GENERATE_STRATEGY` is used to specify the primary key generation strategy, which is optional. For the primary key
   generation strategy, please refer
   to [Distributed Primary Key](/en/user-manual/common-config/builtin-algorithm/keygen/).
+- `KEY_GENERATE_STRATEGY` supports two key generator definition styles:
+    - Define the key generation algorithm inline with `TYPE(NAME=..., PROPERTIES(...))`;
+    - Reference an existing independent `SHARDING KEY GENERATOR` with `GENERATOR=keyGeneratorName`;
 - `AUDIT_STRATEGY` is used to specify the sharding audit strategy, which is optional. For the sharding audit
   generation strategy, please refer
   to [Sharding Audit](/en/user-manual/common-config/builtin-algorithm/audit/).
@@ -121,9 +134,20 @@ AUDIT_STRATEGY(TYPE(NAME="dml_sharding_conditions"),ALLOW_HINT_DISABLE=true)
 );
 ```
 
+#### 3.Reference an existing key generator
+
+```sql
+ALTER SHARDING TABLE RULE t_order (
+STORAGE_UNITS(ds_0,ds_1),
+SHARDING_COLUMN=order_id,TYPE(NAME="hash_mod",PROPERTIES("sharding-count"="4")),
+KEY_GENERATE_STRATEGY(COLUMN=another_id,GENERATOR=snowflake_generator),
+AUDIT_STRATEGY(TYPE(NAME="dml_sharding_conditions"),ALLOW_HINT_DISABLE=true)
+);
+```
+
 ### Reserved word
 
-`ALTER`, `SHARDING`, `TABLE`, `RULE`, `DATANODES`, `DATABASE_STRATEGY`, `TABLE_STRATEGY`, `KEY_GENERATE_STRATEGY`, `STORAGE_UNITS`, `SHARDING_COLUMN`, `TYPE`, `SHARDING_COLUMN`, `KEY_GENERATOR`, `SHARDING_ALGORITHM`, `COLUMN`, `NAME`, `PROPERTIES`, `AUDIT_STRATEGY`, `AUDITORS`, `ALLOW_HINT_DISABLE`
+`ALTER`, `SHARDING`, `TABLE`, `RULE`, `DATANODES`, `DATABASE_STRATEGY`, `TABLE_STRATEGY`, `KEY_GENERATE_STRATEGY`, `STORAGE_UNITS`, `SHARDING_COLUMN`, `SHARDING_COLUMNS`, `TYPE`, `GENERATOR`, `SHARDING_ALGORITHM`, `COLUMN`, `NAME`, `PROPERTIES`, `AUDIT_STRATEGY`, `ALLOW_HINT_DISABLE`, `TRUE`, `FALSE`
 
 ### Related links
 

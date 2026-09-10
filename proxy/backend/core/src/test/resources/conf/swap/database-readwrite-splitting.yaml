@@ -19,14 +19,15 @@ databaseName: swapper_test
 
 dataSources:
   foo_db:
+    driverClassName: org.h2.Driver
     url: jdbc:h2:mem:foo_db;DB_CLOSE_DELAY=-1
     username: sa
     password: ""
     connectionTimeoutMilliseconds: 250
-    idleTimeoutMilliseconds: 2
-    maxLifetimeMilliseconds: 3
-    maxPoolSize:  4
-    minPoolSize: 5
+    idleTimeoutMilliseconds: 30000
+    maxLifetimeMilliseconds: 600000
+    maxPoolSize: 5
+    minPoolSize: 4
     readOnly: true
 
 rules:

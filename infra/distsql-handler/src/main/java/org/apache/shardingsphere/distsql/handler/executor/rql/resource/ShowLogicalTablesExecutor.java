@@ -18,16 +18,17 @@
 package org.apache.shardingsphere.distsql.handler.executor.rql.resource;
 
 import lombok.Setter;
+import org.apache.shardingsphere.database.connector.core.metadata.database.metadata.DialectDatabaseMetaData;
+import org.apache.shardingsphere.database.connector.core.type.DatabaseTypeRegistry;
 import org.apache.shardingsphere.distsql.handler.aware.DistSQLExecutorDatabaseAware;
 import org.apache.shardingsphere.distsql.handler.engine.query.DistSQLQueryExecutor;
-import org.apache.shardingsphere.distsql.statement.rql.resource.ShowLogicalTablesStatement;
-import org.apache.shardingsphere.infra.database.core.metadata.database.metadata.DialectDatabaseMetaData;
-import org.apache.shardingsphere.infra.database.core.type.DatabaseTypeRegistry;
+import org.apache.shardingsphere.distsql.statement.type.rql.resource.ShowLogicalTablesStatement;
 import org.apache.shardingsphere.infra.merge.result.impl.local.LocalDataQueryResultRow;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereTable;
 import org.apache.shardingsphere.infra.util.regex.RegexUtils;
 import org.apache.shardingsphere.mode.manager.ContextManager;
+import org.apache.shardingsphere.sql.parser.statement.core.value.identifier.IdentifierValue;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -47,26 +48,33 @@ public final class ShowLogicalTablesExecutor implements DistSQLQueryExecutor<Sho
     
     @Override
     public Collection<String> getColumnNames(final ShowLogicalTablesStatement sqlStatement) {
-        return sqlStatement.isContainsFull()
-                ? Arrays.asList(String.format("Tables_in_%s", database.getName()), "Table_type")
-                : Collections.singleton(String.format("Tables_in_%s", database.getName()));
+        if (new DatabaseTypeRegistry(database.getProtocolType()).getDialectDatabaseMetaData().getSchemaOption().isSchemaAvailable()) {
+            return sqlStatement.isContainsFull() ? Arrays.asList("table_name", "table_type", "schema_name") : Arrays.asList("table_name", "schema_name");
+        }
+        return sqlStatement.isContainsFull() ? Arrays.asList("table_name", "table_type") : Collections.singleton("table_name");
     }
     
     @Override
     public Collection<LocalDataQueryResultRow> getRows(final ShowLogicalTablesStatement sqlStatement, final ContextManager contextManager) {
         DialectDatabaseMetaData dialectDatabaseMetaData = new DatabaseTypeRegistry(database.getProtocolType()).getDialectDatabaseMetaData();
-        String schemaName = dialectDatabaseMetaData.getSchemaOption().getDefaultSchema().orElse(database.getName());
+        IdentifierValue schemaName = new IdentifierValue(dialectDatabaseMetaData.getSchemaOption().getDefaultSchema().orElse(database.getName()));
         if (null == database.getSchema(schemaName)) {
             return Collections.emptyList();
         }
-        return getTables(schemaName, sqlStatement).stream().map(each -> getRow(each, sqlStatement)).collect(Collectors.toList());
+        return getTables(schemaName, sqlStatement).stream().map(each -> getRow(schemaName, each, sqlStatement, dialectDatabaseMetaData)).collect(Collectors.toList());
     }
     
-    private LocalDataQueryResultRow getRow(final ShardingSphereTable table, final ShowLogicalTablesStatement sqlStatement) {
+    private LocalDataQueryResultRow getRow(final IdentifierValue schemaName, final ShardingSphereTable table, final ShowLogicalTablesStatement sqlStatement,
+                                           final DialectDatabaseMetaData dialectDatabaseMetaData) {
+        if (dialectDatabaseMetaData.getSchemaOption().isSchemaAvailable()) {
+            return sqlStatement.isContainsFull()
+                    ? new LocalDataQueryResultRow(table.getName(), table.getType(), schemaName.getValue())
+                    : new LocalDataQueryResultRow(table.getName(), schemaName.getValue());
+        }
         return sqlStatement.isContainsFull() ? new LocalDataQueryResultRow(table.getName(), table.getType()) : new LocalDataQueryResultRow(table.getName());
     }
     
-    private Collection<ShardingSphereTable> getTables(final String schemaName, final ShowLogicalTablesStatement sqlStatement) {
+    private Collection<ShardingSphereTable> getTables(final IdentifierValue schemaName, final ShowLogicalTablesStatement sqlStatement) {
         Collection<ShardingSphereTable> tables = database.getSchema(schemaName).getAllTables();
         Collection<ShardingSphereTable> filteredTables = filterByLike(tables, sqlStatement);
         return filteredTables.stream().sorted(Comparator.comparing(ShardingSphereTable::getName)).collect(Collectors.toList());

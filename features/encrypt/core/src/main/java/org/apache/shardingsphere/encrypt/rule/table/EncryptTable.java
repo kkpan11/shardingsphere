@@ -21,6 +21,7 @@ import com.cedarsoftware.util.CaseInsensitiveMap;
 import lombok.Getter;
 import org.apache.shardingsphere.encrypt.config.rule.EncryptColumnRuleConfiguration;
 import org.apache.shardingsphere.encrypt.config.rule.EncryptTableRuleConfiguration;
+import org.apache.shardingsphere.encrypt.enums.EncryptColumnItemType;
 import org.apache.shardingsphere.encrypt.exception.metadata.EncryptColumnNotFoundException;
 import org.apache.shardingsphere.encrypt.exception.metadata.EncryptLogicColumnNotFoundException;
 import org.apache.shardingsphere.encrypt.rule.column.EncryptColumn;
@@ -29,7 +30,7 @@ import org.apache.shardingsphere.encrypt.rule.column.item.CipherColumnItem;
 import org.apache.shardingsphere.encrypt.rule.column.item.LikeQueryColumnItem;
 import org.apache.shardingsphere.encrypt.spi.EncryptAlgorithm;
 import org.apache.shardingsphere.infra.annotation.HighFrequencyInvocation;
-import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.exception.ShardingSpherePreconditions;
 
 import java.util.Map;
 import java.util.Map.Entry;
@@ -81,6 +82,18 @@ public final class EncryptTable {
     @HighFrequencyInvocation
     public Optional<EncryptAlgorithm> findEncryptor(final String logicColumnName) {
         return columns.containsKey(logicColumnName) ? Optional.of(columns.get(logicColumnName).getCipher().getEncryptor()) : Optional.empty();
+    }
+    
+    /**
+     * Find encryptor.
+     *
+     * @param columnName column name
+     * @param columnItemType column item type
+     * @return encryptor
+     */
+    @HighFrequencyInvocation
+    public Optional<EncryptAlgorithm> findEncryptor(final String columnName, final EncryptColumnItemType columnItemType) {
+        return isEncryptColumn(columnName) ? Optional.ofNullable(getEncryptColumn(columnName).getEncryptor(columnItemType)) : Optional.empty();
     }
     
     /**
@@ -169,13 +182,12 @@ public final class EncryptTable {
     }
     
     /**
-     * Find query encryptor.
+     * Whether derived column.
      *
      * @param columnName column name
-     * @return query encryptor
+     * @return is derived column or not
      */
-    @HighFrequencyInvocation
-    public Optional<EncryptAlgorithm> findQueryEncryptor(final String columnName) {
-        return isEncryptColumn(columnName) ? Optional.of(getEncryptColumn(columnName).getQueryEncryptor()) : Optional.empty();
+    public boolean isDerivedColumn(final String columnName) {
+        return isAssistedQueryColumn(columnName) || isLikeQueryColumn(columnName);
     }
 }

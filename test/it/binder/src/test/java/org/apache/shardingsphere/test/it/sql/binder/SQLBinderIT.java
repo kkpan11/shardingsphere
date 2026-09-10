@@ -18,10 +18,12 @@
 package org.apache.shardingsphere.test.it.sql.binder;
 
 import com.google.common.base.Preconditions;
+import org.apache.shardingsphere.database.connector.core.metadata.identifier.DefaultSchemaNameResolver;
+import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.binder.engine.SQLBindEngine;
 import org.apache.shardingsphere.infra.config.props.ConfigurationProperties;
-import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
-import org.apache.shardingsphere.infra.database.core.type.DatabaseTypeRegistry;
+import org.apache.shardingsphere.infra.config.props.MetadataIdentifierCaseSensitivity;
+import org.apache.shardingsphere.infra.config.props.temporary.TemporaryConfigurationPropertyKey;
 import org.apache.shardingsphere.infra.hint.HintValueContext;
 import org.apache.shardingsphere.infra.hint.SQLHintUtils;
 import org.apache.shardingsphere.infra.metadata.ShardingSphereMetaData;
@@ -29,15 +31,18 @@ import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.infra.metadata.database.resource.ResourceMetaData;
 import org.apache.shardingsphere.infra.metadata.database.rule.RuleMetaData;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereColumn;
+import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereIndex;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereSchema;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereTable;
 import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
-import org.apache.shardingsphere.sql.parser.api.CacheOption;
-import org.apache.shardingsphere.sql.parser.api.SQLParserEngine;
-import org.apache.shardingsphere.sql.parser.api.SQLStatementVisitorEngine;
+import org.apache.shardingsphere.infra.util.props.PropertiesBuilder;
+import org.apache.shardingsphere.infra.util.props.PropertiesBuilder.Property;
+import org.apache.shardingsphere.sql.parser.engine.api.CacheOption;
+import org.apache.shardingsphere.sql.parser.engine.api.SQLParserEngine;
+import org.apache.shardingsphere.sql.parser.engine.api.SQLStatementVisitorEngine;
 import org.apache.shardingsphere.sql.parser.statement.core.statement.SQLStatement;
-import org.apache.shardingsphere.test.it.sql.binder.cases.binder.registry.SQLBinderTestCasesRegistry;
-import org.apache.shardingsphere.test.it.sql.binder.cases.sql.registry.SQLBinderCasesRegistry;
+import org.apache.shardingsphere.test.it.sql.binder.cases.registry.binder.SQLBinderTestCasesRegistry;
+import org.apache.shardingsphere.test.it.sql.binder.cases.registry.sql.SQLBinderCasesRegistry;
 import org.apache.shardingsphere.test.it.sql.parser.internal.InternalSQLParserTestParameter;
 import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.SQLCaseAssertContext;
 import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.SQLStatementAssert;
@@ -50,15 +55,13 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.ArgumentsProvider;
 import org.junit.jupiter.params.provider.ArgumentsSource;
+import org.junit.jupiter.params.support.ParameterDeclarations;
 
 import java.sql.Types;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
-import java.util.List;
-import java.util.Properties;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -70,33 +73,38 @@ public abstract class SQLBinderIT {
     
     private static final SQLParserTestCases SQL_BINDER_TEST_CASES = SQLBinderTestCasesRegistry.getInstance().getCases();
     
+    private static final ConfigurationProperties IDENTIFIER_INSENSITIVE_PROPS = new ConfigurationProperties(
+            PropertiesBuilder.build(new Property(TemporaryConfigurationPropertyKey.METADATA_IDENTIFIER_CASE_SENSITIVITY.getKey(), MetadataIdentifierCaseSensitivity.INSENSITIVE.name())));
+    
     @ParameterizedTest(name = "{0} ({1}) -> {2}")
     @ArgumentsSource(TestCaseArgumentsProvider.class)
     void assertBind(final String sqlCaseId, final SQLCaseType sqlCaseType, final String databaseType) {
         String sql = SQL_CASES.getSQL(sqlCaseId, sqlCaseType, SQL_BINDER_TEST_CASES.get(sqlCaseId).getParameters());
         SQLParserTestCase expected = SQL_BINDER_TEST_CASES.get(sqlCaseId);
-        SQLStatement actual = bindSQLStatement("H2".equals(databaseType) ? "MySQL" : databaseType, sql, new ArrayList<>(expected.getParameters()));
+        SQLStatement actual = bindSQLStatement("H2".equals(databaseType) ? "MySQL" : databaseType, sql);
         SQLStatementAssert.assertIs(new SQLCaseAssertContext(sqlCaseId, sql, expected.getParameters(), sqlCaseType), actual, expected);
     }
     
-    private SQLStatement bindSQLStatement(final String databaseType, final String sql, final List<Object> parameters) {
+    protected final SQLStatement bindSQLStatement(final String databaseType, final String sql) {
         HintValueContext hintValueContext = SQLHintUtils.extractHint(sql);
         SQLStatement sqlStatement = new SQLStatementVisitorEngine(databaseType).visit(new SQLParserEngine(databaseType, new CacheOption(128, 1024L)).parse(sql, false));
-        return new SQLBindEngine(mockMetaData(TypedSPILoader.getService(DatabaseType.class, databaseType)), "foo_db_1", hintValueContext).bind(sqlStatement, parameters).getSqlStatement();
+        return new SQLBindEngine(mockMetaData(TypedSPILoader.getService(DatabaseType.class, databaseType)), "foo_db_1", hintValueContext).bind(sqlStatement).getSqlStatement();
     }
     
     private ShardingSphereMetaData mockMetaData(final DatabaseType databaseType) {
         Collection<ShardingSphereDatabase> databases = new LinkedList<>();
-        databases.add(new ShardingSphereDatabase("foo_db_1", databaseType, mock(ResourceMetaData.class), mock(RuleMetaData.class), mockSchemas(databaseType, "foo_db_1")));
-        databases.add(new ShardingSphereDatabase("foo_db_2", databaseType, mock(ResourceMetaData.class), mock(RuleMetaData.class), mockSchemas(databaseType, "foo_db_2")));
-        return new ShardingSphereMetaData(databases, mock(ResourceMetaData.class), mock(RuleMetaData.class), new ConfigurationProperties(new Properties()));
+        databases.add(new ShardingSphereDatabase("foo_db_1", databaseType, mock(ResourceMetaData.class), mock(RuleMetaData.class), mockSchemas(databaseType, "foo_db_1"),
+                IDENTIFIER_INSENSITIVE_PROPS));
+        databases.add(new ShardingSphereDatabase("foo_db_2", databaseType, mock(ResourceMetaData.class), mock(RuleMetaData.class), mockSchemas(databaseType, "foo_db_2"),
+                IDENTIFIER_INSENSITIVE_PROPS));
+        return new ShardingSphereMetaData(databases, mock(ResourceMetaData.class), mock(RuleMetaData.class), IDENTIFIER_INSENSITIVE_PROPS);
     }
     
     private Collection<ShardingSphereSchema> mockSchemas(final DatabaseType databaseType, final String databaseName) {
         Collection<ShardingSphereSchema> result = new LinkedList<>();
-        String defaultSchemaName = new DatabaseTypeRegistry(databaseType).getDefaultSchemaName(databaseName);
+        String defaultSchemaName = DefaultSchemaNameResolver.resolveProtocol(databaseType, databaseName);
         Collection<ShardingSphereTable> tables = "foo_db_1".equalsIgnoreCase(databaseName) ? mockFooDB1Tables() : mockFooDB2Tables();
-        result.add(new ShardingSphereSchema(defaultSchemaName, tables, Collections.emptyList()));
+        result.add(new ShardingSphereSchema(defaultSchemaName, databaseType, tables, Collections.emptyList()));
         return result;
     }
     
@@ -108,7 +116,8 @@ public abstract class SQLBinderIT {
                 new ShardingSphereColumn("status", Types.VARCHAR, false, false, false, true, false, false),
                 new ShardingSphereColumn("merchant_id", Types.INTEGER, false, false, false, true, false, true),
                 new ShardingSphereColumn("remark", Types.VARCHAR, false, false, false, true, false, false),
-                new ShardingSphereColumn("creation_date", Types.DATE, false, false, false, true, false, false)), Collections.emptyList(), Collections.emptyList()));
+                new ShardingSphereColumn("creation_date", Types.DATE, false, false, false, true, false, false)),
+                Collections.singletonList(new ShardingSphereIndex("idx_user_id", Collections.singletonList("user_id"), false)), Collections.emptyList()));
         result.add(new ShardingSphereTable("t_order_item", Arrays.asList(
                 new ShardingSphereColumn("item_id", Types.BIGINT, true, false, false, true, false, false),
                 new ShardingSphereColumn("order_id", Types.BIGINT, false, false, false, true, false, false),
@@ -130,6 +139,8 @@ public abstract class SQLBinderIT {
                 new ShardingSphereColumn("business_code", Types.VARCHAR, false, false, false, true, false, false),
                 new ShardingSphereColumn("telephone", Types.CHAR, false, false, false, true, false, false),
                 new ShardingSphereColumn("creation_date", Types.DATE, false, false, false, true, false, false)), Collections.emptyList(), Collections.emptyList()));
+        result.add(new ShardingSphereTable("t_system_user", Collections.singletonList(
+                new ShardingSphereColumn("SYSTEM_USER", Types.VARCHAR, false, false, false, true, false, false)), Collections.emptyList(), Collections.emptyList()));
         result.add(new ShardingSphereTable("t_order_view", Arrays.asList(
                 new ShardingSphereColumn("order_id", Types.BIGINT, true, false, false, true, false, false),
                 new ShardingSphereColumn("user_id", Types.INTEGER, false, false, false, true, false, false),
@@ -168,11 +179,11 @@ public abstract class SQLBinderIT {
         return result;
     }
     
-    private static class TestCaseArgumentsProvider implements ArgumentsProvider {
+    private static final class TestCaseArgumentsProvider implements ArgumentsProvider {
         
         @Override
-        public Stream<? extends Arguments> provideArguments(final ExtensionContext extensionContext) {
-            SQLBinderITSettings settings = extensionContext.getRequiredTestClass().getAnnotation(SQLBinderITSettings.class);
+        public Stream<? extends Arguments> provideArguments(final ParameterDeclarations parameters, final ExtensionContext context) {
+            SQLBinderITSettings settings = context.getRequiredTestClass().getAnnotation(SQLBinderITSettings.class);
             Preconditions.checkNotNull(settings, "Annotation SQLBinderITSettings is required.");
             return getTestParameters(settings.value()).stream();
         }

@@ -18,10 +18,13 @@
 package org.apache.shardingsphere.sharding.yaml;
 
 import org.apache.shardingsphere.infra.algorithm.core.config.AlgorithmConfiguration;
+import org.apache.shardingsphere.infra.config.keygen.KeyGenerateStrategiesConfiguration;
+import org.apache.shardingsphere.infra.config.keygen.impl.ColumnKeyGenerateStrategiesRuleConfiguration;
+import org.apache.shardingsphere.infra.config.keygen.impl.SequenceKeyGenerateStrategiesRuleConfiguration;
+import org.apache.shardingsphere.infra.util.props.PropertiesBuilder;
+import org.apache.shardingsphere.infra.util.props.PropertiesBuilder.Property;
 import org.apache.shardingsphere.infra.yaml.config.pojo.rule.YamlRuleConfiguration;
 import org.apache.shardingsphere.sharding.api.config.ShardingRuleConfiguration;
-import org.apache.shardingsphere.sharding.api.config.cache.ShardingCacheConfiguration;
-import org.apache.shardingsphere.sharding.api.config.cache.ShardingCacheOptionsConfiguration;
 import org.apache.shardingsphere.sharding.api.config.rule.ShardingTableReferenceRuleConfiguration;
 import org.apache.shardingsphere.sharding.api.config.rule.ShardingTableRuleConfiguration;
 import org.apache.shardingsphere.sharding.api.config.strategy.audit.ShardingAuditStrategyConfiguration;
@@ -31,19 +34,14 @@ import org.apache.shardingsphere.sharding.api.config.strategy.sharding.HintShard
 import org.apache.shardingsphere.sharding.api.config.strategy.sharding.NoneShardingStrategyConfiguration;
 import org.apache.shardingsphere.sharding.api.config.strategy.sharding.StandardShardingStrategyConfiguration;
 import org.apache.shardingsphere.sharding.yaml.config.YamlShardingRuleConfiguration;
-import org.apache.shardingsphere.sharding.yaml.config.cache.YamlShardingCacheConfiguration;
-import org.apache.shardingsphere.sharding.yaml.config.cache.YamlShardingCacheOptionsConfiguration;
 import org.apache.shardingsphere.test.it.yaml.YamlRuleConfigurationIT;
-import org.apache.shardingsphere.test.util.PropertiesBuilder;
-import org.apache.shardingsphere.test.util.PropertiesBuilder.Property;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Properties;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.hamcrest.Matchers.is;
 
 class ShardingRuleConfigurationYamlIT extends YamlRuleConfigurationIT {
     
@@ -63,7 +61,6 @@ class ShardingRuleConfigurationYamlIT extends YamlRuleConfigurationIT {
         result.getTables().add(stockTableRuleConfig);
         ShardingTableRuleConfiguration orderTableRuleConfig = new ShardingTableRuleConfiguration("t_order", "ds_${0..1}.t_order_${0..1}");
         orderTableRuleConfig.setTableShardingStrategy(new StandardShardingStrategyConfiguration("order_id", "table_inline"));
-        orderTableRuleConfig.setKeyGenerateStrategy(new KeyGenerateStrategyConfiguration("order_id", "snowflake"));
         result.getTables().add(orderTableRuleConfig);
         ShardingTableRuleConfiguration orderItemTableRuleConfig = new ShardingTableRuleConfiguration("t_order_item", "ds_${0..1}.t_order_item_${0..1}");
         orderItemTableRuleConfig.setTableShardingStrategy(new StandardShardingStrategyConfiguration("order_id", "core_standard_fixture"));
@@ -74,6 +71,8 @@ class ShardingRuleConfigurationYamlIT extends YamlRuleConfigurationIT {
         result.setDefaultShardingColumn("order_id");
         result.setDefaultKeyGenerateStrategy(new KeyGenerateStrategyConfiguration("id", "snowflake"));
         result.setDefaultAuditStrategy(new ShardingAuditStrategyConfiguration(Collections.singletonList("sharding_key_required_auditor"), true));
+        result.getKeyGenerateStrategies().put("t_order", createColumnKeyGenerateStrategyRuleConfiguration());
+        result.getKeyGenerateStrategies().put("id_sequence", createSequenceKeyGenerateStrategyRuleConfiguration());
         result.getShardingAlgorithms().put("core_standard_fixture", new AlgorithmConfiguration("CORE.STANDARD.FIXTURE", new Properties()));
         result.getShardingAlgorithms().put("core_complex_fixture", new AlgorithmConfiguration("CORE.COMPLEX.FIXTURE", new Properties()));
         result.getShardingAlgorithms().put("core_hint_fixture", new AlgorithmConfiguration("CORE.HINT.FIXTURE", new Properties()));
@@ -81,7 +80,6 @@ class ShardingRuleConfigurationYamlIT extends YamlRuleConfigurationIT {
         result.getShardingAlgorithms().put("table_inline", new AlgorithmConfiguration("INLINE", PropertiesBuilder.build(new Property("algorithm-expression", "t_order_${order_id % 2}"))));
         result.getKeyGenerators().put("snowflake", new AlgorithmConfiguration("SNOWFLAKE", new Properties()));
         result.getAuditors().put("sharding_key_required_auditor", new AlgorithmConfiguration("DML_SHARDING_CONDITIONS", new Properties()));
-        result.setShardingCache(new ShardingCacheConfiguration(512, new ShardingCacheOptionsConfiguration(true, 65536, 262144)));
         return result;
     }
     
@@ -98,7 +96,7 @@ class ShardingRuleConfigurationYamlIT extends YamlRuleConfigurationIT {
         assertTOrder(actual);
         assertTOrderItem(actual);
         assertBindingTable(actual);
-        assertShardingCache(actual);
+        assertKeyGenerateStrategies(actual);
         assertThat(actual.getDefaultShardingColumn(), is("order_id"));
     }
     
@@ -120,8 +118,6 @@ class ShardingRuleConfigurationYamlIT extends YamlRuleConfigurationIT {
         assertThat(actual.getTables().get("t_order").getActualDataNodes(), is("ds_${0..1}.t_order_${0..1}"));
         assertThat(actual.getTables().get("t_order").getTableStrategy().getStandard().getShardingColumn(), is("order_id"));
         assertThat(actual.getTables().get("t_order").getTableStrategy().getStandard().getShardingAlgorithmName(), is("table_inline"));
-        assertThat(actual.getTables().get("t_order").getKeyGenerateStrategy().getColumn(), is("order_id"));
-        assertThat(actual.getTables().get("t_order").getKeyGenerateStrategy().getKeyGeneratorName(), is("snowflake"));
     }
     
     private void assertTOrderItem(final YamlShardingRuleConfiguration actual) {
@@ -136,12 +132,22 @@ class ShardingRuleConfigurationYamlIT extends YamlRuleConfigurationIT {
         assertThat(new ArrayList<>(actual.getBindingTables()).get(0), is("foo:t_order, t_order_item"));
     }
     
-    private void assertShardingCache(final YamlShardingRuleConfiguration actual) {
-        YamlShardingCacheConfiguration actualShardingCache = actual.getShardingCache();
-        assertThat(actualShardingCache.getAllowedMaxSqlLength(), is(512));
-        YamlShardingCacheOptionsConfiguration actualRouteCacheConfig = actualShardingCache.getRouteCache();
-        assertThat(actualRouteCacheConfig.getInitialCapacity(), is(65536));
-        assertThat(actualRouteCacheConfig.getMaximumSize(), is(262144));
-        assertTrue(actualRouteCacheConfig.isSoftValues());
+    private void assertKeyGenerateStrategies(final YamlShardingRuleConfiguration actual) {
+        assertThat(actual.getKeyGenerateStrategies().size(), is(2));
+        assertThat(actual.getKeyGenerateStrategies().get("t_order").getKeyGenerateType(), is("column"));
+        assertThat(actual.getKeyGenerateStrategies().get("t_order").getKeyGeneratorName(), is("snowflake"));
+        assertThat(actual.getKeyGenerateStrategies().get("t_order").getLogicTable(), is("t_order"));
+        assertThat(actual.getKeyGenerateStrategies().get("t_order").getKeyGenerateColumn(), is("id"));
+        assertThat(actual.getKeyGenerateStrategies().get("id_sequence").getKeyGenerateType(), is("sequence"));
+        assertThat(actual.getKeyGenerateStrategies().get("id_sequence").getKeyGeneratorName(), is("snowflake"));
+        assertThat(actual.getKeyGenerateStrategies().get("id_sequence").getKeyGenerateSequence(), is("sequence_name"));
+    }
+    
+    private static KeyGenerateStrategiesConfiguration createColumnKeyGenerateStrategyRuleConfiguration() {
+        return new ColumnKeyGenerateStrategiesRuleConfiguration("snowflake", "t_order", "id");
+    }
+    
+    private static KeyGenerateStrategiesConfiguration createSequenceKeyGenerateStrategyRuleConfiguration() {
+        return new SequenceKeyGenerateStrategiesRuleConfiguration("snowflake", "sequence_name");
     }
 }

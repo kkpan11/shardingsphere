@@ -17,25 +17,29 @@
 
 package org.apache.shardingsphere.encrypt.merge.dal.show;
 
+import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
 import org.apache.shardingsphere.encrypt.config.rule.EncryptColumnItemRuleConfiguration;
 import org.apache.shardingsphere.encrypt.config.rule.EncryptColumnRuleConfiguration;
 import org.apache.shardingsphere.encrypt.config.rule.EncryptTableRuleConfiguration;
 import org.apache.shardingsphere.encrypt.exception.syntax.UnsupportedEncryptSQLException;
 import org.apache.shardingsphere.encrypt.rule.EncryptRule;
 import org.apache.shardingsphere.encrypt.rule.table.EncryptTable;
+import org.apache.shardingsphere.encrypt.spi.EncryptAlgorithm;
+import org.apache.shardingsphere.encrypt.spi.EncryptAlgorithmMetaData;
+import org.apache.shardingsphere.infra.algorithm.core.config.AlgorithmConfiguration;
 import org.apache.shardingsphere.infra.binder.context.statement.SQLStatementContext;
-import org.apache.shardingsphere.infra.binder.context.statement.dal.ShowCreateTableStatementContext;
-import org.apache.shardingsphere.infra.binder.context.statement.dml.SelectStatementContext;
-import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
+import org.apache.shardingsphere.infra.binder.context.statement.type.CommonSQLStatementContext;
+import org.apache.shardingsphere.infra.binder.context.statement.type.dml.SelectStatementContext;
 import org.apache.shardingsphere.infra.merge.result.MergedResult;
 import org.apache.shardingsphere.infra.metadata.database.rule.RuleMetaData;
 import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 import org.apache.shardingsphere.parser.config.SQLParserRuleConfiguration;
 import org.apache.shardingsphere.parser.rule.SQLParserRule;
-import org.apache.shardingsphere.sql.parser.api.CacheOption;
+import org.apache.shardingsphere.sql.parser.engine.api.CacheOption;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.SimpleTableSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.TableNameSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.value.identifier.IdentifierValue;
+import org.apache.shardingsphere.sql.parser.statement.mysql.dal.show.table.MySQLShowCreateTableStatement;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -43,18 +47,17 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
-import java.sql.Date;
 import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
-import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Properties;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
@@ -72,7 +75,8 @@ class EncryptShowCreateTableMergedResultTest {
     
     @Test
     void assertNewInstanceWithNotTableAvailableStatement() {
-        SQLStatementContext sqlStatementContext = mock(SQLStatementContext.class);
+        SQLStatementContext sqlStatementContext = mock(SQLStatementContext.class, RETURNS_DEEP_STUBS);
+        when(sqlStatementContext.getTablesContext().getDatabaseNames()).thenReturn(Collections.emptyList());
         assertThrows(UnsupportedEncryptSQLException.class, () -> new EncryptShowCreateTableMergedResult(mock(RuleMetaData.class), mergedResult, sqlStatementContext, mock(EncryptRule.class)));
     }
     
@@ -136,8 +140,8 @@ class EncryptShowCreateTableMergedResultTest {
         columnRuleConfig.setLikeQuery(new EncryptColumnItemRuleConfiguration("user_id_like", "foo_like_encryptor"));
         EncryptShowCreateTableMergedResult actual = createMergedResult(mergedResult, "foo_tbl", mockEncryptRule(Collections.singleton(columnRuleConfig)));
         assertTrue(actual.next());
-        String expectedSQL = "CREATE TABLE `foo_tbl` (`id` INT NOT NULL, `user_id` VARCHAR(100) NOT NULL, `order_id` VARCHAR(30) NOT NULL, PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
-        assertThat(actual.getValue(2, String.class), is(expectedSQL));
+        assertThat(actual.getValue(2, String.class),
+                is("CREATE TABLE `foo_tbl` (`id` INT NOT NULL, `user_id` VARCHAR(100) NOT NULL, `order_id` VARCHAR(30) NOT NULL, PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;"));
     }
     
     @Test
@@ -146,17 +150,21 @@ class EncryptShowCreateTableMergedResultTest {
         String actualSQL = "CREATE TABLE `foo_tbl` (`id` INT NOT NULL, `user_id_cipher` VARCHAR(100) NOT NULL, `user_id_like` VARCHAR(100) NOT NULL, "
                 + "`order_id_cipher` VARCHAR(30) NOT NULL, `order_id_like` VARCHAR(30) NOT NULL, PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
         when(mergedResult.getValue(2, String.class)).thenReturn(actualSQL);
-        Collection<EncryptColumnRuleConfiguration> columns = new LinkedList<>();
-        EncryptColumnRuleConfiguration userIdColumnConfig = new EncryptColumnRuleConfiguration("user_id", new EncryptColumnItemRuleConfiguration("user_id_cipher", "foo_encryptor"));
-        userIdColumnConfig.setLikeQuery(new EncryptColumnItemRuleConfiguration("user_id_like", "foo_like_encryptor"));
-        columns.add(userIdColumnConfig);
-        EncryptColumnRuleConfiguration orderIdColumnConfig = new EncryptColumnRuleConfiguration("order_id", new EncryptColumnItemRuleConfiguration("order_id_cipher", "foo_encryptor"));
-        orderIdColumnConfig.setLikeQuery(new EncryptColumnItemRuleConfiguration("order_id_like", "foo_like_encryptor"));
-        columns.add(orderIdColumnConfig);
-        EncryptShowCreateTableMergedResult actual = createMergedResult(mergedResult, "foo_tbl", mockEncryptRule(columns));
+        EncryptShowCreateTableMergedResult actual = createMergedResult(mergedResult, "foo_tbl", mockEncryptRule(getEncryptColumnRuleConfigurations()));
         assertTrue(actual.next());
         String expectedSQL = "CREATE TABLE `foo_tbl` (`id` INT NOT NULL, `user_id` VARCHAR(100) NOT NULL, `order_id` VARCHAR(30) NOT NULL, PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
         assertThat(actual.getValue(2, String.class), is(expectedSQL));
+    }
+    
+    private Collection<EncryptColumnRuleConfiguration> getEncryptColumnRuleConfigurations() {
+        Collection<EncryptColumnRuleConfiguration> result = new LinkedList<>();
+        EncryptColumnRuleConfiguration userIdColumnConfig = new EncryptColumnRuleConfiguration("user_id", new EncryptColumnItemRuleConfiguration("user_id_cipher", "foo_encryptor"));
+        userIdColumnConfig.setLikeQuery(new EncryptColumnItemRuleConfiguration("user_id_like", "foo_like_encryptor"));
+        result.add(userIdColumnConfig);
+        EncryptColumnRuleConfiguration orderIdColumnConfig = new EncryptColumnRuleConfiguration("order_id", new EncryptColumnItemRuleConfiguration("order_id_cipher", "foo_encryptor"));
+        orderIdColumnConfig.setLikeQuery(new EncryptColumnItemRuleConfiguration("order_id_like", "foo_like_encryptor"));
+        result.add(orderIdColumnConfig);
+        return result;
     }
     
     @Test
@@ -183,33 +191,9 @@ class EncryptShowCreateTableMergedResultTest {
         assertThat(actual.getValue(2, String.class), is("foo_tbl"));
     }
     
-    @Test
-    void assertGetCalendarValue() {
-        EncryptShowCreateTableMergedResult actual = createMergedResult(mergedResult, "foo_tbl", mock(EncryptRule.class));
-        assertThrows(SQLFeatureNotSupportedException.class, () -> actual.getCalendarValue(1, Date.class, Calendar.getInstance()));
-    }
-    
-    @Test
-    void assertGetInputStream() {
-        EncryptShowCreateTableMergedResult actual = createMergedResult(mergedResult, "foo_tbl", mock(EncryptRule.class));
-        assertThrows(SQLFeatureNotSupportedException.class, () -> actual.getInputStream(1, "ascii"));
-    }
-    
-    @Test
-    void assertGetCharacterStream() {
-        EncryptShowCreateTableMergedResult actual = createMergedResult(mergedResult, "foo_tbl", mock(EncryptRule.class));
-        assertThrows(SQLFeatureNotSupportedException.class, () -> actual.getCharacterStream(1));
-    }
-    
-    @Test
-    void assertWasNull() throws SQLException {
-        assertFalse(createMergedResult(mergedResult, "foo_tbl", mock(EncryptRule.class)).wasNull());
-    }
-    
     private EncryptShowCreateTableMergedResult createMergedResult(final MergedResult mergedResult, final String tableName, final EncryptRule rule) {
-        ShowCreateTableStatementContext sqlStatementContext = mock(ShowCreateTableStatementContext.class, RETURNS_DEEP_STUBS);
-        when(sqlStatementContext.getTablesContext().getSimpleTables()).thenReturn(Collections.singleton(new SimpleTableSegment(new TableNameSegment(1, 4, new IdentifierValue(tableName)))));
-        when(sqlStatementContext.getDatabaseType()).thenReturn(databaseType);
+        MySQLShowCreateTableStatement sqlStatement = new MySQLShowCreateTableStatement(databaseType, new SimpleTableSegment(new TableNameSegment(1, 4, new IdentifierValue(tableName))));
+        CommonSQLStatementContext sqlStatementContext = new CommonSQLStatementContext(sqlStatement);
         RuleMetaData globalRuleMetaData = mock(RuleMetaData.class);
         when(globalRuleMetaData.getSingleRule(SQLParserRule.class)).thenReturn(new SQLParserRule(new SQLParserRuleConfiguration(new CacheOption(128, 1024L), new CacheOption(2000, 65535L))));
         return new EncryptShowCreateTableMergedResult(globalRuleMetaData, mergedResult, sqlStatementContext, rule);
@@ -217,8 +201,26 @@ class EncryptShowCreateTableMergedResultTest {
     
     private EncryptRule mockEncryptRule(final Collection<EncryptColumnRuleConfiguration> encryptColumnRuleConfigs) {
         EncryptRule result = mock(EncryptRule.class);
-        EncryptTable encryptTable = new EncryptTable(new EncryptTableRuleConfiguration("foo_tbl", encryptColumnRuleConfigs), Collections.emptyMap());
+        EncryptTable encryptTable = new EncryptTable(new EncryptTableRuleConfiguration("foo_tbl", encryptColumnRuleConfigs), createEncryptors(encryptColumnRuleConfigs));
         when(result.findEncryptTable("foo_tbl")).thenReturn(Optional.of(encryptTable));
+        return result;
+    }
+    
+    private Map<String, EncryptAlgorithm> createEncryptors(final Collection<EncryptColumnRuleConfiguration> encryptColumnRuleConfigs) {
+        Map<String, EncryptAlgorithm> result = new HashMap<>(encryptColumnRuleConfigs.size() * 3, 1F);
+        for (EncryptColumnRuleConfiguration each : encryptColumnRuleConfigs) {
+            result.put(each.getCipher().getEncryptorName(), mockEncryptAlgorithm());
+            each.getAssistedQuery().ifPresent(optional -> result.put(optional.getEncryptorName(), mockEncryptAlgorithm()));
+            each.getLikeQuery().ifPresent(optional -> result.put(optional.getEncryptorName(), mockEncryptAlgorithm()));
+        }
+        return result;
+    }
+    
+    private EncryptAlgorithm mockEncryptAlgorithm() {
+        EncryptAlgorithm result = mock(EncryptAlgorithm.class);
+        when(result.getMetaData()).thenReturn(new EncryptAlgorithmMetaData(true, true, true, String.class));
+        when(result.getEncoder()).thenReturn(Optional.empty());
+        when(result.toConfiguration()).thenReturn(new AlgorithmConfiguration("FIXTURE", new Properties()));
         return result;
     }
 }

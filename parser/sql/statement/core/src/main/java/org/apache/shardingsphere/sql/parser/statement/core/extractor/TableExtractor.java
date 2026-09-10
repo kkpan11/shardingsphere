@@ -34,6 +34,7 @@ import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.Func
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.InExpression;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.ListExpression;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.NotExpression;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.QuantifySubqueryExpression;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.TypeCastExpression;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.complex.CommonTableExpressionSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.subquery.SubqueryExpressionSegment;
@@ -51,18 +52,23 @@ import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.Owner
 import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.OwnerSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.match.MatchAgainstExpression;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.DeleteMultiTableSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.FunctionTableSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.JoinTableSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.SimpleTableSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.SubqueryTableSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.TableNameSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.TableSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.statement.SQLStatement;
-import org.apache.shardingsphere.sql.parser.statement.core.statement.ddl.CreateTableStatement;
-import org.apache.shardingsphere.sql.parser.statement.core.statement.ddl.CreateViewStatement;
-import org.apache.shardingsphere.sql.parser.statement.core.statement.dml.DeleteStatement;
-import org.apache.shardingsphere.sql.parser.statement.core.statement.dml.InsertStatement;
-import org.apache.shardingsphere.sql.parser.statement.core.statement.dml.SelectStatement;
-import org.apache.shardingsphere.sql.parser.statement.core.statement.dml.UpdateStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.type.ddl.CommentStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.type.ddl.index.CreateIndexStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.type.ddl.index.DropIndexStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.type.ddl.table.AlterTableStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.type.ddl.table.CreateTableStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.type.ddl.view.CreateViewStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.type.dml.DeleteStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.type.dml.InsertStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.type.dml.SelectStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.type.dml.UpdateStatement;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -102,7 +108,7 @@ public final class TableExtractor {
         selectStatement.getGroupBy().ifPresent(optional -> extractTablesFromOrderByItems(optional.getGroupByItems()));
         selectStatement.getOrderBy().ifPresent(optional -> extractTablesFromOrderByItems(optional.getOrderByItems()));
         selectStatement.getHaving().ifPresent(optional -> extractTablesFromExpression(optional.getExpr()));
-        selectStatement.getWithSegment().ifPresent(optional -> extractTablesFromCTEs(optional.getCommonTableExpressions()));
+        selectStatement.getWith().ifPresent(optional -> extractTablesFromCTEs(optional.getCommonTableExpressions()));
         selectStatement.getLock().ifPresent(this::extractTablesFromLock);
     }
     
@@ -132,6 +138,10 @@ public final class TableExtractor {
             DeleteMultiTableSegment deleteMultiTableSegment = (DeleteMultiTableSegment) tableSegment;
             rewriteTables.addAll(deleteMultiTableSegment.getActualDeleteTables());
             extractTablesFromTableSegment(deleteMultiTableSegment.getRelationTable());
+        }
+        if (tableSegment instanceof FunctionTableSegment) {
+            tableContext.add(tableSegment);
+            extractTablesFromExpression(((FunctionTableSegment) tableSegment).getTableFunction());
         }
     }
     
@@ -192,6 +202,9 @@ public final class TableExtractor {
         }
         if (expressionSegment instanceof TypeCastExpression) {
             extractTablesFromExpression(((TypeCastExpression) expressionSegment).getExpression());
+        }
+        if (expressionSegment instanceof QuantifySubqueryExpression) {
+            extractTablesFromExpression(((QuantifySubqueryExpression) expressionSegment).getSubquery());
         }
     }
     
@@ -300,7 +313,10 @@ public final class TableExtractor {
      * @param updateStatement update statement.
      */
     public void extractTablesFromUpdate(final UpdateStatement updateStatement) {
-        extractTablesFromTableSegment(updateStatement.getTable());
+        if (!updateStatement.isTargetTableIsFromAlias()) {
+            extractTablesFromTableSegment(updateStatement.getTable());
+        }
+        updateStatement.getFrom().ifPresent(this::extractTablesFromTableSegment);
         updateStatement.getSetAssignment().getAssignments().forEach(each -> extractTablesFromExpression(each.getColumns().get(0)));
         if (updateStatement.getWhere().isPresent()) {
             extractTablesFromExpression(updateStatement.getWhere().get().getExpr());
@@ -391,6 +407,18 @@ public final class TableExtractor {
             extractTablesFromUpdate((UpdateStatement) sqlStatement);
         } else if (sqlStatement instanceof DeleteStatement) {
             extractTablesFromDelete((DeleteStatement) sqlStatement);
+        } else if (sqlStatement instanceof CreateTableStatement) {
+            extractTablesFromTableSegment(((CreateTableStatement) sqlStatement).getTable());
+        } else if (sqlStatement instanceof AlterTableStatement) {
+            extractTablesFromTableSegment(((AlterTableStatement) sqlStatement).getTable());
+        } else if (sqlStatement instanceof CommentStatement) {
+            extractTablesFromTableSegment(((CommentStatement) sqlStatement).getTable());
+        } else if (sqlStatement instanceof CreateViewStatement) {
+            extractTablesFromCreateViewStatement((CreateViewStatement) sqlStatement);
+        } else if (sqlStatement instanceof CreateIndexStatement) {
+            extractTablesFromTableSegment(((CreateIndexStatement) sqlStatement).getTable());
+        } else if (sqlStatement instanceof DropIndexStatement) {
+            ((DropIndexStatement) sqlStatement).getSimpleTable().ifPresent(this::extractTablesFromTableSegment);
         }
     }
     

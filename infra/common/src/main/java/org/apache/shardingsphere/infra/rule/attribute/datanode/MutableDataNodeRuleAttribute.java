@@ -33,6 +33,25 @@ import java.util.Optional;
 public interface MutableDataNodeRuleAttribute extends RuleAttribute {
     
     /**
+     * Copy rule and add data node.
+     *
+     * @param dataSourceName data source name
+     * @param schemaName schema name
+     * @param tableName table name
+     * @return copied rule with added data node
+     */
+    ShardingSphereRule copyRuleAndPut(String dataSourceName, String schemaName, String tableName);
+    
+    /**
+     * Copy rule and remove data node.
+     *
+     * @param schemaName schema name
+     * @param tableName table name
+     * @return copied rule with removed data node
+     */
+    ShardingSphereRule copyRuleAndRemove(String schemaName, String tableName);
+    
+    /**
      * Add data node.
      *
      * @param dataSourceName data source name
@@ -69,11 +88,11 @@ public interface MutableDataNodeRuleAttribute extends RuleAttribute {
     /**
      * Reload single rule.
      *
-     * @param config rule configuration
+     * @param ruleConfig rule configuration
      * @param databaseName database name
      * @param dataSourceMap data source map
      * @param builtRules built rules
      * @return single rule
      */
-    ShardingSphereRule reloadRule(RuleConfiguration config, String databaseName, Map<String, DataSource> dataSourceMap, Collection<ShardingSphereRule> builtRules);
+    ShardingSphereRule reloadRule(RuleConfiguration ruleConfig, String databaseName, Map<String, DataSource> dataSourceMap, Collection<ShardingSphereRule> builtRules);
 }

@@ -17,17 +17,16 @@
 
 package org.apache.shardingsphere.sharding.route.engine.type.standard;
 
-import com.cedarsoftware.util.CaseInsensitiveSet;
+import lombok.RequiredArgsConstructor;
 import org.apache.shardingsphere.infra.binder.context.statement.SQLStatementContext;
-import org.apache.shardingsphere.infra.binder.context.type.TableAvailable;
 import org.apache.shardingsphere.infra.config.props.ConfigurationProperties;
 import org.apache.shardingsphere.infra.datanode.DataNode;
+import org.apache.shardingsphere.infra.exception.ShardingSpherePreconditions;
 import org.apache.shardingsphere.infra.hint.HintManager;
 import org.apache.shardingsphere.infra.hint.HintValueContext;
 import org.apache.shardingsphere.infra.route.context.RouteContext;
 import org.apache.shardingsphere.infra.route.context.RouteMapper;
 import org.apache.shardingsphere.infra.route.context.RouteUnit;
-import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
 import org.apache.shardingsphere.sharding.api.config.strategy.sharding.HintShardingStrategyConfiguration;
 import org.apache.shardingsphere.sharding.api.config.strategy.sharding.ShardingStrategyConfiguration;
 import org.apache.shardingsphere.sharding.exception.algorithm.MismatchedShardingDataSourceRouteInfoException;
@@ -57,6 +56,7 @@ import java.util.Optional;
 /**
  * Sharding standard route engine.
  */
+@RequiredArgsConstructor
 public final class ShardingStandardRouteEngine implements ShardingRouteEngine {
     
     private final String logicTableName;
@@ -65,20 +65,11 @@ public final class ShardingStandardRouteEngine implements ShardingRouteEngine {
     
     private final SQLStatementContext sqlStatementContext;
     
-    private final ConfigurationProperties props;
-    
     private final Collection<Collection<DataNode>> originalDataNodes = new LinkedList<>();
     
     private final HintValueContext hintValueContext;
     
-    public ShardingStandardRouteEngine(final String logicTableName, final ShardingConditions shardingConditions, final SQLStatementContext sqlStatementContext,
-                                       final HintValueContext hintValueContext, final ConfigurationProperties props) {
-        this.logicTableName = logicTableName;
-        this.shardingConditions = shardingConditions;
-        this.sqlStatementContext = sqlStatementContext;
-        this.props = props;
-        this.hintValueContext = hintValueContext;
-    }
+    private final ConfigurationProperties props;
     
     @Override
     public RouteContext route(final ShardingRule shardingRule) {
@@ -112,7 +103,7 @@ public final class ShardingStandardRouteEngine implements ShardingRouteEngine {
     }
     
     private boolean isRoutingBySQLHint() {
-        Collection<String> tableNames = ((TableAvailable) sqlStatementContext).getTablesContext().getTableNames();
+        Collection<String> tableNames = sqlStatementContext.getTablesContext().getTableNames();
         for (String each : tableNames) {
             if (hintValueContext.containsHintShardingValue(each)) {
                 return true;
@@ -202,7 +193,7 @@ public final class ShardingStandardRouteEngine implements ShardingRouteEngine {
     
     private List<ShardingConditionValue> getDatabaseShardingValuesFromSQLHint() {
         Collection<Comparable<?>> shardingValues = new LinkedList<>();
-        Collection<String> tableNames = ((TableAvailable) sqlStatementContext).getTablesContext().getTableNames();
+        Collection<String> tableNames = sqlStatementContext.getTablesContext().getTableNames();
         for (String each : tableNames) {
             if (each.equals(logicTableName) && hintValueContext.containsHintShardingDatabaseValue(each)) {
                 shardingValues.addAll(hintValueContext.getHintShardingDatabaseValue(each));
@@ -220,7 +211,7 @@ public final class ShardingStandardRouteEngine implements ShardingRouteEngine {
     
     private List<ShardingConditionValue> getTableShardingValuesFromSQLHint() {
         Collection<Comparable<?>> shardingValues = new LinkedList<>();
-        Collection<String> tableNames = ((TableAvailable) sqlStatementContext).getTablesContext().getTableNames();
+        Collection<String> tableNames = sqlStatementContext.getTablesContext().getTableNames();
         for (String each : tableNames) {
             if (each.equals(logicTableName) && hintValueContext.containsHintShardingTableValue(each)) {
                 shardingValues.addAll(hintValueContext.getHintShardingTableValue(each));
@@ -238,7 +229,7 @@ public final class ShardingStandardRouteEngine implements ShardingRouteEngine {
         for (ShardingConditionValue each : shardingCondition.getValues()) {
             Optional<BindingTableRule> bindingTableRule = shardingRule.findBindingTableRule(each.getTableName());
             if ((logicTableName.equalsIgnoreCase(each.getTableName()) || bindingTableRule.isPresent() && bindingTableRule.get().hasLogicTable(logicTableName))
-                    && new CaseInsensitiveSet<>(shardingColumns).contains(each.getColumnName())) {
+                    && shardingColumns.contains(each.getColumnName())) {
                 result.add(each);
             }
         }
@@ -251,7 +242,7 @@ public final class ShardingStandardRouteEngine implements ShardingRouteEngine {
         Collection<String> routedDataSources = routeDataSources(shardingTable, databaseShardingStrategy, databaseShardingValues);
         Collection<DataNode> result = new LinkedList<>();
         for (String each : routedDataSources) {
-            result.addAll(routeTables(shardingTable, each, tableShardingStrategy, tableShardingValues));
+            routeTables(shardingTable, each, tableShardingStrategy, tableShardingValues, result);
         }
         return result;
     }
@@ -261,23 +252,21 @@ public final class ShardingStandardRouteEngine implements ShardingRouteEngine {
             return shardingTable.getActualDataSourceNames();
         }
         Collection<String> result = databaseShardingStrategy.doSharding(shardingTable.getActualDataSourceNames(), databaseShardingValues, shardingTable.getDataSourceDataNode(), props);
-        ShardingSpherePreconditions.checkNotEmpty(result, NoShardingDatabaseRouteInfoException::new);
+        ShardingSpherePreconditions.checkNotEmpty(result, () -> new NoShardingDatabaseRouteInfoException(shardingTable.getActualDataSourceNames(), databaseShardingValues));
         ShardingSpherePreconditions.checkState(shardingTable.getActualDataSourceNames().containsAll(result),
-                () -> new MismatchedShardingDataSourceRouteInfoException(result, shardingTable.getActualDataSourceNames()));
+                () -> new MismatchedShardingDataSourceRouteInfoException(result, shardingTable.getActualDataSourceNames(), databaseShardingValues));
         return result;
     }
     
-    private Collection<DataNode> routeTables(final ShardingTable shardingTable, final String routedDataSource,
-                                             final ShardingStrategy tableShardingStrategy, final List<ShardingConditionValue> tableShardingValues) {
+    private void routeTables(final ShardingTable shardingTable, final String routedDataSource,
+                             final ShardingStrategy tableShardingStrategy, final List<ShardingConditionValue> tableShardingValues, final Collection<DataNode> result) {
         Collection<String> availableTargetTables = shardingTable.getActualTableNames(routedDataSource);
         Collection<String> routedTables = tableShardingValues.isEmpty()
                 ? availableTargetTables
                 : tableShardingStrategy.doSharding(availableTargetTables, tableShardingValues, shardingTable.getTableDataNode(), props);
-        Collection<DataNode> result = new LinkedList<>();
         for (String each : routedTables) {
-            result.add(new DataNode(routedDataSource, each));
+            result.add(new DataNode(routedDataSource, (String) null, each));
         }
-        return result;
     }
     
     private ShardingStrategy createShardingStrategy(final ShardingStrategyConfiguration shardingStrategyConfig, final Map<String, ShardingAlgorithm> shardingAlgorithms,

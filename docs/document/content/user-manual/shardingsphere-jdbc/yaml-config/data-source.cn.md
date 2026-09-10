@@ -28,13 +28,13 @@ dataSources: # 数据源配置，可配置多个 <data-source-name>
 dataSources:
   ds_1:
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
-    driverClassName: com.mysql.jdbc.Driver
+    driverClassName: com.mysql.cj.jdbc.Driver
     jdbcUrl: jdbc:mysql://localhost:3306/ds_1
     username: root
     password:
   ds_2:
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
-    driverClassName: com.mysql.jdbc.Driver
+    driverClassName: com.mysql.cj.jdbc.Driver
     jdbcUrl: jdbc:mysql://localhost:3306/ds_2
     username: root
     password:

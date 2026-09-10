@@ -18,12 +18,12 @@
 package org.apache.shardingsphere.driver.jdbc.core.resultset;
 
 import lombok.RequiredArgsConstructor;
+import org.apache.shardingsphere.database.connector.core.DefaultDatabase;
 import org.apache.shardingsphere.driver.jdbc.adapter.WrapperAdapter;
-import org.apache.shardingsphere.infra.exception.kernel.syntax.ColumnIndexOutOfRangeException;
 import org.apache.shardingsphere.infra.binder.context.segment.select.projection.Projection;
 import org.apache.shardingsphere.infra.binder.context.statement.SQLStatementContext;
-import org.apache.shardingsphere.infra.binder.context.statement.dml.SelectStatementContext;
-import org.apache.shardingsphere.infra.database.core.DefaultDatabase;
+import org.apache.shardingsphere.infra.binder.context.statement.type.dml.SelectStatementContext;
+import org.apache.shardingsphere.infra.exception.kernel.syntax.ColumnIndexOutOfRangeException;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.infra.rule.attribute.datanode.DataNodeRuleAttribute;
 
@@ -128,7 +128,8 @@ public final class ShardingSphereResultSetMetaData extends WrapperAdapter implem
     
     @Override
     public String getTableName(final int column) throws SQLException {
-        return decorateTableName(database.getRuleMetaData().getAttributes(DataNodeRuleAttribute.class), resultSetMetaData.getTableName(column));
+        String actualTableName = resultSetMetaData.getTableName(column);
+        return null == database ? actualTableName : decorateTableName(database.getRuleMetaData().getAttributes(DataNodeRuleAttribute.class), actualTableName);
     }
     
     private String decorateTableName(final Collection<DataNodeRuleAttribute> ruleAttributes, final String actualTableName) {

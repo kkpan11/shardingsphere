@@ -7,24 +7,24 @@ ShardingSphere-Agent module provides an observable framework for ShardingSphere,
 ### Logging
 
 The logging plugin uses to record logs of ShardingSphere.
-Supports for File.
+Support for File.
 
 ### Metrics
 
 The metrics plugin uses to collect and expose monitoring metrics.
-Supports for prometheus.
+Support for prometheus.
 
 ### Tracing
 
 The tracing plugin uses to obtain the link trace information of SQL parsing and SQL execution.
-Supports for OpenTelemetry.
+Support for OpenTelemetry.
 
 ## How To Build
 
 ```shell
 git clone https://github.com/apache/shardingsphere.git
 cd shardingsphere
-./mvnw clean install -Prelease
+./mvnw clean install -P-dev,release,all
 ```
 
 Artifact is `distribution/agent/target/apache-shardingsphere-${latest.release.version}-shardingsphere-agent-bin.tar.gz`

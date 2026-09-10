@@ -17,16 +17,17 @@
 
 package org.apache.shardingsphere.data.pipeline.core.ingest.dumper.inventory.column;
 
-import org.apache.shardingsphere.infra.database.core.spi.DatabaseTypedSPILoader;
-import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
+import org.apache.shardingsphere.database.connector.core.spi.DatabaseTypedSPILoader;
+import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
-import org.apache.shardingsphere.test.mock.AutoMockExtension;
-import org.apache.shardingsphere.test.mock.StaticMockSettings;
+import org.apache.shardingsphere.test.infra.framework.extension.mock.AutoMockExtension;
+import org.apache.shardingsphere.test.infra.framework.extension.mock.StaticMockSettings;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.Clob;
@@ -40,9 +41,10 @@ import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.Optional;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -72,7 +74,7 @@ class InventoryColumnValueReaderEngineTest {
     void assertReadWithBooleanValue() throws SQLException {
         when(metaData.getColumnType(1)).thenReturn(Types.BOOLEAN);
         when(resultSet.getBoolean(1)).thenReturn(true);
-        assertThat(engine.read(resultSet, metaData, 1), is(true));
+        assertTrue((boolean) engine.read(resultSet, metaData, 1));
     }
     
     @Test
@@ -132,7 +134,7 @@ class InventoryColumnValueReaderEngineTest {
     void assertReadWithUnSingedBigIntValue() throws SQLException {
         when(metaData.getColumnType(1)).thenReturn(Types.BIGINT);
         when(resultSet.getBigDecimal(1)).thenReturn(new BigDecimal("1"));
-        assertThat(engine.read(resultSet, metaData, 1), is(new BigDecimal("1")));
+        assertThat(engine.read(resultSet, metaData, 1), is(new BigInteger("1")));
     }
     
     @Test

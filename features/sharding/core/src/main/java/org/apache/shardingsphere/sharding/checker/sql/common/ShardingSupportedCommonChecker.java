@@ -19,16 +19,16 @@ package org.apache.shardingsphere.sharding.checker.sql.common;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import org.apache.shardingsphere.database.exception.core.exception.syntax.table.NoSuchTableException;
+import org.apache.shardingsphere.database.exception.core.exception.syntax.table.TableExistsException;
 import org.apache.shardingsphere.infra.binder.context.statement.SQLStatementContext;
-import org.apache.shardingsphere.infra.binder.context.type.TableAvailable;
-import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
-import org.apache.shardingsphere.infra.exception.dialect.exception.syntax.table.NoSuchTableException;
-import org.apache.shardingsphere.infra.exception.dialect.exception.syntax.table.TableExistsException;
+import org.apache.shardingsphere.infra.exception.ShardingSpherePreconditions;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereSchema;
 import org.apache.shardingsphere.sharding.exception.syntax.DMLWithMultipleShardingTablesException;
 import org.apache.shardingsphere.sharding.exception.syntax.UnsupportedShardingOperationException;
 import org.apache.shardingsphere.sharding.rule.ShardingRule;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.SimpleTableSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.value.identifier.IdentifierValue;
 
 import java.util.Collection;
 
@@ -62,8 +62,8 @@ public final class ShardingSupportedCommonChecker {
      */
     public static void checkTableExist(final ShardingSphereSchema schema, final Collection<SimpleTableSegment> tables) {
         for (SimpleTableSegment each : tables) {
-            String tableName = each.getTableName().getIdentifier().getValue();
-            ShardingSpherePreconditions.checkState(schema.containsTable(tableName), () -> new NoSuchTableException(tableName));
+            IdentifierValue tableName = each.getTableName().getIdentifier();
+            ShardingSpherePreconditions.checkState(schema.containsTable(tableName), () -> new NoSuchTableException(tableName.getValue()));
         }
     }
     
@@ -76,8 +76,8 @@ public final class ShardingSupportedCommonChecker {
      */
     public static void checkTableNotExist(final ShardingSphereSchema schema, final Collection<SimpleTableSegment> tables) {
         for (SimpleTableSegment each : tables) {
-            String tableName = each.getTableName().getIdentifier().getValue();
-            ShardingSpherePreconditions.checkState(!schema.containsTable(tableName), () -> new TableExistsException(tableName));
+            IdentifierValue tableName = each.getTableName().getIdentifier();
+            ShardingSpherePreconditions.checkState(!schema.containsTable(tableName), () -> new TableExistsException(tableName.getValue()));
         }
     }
     
@@ -88,7 +88,7 @@ public final class ShardingSupportedCommonChecker {
      * @param sqlStatementContext sqlStatementContext
      */
     public static void checkMultipleTable(final ShardingRule shardingRule, final SQLStatementContext sqlStatementContext) {
-        Collection<String> tableNames = ((TableAvailable) sqlStatementContext).getTablesContext().getTableNames();
+        Collection<String> tableNames = sqlStatementContext.getTablesContext().getTableNames();
         boolean isAllShardingTables = shardingRule.isAllShardingTables(tableNames) && (1 == tableNames.size() || shardingRule.isAllConfigBindingTables(tableNames));
         boolean isAllSingleTables = !shardingRule.containsShardingTable(tableNames);
         ShardingSpherePreconditions.checkState(isAllShardingTables || isAllSingleTables, () -> new DMLWithMultipleShardingTablesException(tableNames));

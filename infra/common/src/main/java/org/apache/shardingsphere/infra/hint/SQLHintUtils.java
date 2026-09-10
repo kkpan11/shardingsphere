@@ -25,7 +25,7 @@ import lombok.NoArgsConstructor;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -83,20 +83,20 @@ public final class SQLHintUtils {
             result.setShadow(Boolean.parseBoolean(getHintValue(hintKeyValues, SQLHintPropertiesKey.SHADOW_KEY)));
         }
         for (Entry<String, String> entry : hintKeyValues.entrySet()) {
-            Object value = convert(entry.getValue());
-            Comparable<?> comparable = value instanceof Comparable ? (Comparable<?>) value : Objects.toString(value);
+            Comparable<?> value = convert(entry.getValue());
             if (containsHintKey(Objects.toString(entry.getKey()), SQLHintPropertiesKey.SHARDING_DATABASE_VALUE_KEY)) {
-                result.getShardingDatabaseValues().put(Objects.toString(entry.getKey()).toUpperCase(), comparable);
+                result.getShardingDatabaseValues().put(Objects.toString(entry.getKey()).toUpperCase(), value);
             }
             if (containsHintKey(Objects.toString(entry.getKey()), SQLHintPropertiesKey.SHARDING_TABLE_VALUE_KEY)) {
-                result.getShardingTableValues().put(Objects.toString(entry.getKey()).toUpperCase(), comparable);
+                result.getShardingTableValues().put(Objects.toString(entry.getKey()).toUpperCase(), value);
             }
         }
         return result;
     }
     
     private static int getHintKeyValueBeginIndex(final String sql) {
-        int tokenBeginIndex = sql.contains(SQLHintTokenType.SQL_START_HINT_TOKEN.getKey()) ? sql.indexOf(SQLHintTokenType.SQL_START_HINT_TOKEN.getKey())
+        int tokenBeginIndex = sql.contains(SQLHintTokenType.SQL_START_HINT_TOKEN.getKey())
+                ? sql.indexOf(SQLHintTokenType.SQL_START_HINT_TOKEN.getKey())
                 : sql.indexOf(SQLHintTokenType.SQL_START_HINT_TOKEN.getAlias());
         return sql.indexOf(":", tokenBeginIndex) + 1;
     }
@@ -118,7 +118,7 @@ public final class SQLHintUtils {
         return result;
     }
     
-    private static Object convert(final String value) {
+    private static Comparable<?> convert(final String value) {
         try {
             return new BigInteger(value);
         } catch (final NumberFormatException ignored) {
@@ -140,7 +140,7 @@ public final class SQLHintUtils {
     }
     
     private static Collection<String> getSplitterSQLHintValue(final String property) {
-        return property.isEmpty() ? Collections.emptySet() : new HashSet<>(Splitter.on(SQL_HINT_VALUE_COLLECTION_SPLIT).omitEmptyStrings().trimResults().splitToList(property));
+        return property.isEmpty() ? Collections.emptySet() : new LinkedHashSet<>(Splitter.on(SQL_HINT_VALUE_COLLECTION_SPLIT).omitEmptyStrings().trimResults().splitToList(property));
     }
     
     /**

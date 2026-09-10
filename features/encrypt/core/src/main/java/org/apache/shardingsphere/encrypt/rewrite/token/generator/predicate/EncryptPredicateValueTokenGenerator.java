@@ -19,8 +19,8 @@ package org.apache.shardingsphere.encrypt.rewrite.token.generator.predicate;
 
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
+import org.apache.shardingsphere.encrypt.constant.EncryptConstants;
 import org.apache.shardingsphere.encrypt.exception.metadata.MissingMatchedEncryptQueryAlgorithmException;
-import org.apache.shardingsphere.encrypt.rewrite.aware.EncryptConditionsAware;
 import org.apache.shardingsphere.encrypt.rewrite.condition.EncryptCondition;
 import org.apache.shardingsphere.encrypt.rewrite.condition.EncryptConditionValues;
 import org.apache.shardingsphere.encrypt.rewrite.condition.impl.EncryptBinaryCondition;
@@ -30,13 +30,11 @@ import org.apache.shardingsphere.encrypt.rewrite.token.pojo.EncryptPredicateFunc
 import org.apache.shardingsphere.encrypt.rewrite.token.pojo.EncryptPredicateInRightValueToken;
 import org.apache.shardingsphere.encrypt.rule.EncryptRule;
 import org.apache.shardingsphere.encrypt.rule.column.EncryptColumn;
-import org.apache.shardingsphere.encrypt.rule.column.item.LikeQueryColumnItem;
 import org.apache.shardingsphere.encrypt.rule.table.EncryptTable;
 import org.apache.shardingsphere.infra.annotation.HighFrequencyInvocation;
+import org.apache.shardingsphere.infra.binder.context.available.WhereContextAvailable;
 import org.apache.shardingsphere.infra.binder.context.statement.SQLStatementContext;
-import org.apache.shardingsphere.infra.binder.context.type.TableAvailable;
-import org.apache.shardingsphere.infra.binder.context.type.WhereAvailable;
-import org.apache.shardingsphere.infra.database.core.type.DatabaseTypeRegistry;
+import org.apache.shardingsphere.infra.exception.ShardingSpherePreconditions;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.infra.rewrite.sql.token.common.generator.CollectionSQLTokenGenerator;
 import org.apache.shardingsphere.infra.rewrite.sql.token.common.generator.aware.ParametersAware;
@@ -56,60 +54,77 @@ import java.util.Optional;
 @HighFrequencyInvocation
 @RequiredArgsConstructor
 @Setter
-public final class EncryptPredicateValueTokenGenerator implements CollectionSQLTokenGenerator<SQLStatementContext>, ParametersAware, EncryptConditionsAware {
+public final class EncryptPredicateValueTokenGenerator implements CollectionSQLTokenGenerator<SQLStatementContext>, ParametersAware {
     
     private final EncryptRule rule;
     
     private final ShardingSphereDatabase database;
     
-    private List<Object> parameters;
+    private final Collection<EncryptCondition> encryptConditions;
     
-    private Collection<EncryptCondition> encryptConditions;
+    private List<Object> parameters;
     
     @Override
     public boolean isGenerateSQLToken(final SQLStatementContext sqlStatementContext) {
-        return sqlStatementContext instanceof WhereAvailable;
+        return sqlStatementContext instanceof WhereContextAvailable && !encryptConditions.isEmpty();
     }
     
     @Override
     public Collection<SQLToken> generateSQLTokens(final SQLStatementContext sqlStatementContext) {
         Collection<SQLToken> result = new LinkedHashSet<>(encryptConditions.size(), 1F);
-        String schemaName = ((TableAvailable) sqlStatementContext).getTablesContext().getSchemaName()
-                .orElseGet(() -> new DatabaseTypeRegistry(sqlStatementContext.getDatabaseType()).getDefaultSchemaName(database.getName()));
+        String schemaName = sqlStatementContext.getTablesContext().getSchemaName()
+                .orElseGet(database::getDefaultSchemaName);
         for (EncryptCondition each : encryptConditions) {
             Optional<EncryptTable> encryptTable = rule.findEncryptTable(each.getTableName());
-            encryptTable.ifPresent(optional -> result.add(generateSQLToken(schemaName, optional, each)));
+            encryptTable.flatMap(optional -> generateSQLToken(schemaName, optional, each)).ifPresent(result::add);
         }
         return result;
     }
     
-    private SQLToken generateSQLToken(final String schemaName, final EncryptTable encryptTable, final EncryptCondition encryptCondition) {
+    private Optional<SQLToken> generateSQLToken(final String schemaName, final EncryptTable encryptTable, final EncryptCondition encryptCondition) {
         int startIndex = encryptCondition.getStartIndex();
         int stopIndex = encryptCondition.getStopIndex();
-        Map<Integer, Object> indexValues = getPositionValues(
-                encryptCondition.getPositionValueMap().keySet(), getEncryptedValues(schemaName, encryptTable, encryptCondition, new EncryptConditionValues(encryptCondition).get(parameters)));
+        Map<Integer, Object> indexValues = getPositionValues(encryptCondition.getPositionValueMap().keySet(),
+                getEncryptedValues(schemaName, encryptTable, encryptCondition, new EncryptConditionValues(encryptCondition).get(parameters)));
         Collection<Integer> parameterMarkerIndexes = encryptCondition.getPositionIndexMap().keySet();
-        if (encryptCondition instanceof EncryptBinaryCondition && ((EncryptBinaryCondition) encryptCondition).getExpressionSegment() instanceof FunctionSegment) {
-            FunctionSegment functionSegment = (FunctionSegment) ((EncryptBinaryCondition) encryptCondition).getExpressionSegment();
-            return new EncryptPredicateFunctionRightValueToken(startIndex, stopIndex, functionSegment.getFunctionName(), functionSegment.getParameters(), indexValues, parameterMarkerIndexes);
+        if (encryptCondition instanceof EncryptBinaryCondition) {
+            return Optional.of(generateBinarySQLTokens((EncryptBinaryCondition) encryptCondition, startIndex, stopIndex, indexValues, parameterMarkerIndexes));
         }
         return encryptCondition instanceof EncryptInCondition
-                ? new EncryptPredicateInRightValueToken(startIndex, stopIndex, indexValues, parameterMarkerIndexes)
-                : new EncryptPredicateEqualRightValueToken(startIndex, stopIndex, indexValues, parameterMarkerIndexes);
+                ? Optional.of(new EncryptPredicateInRightValueToken(startIndex, stopIndex, indexValues, parameterMarkerIndexes))
+                : Optional.of(new EncryptPredicateEqualRightValueToken(startIndex, stopIndex, indexValues, parameterMarkerIndexes));
+    }
+    
+    private SQLToken generateBinarySQLTokens(final EncryptBinaryCondition encryptCondition, final int startIndex, final int stopIndex,
+                                             final Map<Integer, Object> indexValues, final Collection<Integer> parameterMarkerIndexes) {
+        if (encryptCondition.getExpressionSegment() instanceof FunctionSegment) {
+            FunctionSegment functionSegment = (FunctionSegment) encryptCondition.getExpressionSegment();
+            return new EncryptPredicateFunctionRightValueToken(startIndex, stopIndex,
+                    functionSegment.getFunctionName(), functionSegment.getParameters(), indexValues, parameterMarkerIndexes);
+        }
+        return new EncryptPredicateEqualRightValueToken(startIndex, stopIndex, indexValues, parameterMarkerIndexes);
     }
     
     private List<Object> getEncryptedValues(final String schemaName, final EncryptTable encryptTable, final EncryptCondition encryptCondition, final List<Object> originalValues) {
-        String columnName = encryptCondition.getColumnSegment().getIdentifier().getValue();
+        String columnName = encryptCondition.getColumnSegment().getColumnBoundInfo().getOriginalColumn().getValue();
         EncryptColumn encryptColumn = encryptTable.getEncryptColumn(columnName);
-        if (encryptCondition instanceof EncryptBinaryCondition && "LIKE".equalsIgnoreCase(((EncryptBinaryCondition) encryptCondition).getOperator())) {
-            LikeQueryColumnItem likeQueryColumnItem = encryptColumn.getLikeQuery()
-                    .orElseThrow(() -> new MissingMatchedEncryptQueryAlgorithmException(encryptTable.getTable(), columnName, "LIKE"));
-            return likeQueryColumnItem.encrypt(database.getName(), schemaName, encryptCondition.getTableName(), columnName, originalValues);
-        }
         String tableName = encryptCondition.getColumnSegment().getColumnBoundInfo().getOriginalTable().getValue();
+        if (encryptCondition instanceof EncryptBinaryCondition && EncryptConstants.LIKE_OPERATORS.contains(((EncryptBinaryCondition) encryptCondition).getOperator())) {
+            return getLikeQueryEncryptedValues(schemaName, encryptCondition, originalValues, encryptColumn, tableName, columnName);
+        }
         return encryptColumn.getAssistedQuery()
                 .map(optional -> optional.encrypt(database.getName(), schemaName, tableName, encryptCondition.getColumnSegment().getIdentifier().getValue(), originalValues))
                 .orElseGet(() -> encryptColumn.getCipher().encrypt(database.getName(), schemaName, tableName, encryptCondition.getColumnSegment().getIdentifier().getValue(), originalValues));
+    }
+    
+    private List<Object> getLikeQueryEncryptedValues(final String schemaName, final EncryptCondition encryptCondition,
+                                                     final List<Object> originalValues, final EncryptColumn encryptColumn, final String tableName, final String columnName) {
+        ShardingSpherePreconditions.checkState(encryptColumn.getLikeQuery().isPresent() || encryptColumn.getCipher().getEncryptor().getMetaData().isSupportLike(),
+                () -> new MissingMatchedEncryptQueryAlgorithmException(tableName, columnName, "LIKE"));
+        if (encryptColumn.getLikeQuery().isPresent()) {
+            return encryptColumn.getLikeQuery().get().encrypt(database.getName(), schemaName, encryptCondition.getTableName(), columnName, originalValues);
+        }
+        return encryptColumn.getCipher().encrypt(database.getName(), schemaName, tableName, columnName, originalValues);
     }
     
     private Map<Integer, Object> getPositionValues(final Collection<Integer> valuePositions, final List<Object> encryptValues) {

@@ -19,7 +19,7 @@ but there are some differences,
 If users have such needs, they should consider submitting a PR for ShardingSphere
 5. The assumptions made by ShardingSphere JDBC on Seata's TCC mode are invalid on ShardingSphere Proxy
 
-The following discussion takes ShardingSphere Proxy using Seata Client 2.3.0 as an example.
+The following discussion takes ShardingSphere Proxy using Seata Client 2.6.0 as an example.
 
 ## Operation steps
 
@@ -29,27 +29,36 @@ The following discussion takes ShardingSphere Proxy using Seata Client 2.3.0 as 
 4. Create ShardingSphere Proxy containing Seata Client and Seata integration module
 5. Add Seata configuration to ShardingSphere Proxy
 
+If the official binary release package or Docker Image is used, copy the jars in `opt-lib/seata-at` to `ext-lib` first,
+then add the third-party dependencies required by Seata Client.
+
 ## Configuration example
 
 ### Confirm the JAR and dependency list of Seata Client
 
-For Ubuntu 22.04.4 with `SDKMAN!` installed, 
-you can confirm all `compile` scope dependencies of Seata Client with the following command:
+
+`OpenJDK` and `Maven` can be installed via `sdkman/sdkman-cli` or `version-fox/vfox`.
+For `Ubuntu 24.04.3` or `Windows 11 Home 24H2` with `OpenJDK 23` and `Maven 3.9.11` installed, user can confirm all `compile` scope dependencies of Seata Client with the following command,
+
+1. If using Bash,
 
 ```shell
-sdk install java 23-open
-sdk use java 23-open
-sdk install maven 3.9.9
-sdk use maven 3.9.9
-mvn dependency:get -Dartifact=org.apache.seata:seata-all:2.3.0
-mvn -f ~/.m2/repository/org/apache/seata/seata-all/2.3.0/seata-all-2.3.0.pom dependency:tree | grep -v ':provided' | grep -v ':runtime'
+mvn dependency:get "-Dartifact=org.apache.seata:seata-all:2.6.0"
+mvn -f "${HOME}/.m2/repository/org/apache/seata/seata-all/2.6.0/seata-all-2.6.0.pom" dependency:tree | grep -v ':provided' | grep -v ':runtime'
+```
+
+2. If using PowerShell 7,
+
+```shell
+mvn dependency:get "-Dartifact=org.apache.seata:seata-all:2.6.0"
+mvn -f "${HOME}/.m2/repository/org/apache/seata/seata-all/2.6.0/seata-all-2.6.0.pom" dependency:tree | Where-Object { $_ -notmatch ':provided' -and $_ -notmatch ':runtime' }
 ```
 
 Compared with the `pom.xml` of `org.apache.shardingsphere:shardingsphere-proxy-distribution`, 
 it is not difficult to find the differences listed as follows:
 
 ```
-org.apache.seata:seata-all:jar:2.3.0
+org.apache.seata:seata-all:jar:2.6.0
 org.springframework:spring-context:jar:5.3.39
 org.springframework:spring-expression:jar:5.3.39
 org.springframework:spring-core:jar:5.3.39
@@ -82,7 +91,7 @@ org.abego.treelayout:org.abego.treelayout.core:jar:1.0.3
 org.glassfish:javax.json:jar:1.0.4
 com.ibm.icu:icu4j:jar:61.1
 com.alibaba:fastjson:jar:1.2.83
-com.alibaba:druid:jar:1.2.20
+com.alibaba:druid:jar:1.2.25
 com.typesafe:config:jar:1.2.1
 commons-pool:commons-pool:jar:1.6
 org.apache.dubbo.extensions:dubbo-filter-seata:jar:1.0.2
@@ -101,15 +110,15 @@ Write the Docker Compose file to start Seata Server and Postgres Server.
 ```yaml
 services:
    postgres:
-      image: postgres:17.2-bookworm
+      image: postgres:17.5-bookworm
       environment:
          POSTGRES_PASSWORD: example
       volumes:
          - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
    apache-seata-server:
-      image: apache/seata-server:2.3.0
+      image: apache/seata-server:2.6.0
       healthcheck:
-         test: [ "CMD", "sh", "-c", "curl -s apache-seata-server:7091/health | grep -q '^ok$'" ]
+         test: [ "CMD", "sh", "-c", "curl -s apache-seata-server:8091/health | grep -q '\"ok\"'" ]
    shardingsphere-proxy-custom:
       image: example/shardingsphere-proxy-custom:latest
       pull_policy: build
@@ -117,8 +126,8 @@ services:
          context: .
          dockerfile_inline: |
             FROM apache/shardingsphere-proxy:latest
-            RUN wget https://repo1.maven.org/maven2/org/apache/shardingsphere/shardingsphere-transaction-base-seata-at/5.5.2/shardingsphere-transaction-base-seata-at-5.5.2.jar --directory-prefix=/opt/shardingsphere-proxy/ext-lib
-            RUN wget https://repo1.maven.org/maven2/org/apache/seata/seata-all/2.3.0/seata-all-2.3.0.jar --directory-prefix=/opt/shardingsphere-proxy/ext-lib
+            RUN cp /opt/shardingsphere-proxy/opt-lib/seata-at/*.jar /opt/shardingsphere-proxy/ext-lib/
+            RUN wget https://repo1.maven.org/maven2/org/apache/seata/seata-all/2.6.0/seata-all-2.6.0.jar --directory-prefix=/opt/shardingsphere-proxy/ext-lib
             RUN wget https://repo1.maven.org/maven2/org/springframework/spring-context/5.3.39/spring-context-5.3.39.jar --directory-prefix=/opt/shardingsphere-proxy/ext-lib
             RUN wget https://repo1.maven.org/maven2/org/springframework/spring-expression/5.3.39/spring-expression-5.3.39.jar --directory-prefix=/opt/shardingsphere-proxy/ext-lib
             RUN wget https://repo1.maven.org/maven2/org/springframework/spring-core/5.3.39/spring-core-5.3.39.jar --directory-prefix=/opt/shardingsphere-proxy/ext-lib
@@ -151,7 +160,7 @@ services:
             RUN wget https://repo1.maven.org/maven2/org/glassfish/javax.json/1.0.4/javax.json-1.0.4.jar --directory-prefix=/opt/shardingsphere-proxy/ext-lib
             RUN wget https://repo1.maven.org/maven2/com/ibm/icu/icu4j/61.1/icu4j-61.1.jar --directory-prefix=/opt/shardingsphere-proxy/ext-lib
             RUN wget https://repo1.maven.org/maven2/com/alibaba/fastjson/1.2.83/fastjson-1.2.83.jar --directory-prefix=/opt/shardingsphere-proxy/ext-lib
-            RUN wget https://repo1.maven.org/maven2/com/alibaba/druid/1.2.20/druid-1.2.20.jar --directory-prefix=/opt/shardingsphere-proxy/ext-lib
+            RUN wget https://repo1.maven.org/maven2/com/alibaba/druid/1.2.25/druid-1.2.25.jar --directory-prefix=/opt/shardingsphere-proxy/ext-lib
             RUN wget https://repo.akka.io/maven/com/typesafe/config/1.2.1/config-1.2.1.jar --directory-prefix=/opt/shardingsphere-proxy/ext-lib
             RUN wget https://repo1.maven.org/maven2/commons-pool/commons-pool/1.6/commons-pool-1.6.jar --directory-prefix=/opt/shardingsphere-proxy/ext-lib
             RUN wget https://repo1.maven.org/maven2/org/apache/dubbo/extensions/dubbo-filter-seata/1.0.2/dubbo-filter-seata-1.0.2.jar --directory-prefix=/opt/shardingsphere-proxy/ext-lib
@@ -275,11 +284,11 @@ done
 ### Create ShardingSphere virtual database
 
 Use third-party tools to create ShardingSphere virtual database in ShardingSphere Proxy. 
-Taking DBeaver Community as an example, if you use Ubuntu 22.04.4, you can quickly install it through Snapcraft.
+Taking DBeaver Community as an example, if you use Ubuntu 24.04, you can quickly install it through Snapcraft.
 
 ```shell
 sudo apt update && sudo apt upgrade -y
-sudo snap install dbeaver-ce
+sudo snap install dbeaver-ce --classic
 snap run dbeaver-ce
 ```
 
@@ -340,7 +349,7 @@ The required JDBC Driver corresponds to the `proxy-frontend-database-protocol-ty
 <dependency>
     <groupId>org.postgresql</groupId>
     <artifactId>postgresql</artifactId>
-    <version>42.7.5</version>
+    <version>42.7.8</version>
 </dependency>
 ```
 
@@ -365,39 +374,8 @@ public class ExampleUtils {
              Statement statement = connection.createStatement()) {
             statement.execute("INSERT INTO t_order (user_id, order_type, address_id, status) VALUES (1, 1, 1, 'INSERT_TEST')");
             statement.executeQuery("SELECT * FROM t_order");
-            statement.execute("DELETE FROM t_order WHERE order_id=1");
+            statement.execute("DELETE FROM t_order WHERE user_id=1");
         }
     }
 }
-```
-
-## Usage restrictions
-
-### ShardingSphere Proxy Native for GraalVM Native Image
-
-For ShardingSphere Proxy Native in GraalVM Native Image,
-Users always need to modify the ShardingSphere source code to add the Seata Client and Seata integrated Maven modules and compile them into GraalVM Native Image.
-ShardingSphere Proxy Native in GraalVM Native Image cannot recognize the additional JAR files.
-
-```xml
-<project>
-    <dependencies>
-      <dependency>
-         <groupId>org.apache.shardingsphere</groupId>
-         <artifactId>shardingsphere-transaction-base-seata-at</artifactId>
-         <version>${shardingsphere.version}</version>
-      </dependency>
-      <dependency>
-         <groupId>org.apache.seata</groupId>
-         <artifactId>seata-all</artifactId>
-         <version>2.2.0</version>
-         <exclusions>
-            <exclusion>
-               <groupId>org.antlr</groupId>
-               <artifactId>antlr4-runtime</artifactId>
-            </exclusion>
-         </exclusions>
-      </dependency>
-    </dependencies>
-</project>
 ```

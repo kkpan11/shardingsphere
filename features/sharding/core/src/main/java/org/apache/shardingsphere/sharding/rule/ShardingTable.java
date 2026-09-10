@@ -25,8 +25,8 @@ import lombok.ToString;
 import org.apache.shardingsphere.infra.datanode.DataNode;
 import org.apache.shardingsphere.infra.datanode.DataNodeInfo;
 import org.apache.shardingsphere.infra.datanode.DataNodeUtils;
-import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
-import org.apache.shardingsphere.infra.expr.core.InlineExpressionParserFactory;
+import org.apache.shardingsphere.infra.exception.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.expr.entry.InlineExpressionParserFactory;
 import org.apache.shardingsphere.sharding.api.config.rule.ShardingAutoTableRuleConfiguration;
 import org.apache.shardingsphere.sharding.api.config.rule.ShardingTableRuleConfiguration;
 import org.apache.shardingsphere.sharding.api.config.strategy.audit.ShardingAuditStrategyConfiguration;
@@ -38,12 +38,12 @@ import org.apache.shardingsphere.sharding.constant.ShardingTableConstants;
 import org.apache.shardingsphere.sharding.exception.metadata.DataNodeGenerateException;
 import org.apache.shardingsphere.sharding.exception.metadata.MissingRequiredDataNodesException;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -101,15 +101,19 @@ public final class ShardingTable {
     }
     
     public ShardingTable(final ShardingTableRuleConfiguration tableRuleConfig, final Collection<String> dataSourceNames, final String defaultGenerateKeyColumn) {
+        this(tableRuleConfig, dataSourceNames, null, defaultGenerateKeyColumn);
+    }
+    
+    public ShardingTable(final ShardingTableRuleConfiguration tableRuleConfig, final Collection<String> dataSourceNames,
+                         final KeyGenerateStrategyConfiguration keyGeneratorConfig, final String defaultGenerateKeyColumn) {
         logicTable = tableRuleConfig.getLogicTable();
-        List<String> dataNodes = InlineExpressionParserFactory.newInstance(tableRuleConfig.getActualDataNodes()).splitAndEvaluate();
+        Collection<String> dataNodes = InlineExpressionParserFactory.newInstance(tableRuleConfig.getActualDataNodes()).splitAndEvaluate();
         dataNodeIndexMap = new HashMap<>(dataNodes.size(), 1F);
         actualDataNodes = isEmptyDataNodes(dataNodes) ? generateDataNodes(tableRuleConfig.getLogicTable(), dataSourceNames) : generateDataNodes(dataNodes, dataSourceNames);
         actualTables = getActualTables();
         databaseShardingStrategyConfig = tableRuleConfig.getDatabaseShardingStrategy();
         tableShardingStrategyConfig = tableRuleConfig.getTableShardingStrategy();
         auditStrategyConfig = tableRuleConfig.getAuditStrategy();
-        KeyGenerateStrategyConfiguration keyGeneratorConfig = tableRuleConfig.getKeyGenerateStrategy();
         generateKeyColumn = null == keyGeneratorConfig || Strings.isNullOrEmpty(keyGeneratorConfig.getColumn()) ? defaultGenerateKeyColumn : keyGeneratorConfig.getColumn();
         keyGeneratorName = null == keyGeneratorConfig ? null : keyGeneratorConfig.getKeyGeneratorName();
         dataSourceDataNode = actualDataNodes.isEmpty() ? null : createDataSourceDataNode(actualDataNodes);
@@ -119,6 +123,12 @@ public final class ShardingTable {
     
     public ShardingTable(final ShardingAutoTableRuleConfiguration tableRuleConfig, final Collection<String> dataSourceNames,
                          final ShardingAutoTableAlgorithm shardingAutoTableAlgorithm, final String defaultGenerateKeyColumn) {
+        this(tableRuleConfig, dataSourceNames, shardingAutoTableAlgorithm, null, defaultGenerateKeyColumn);
+    }
+    
+    public ShardingTable(final ShardingAutoTableRuleConfiguration tableRuleConfig, final Collection<String> dataSourceNames,
+                         final ShardingAutoTableAlgorithm shardingAutoTableAlgorithm, final KeyGenerateStrategyConfiguration keyGeneratorConfig,
+                         final String defaultGenerateKeyColumn) {
         logicTable = tableRuleConfig.getLogicTable();
         databaseShardingStrategyConfig = new NoneShardingStrategyConfiguration();
         tableShardingStrategyConfig = tableRuleConfig.getShardingStrategy();
@@ -127,7 +137,6 @@ public final class ShardingTable {
         dataNodeIndexMap = new HashMap<>(dataNodes.size(), 1F);
         actualDataNodes = isEmptyDataNodes(dataNodes) ? generateDataNodes(tableRuleConfig.getLogicTable(), dataSourceNames) : generateDataNodes(dataNodes, dataSourceNames);
         actualTables = getActualTables();
-        KeyGenerateStrategyConfiguration keyGeneratorConfig = tableRuleConfig.getKeyGenerateStrategy();
         generateKeyColumn = null == keyGeneratorConfig || Strings.isNullOrEmpty(keyGeneratorConfig.getColumn()) ? defaultGenerateKeyColumn : keyGeneratorConfig.getColumn();
         keyGeneratorName = null == keyGeneratorConfig ? null : keyGeneratorConfig.getKeyGeneratorName();
         dataSourceDataNode = actualDataNodes.isEmpty() ? null : createDataSourceDataNode(actualDataNodes);
@@ -151,11 +160,11 @@ public final class ShardingTable {
     
     private List<String> getDataNodes(final ShardingAutoTableRuleConfiguration tableRuleConfig, final ShardingAutoTableAlgorithm shardingAlgorithm, final Collection<String> dataSourceNames) {
         if (null == tableShardingStrategyConfig) {
-            return new LinkedList<>();
+            return new ArrayList<>();
         }
-        List<String> dataSources = Strings.isNullOrEmpty(tableRuleConfig.getActualDataSources()) ? new LinkedList<>(dataSourceNames)
+        List<String> dataSources = Strings.isNullOrEmpty(tableRuleConfig.getActualDataSources()) ? new ArrayList<>(dataSourceNames)
                 : InlineExpressionParserFactory.newInstance(tableRuleConfig.getActualDataSources()).splitAndEvaluate();
-        return DataNodeUtils.getFormatDataNodes(shardingAlgorithm.getAutoTablesAmount(), logicTable, dataSources);
+        return DataNodeUtils.getFormattedDataNodes(shardingAlgorithm.getAutoTablesAmount(), logicTable, dataSources);
     }
     
     private Set<String> getActualTables() {
@@ -166,15 +175,15 @@ public final class ShardingTable {
         dataSourceToTablesMap.computeIfAbsent(datasourceName, key -> new LinkedHashSet<>()).add(tableName);
     }
     
-    private boolean isEmptyDataNodes(final List<String> dataNodes) {
+    private boolean isEmptyDataNodes(final Collection<String> dataNodes) {
         return null == dataNodes || dataNodes.isEmpty();
     }
     
     private List<DataNode> generateDataNodes(final String logicTable, final Collection<String> dataSourceNames) {
-        List<DataNode> result = new LinkedList<>();
+        List<DataNode> result = new ArrayList<>(dataSourceNames.size());
         int index = 0;
         for (String each : dataSourceNames) {
-            DataNode dataNode = new DataNode(each, logicTable);
+            DataNode dataNode = new DataNode(each, (String) null, logicTable);
             result.add(dataNode);
             dataNodeIndexMap.put(dataNode, index);
             actualDataSourceNames.add(each);
@@ -184,8 +193,8 @@ public final class ShardingTable {
         return result;
     }
     
-    private List<DataNode> generateDataNodes(final List<String> actualDataNodes, final Collection<String> dataSourceNames) {
-        List<DataNode> result = new LinkedList<>();
+    private List<DataNode> generateDataNodes(final Collection<String> actualDataNodes, final Collection<String> dataSourceNames) {
+        List<DataNode> result = new ArrayList<>(actualDataNodes.size());
         int index = 0;
         for (String each : actualDataNodes) {
             DataNode dataNode = new DataNode(each);
@@ -193,21 +202,12 @@ public final class ShardingTable {
                 throw new DataNodeGenerateException(each);
             }
             result.add(dataNode);
-            dataNodeIndexMap.put(dataNode, index);
+            dataNodeIndexMap.put(new DataNode(dataNode.getDataSourceName(), (String) null, dataNode.getTableName()), index);
             actualDataSourceNames.add(dataNode.getDataSourceName());
             addActualTable(dataNode.getDataSourceName(), dataNode.getTableName());
             index++;
         }
         return result;
-    }
-    
-    /**
-     * Get data node groups.
-     *
-     * @return data node groups, key is data source name, values are data nodes belong to this data source
-     */
-    public Map<String, List<DataNode>> getDataNodeGroups() {
-        return DataNodeUtils.getDataNodeGroups(actualDataNodes);
     }
     
     /**
@@ -228,7 +228,7 @@ public final class ShardingTable {
      * @return actual table index
      */
     public int findActualTableIndex(final String dataSourceName, final String actualTableName) {
-        return dataNodeIndexMap.getOrDefault(new DataNode(dataSourceName, actualTableName), -1);
+        return dataNodeIndexMap.getOrDefault(new DataNode(dataSourceName, (String) null, actualTableName), -1);
     }
     
     /**
@@ -241,7 +241,19 @@ public final class ShardingTable {
         return actualTables.contains(actualTableName);
     }
     
-    private void checkRule(final List<String> dataNodes) {
+    /**
+     * Whether contains data node with specified data source name and actual table name.
+     *
+     * @param dataSourceName data source name
+     * @param actualTableName actual table name
+     * @return contains or not
+     */
+    public boolean containsDataNode(final String dataSourceName, final String actualTableName) {
+        Collection<String> tables = dataSourceToTablesMap.get(dataSourceName);
+        return null != tables && tables.contains(actualTableName);
+    }
+    
+    private void checkRule(final Collection<String> dataNodes) {
         ShardingSpherePreconditions.checkState(!isEmptyDataNodes(dataNodes) || null == tableShardingStrategyConfig || tableShardingStrategyConfig instanceof NoneShardingStrategyConfiguration,
                 () -> new MissingRequiredDataNodesException(logicTable));
     }

@@ -21,8 +21,9 @@ import org.junit.jupiter.api.Test;
 
 import java.io.Serializable;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.isA;
 
 class MySQLBinlogUnsignedTinyintHandlerTest {
     
@@ -31,8 +32,10 @@ class MySQLBinlogUnsignedTinyintHandlerTest {
     @Test
     void assertHandle() {
         Serializable actual = handler.handle((byte) 1);
-        assertThat(actual, is(1));
+        assertThat(actual, isA(Short.class));
+        assertThat(actual, is((short) 1));
         actual = handler.handle((byte) -1);
-        assertThat(actual, is(255));
+        assertThat(actual, isA(Short.class));
+        assertThat(actual, is((short) 255));
     }
 }

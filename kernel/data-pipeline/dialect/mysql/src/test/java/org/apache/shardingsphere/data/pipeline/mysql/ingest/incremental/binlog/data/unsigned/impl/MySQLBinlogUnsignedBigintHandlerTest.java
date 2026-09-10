@@ -22,8 +22,9 @@ import org.junit.jupiter.api.Test;
 import java.io.Serializable;
 import java.math.BigInteger;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.isA;
 
 class MySQLBinlogUnsignedBigintHandlerTest {
     
@@ -32,8 +33,10 @@ class MySQLBinlogUnsignedBigintHandlerTest {
     @Test
     void assertHandle() {
         Serializable actual = handler.handle(1L);
-        assertThat(actual, is(1L));
+        assertThat(actual, isA(BigInteger.class));
+        assertThat(actual, is(new BigInteger("1")));
         actual = handler.handle(-1L);
+        assertThat(actual, isA(BigInteger.class));
         assertThat(actual, is(new BigInteger("18446744073709551615")));
     }
 }

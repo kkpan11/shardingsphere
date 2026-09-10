@@ -17,7 +17,7 @@
 
 package org.apache.shardingsphere.mode.repository.cluster.exception;
 
-import org.apache.shardingsphere.infra.exception.core.external.sql.sqlstate.XOpenSQLState;
+import org.apache.shardingsphere.infra.exception.external.sql.sqlstate.XOpenSQLState;
 import org.apache.shardingsphere.mode.exception.MetaDataPersistException;
 
 /**
@@ -28,6 +28,6 @@ public final class ClusterRepositoryPersistException extends MetaDataPersistExce
     private static final long serialVersionUID = -6417179023552012152L;
     
     public ClusterRepositoryPersistException(final Exception cause) {
-        super(XOpenSQLState.GENERAL_ERROR, 10, cause, "Cluster repository persist error.");
+        super(XOpenSQLState.GENERAL_ERROR, 16, cause, "Cluster repository persist error.");
     }
 }

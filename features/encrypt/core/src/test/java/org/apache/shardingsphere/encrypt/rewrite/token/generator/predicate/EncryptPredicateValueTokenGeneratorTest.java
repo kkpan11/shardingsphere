@@ -20,42 +20,40 @@ package org.apache.shardingsphere.encrypt.rewrite.token.generator.predicate;
 import org.apache.shardingsphere.encrypt.rewrite.condition.EncryptCondition;
 import org.apache.shardingsphere.encrypt.rewrite.condition.EncryptConditionEngine;
 import org.apache.shardingsphere.encrypt.rewrite.token.generator.fixture.EncryptGeneratorFixtureBuilder;
-import org.apache.shardingsphere.infra.binder.context.statement.dml.UpdateStatementContext;
+import org.apache.shardingsphere.infra.binder.context.statement.type.dml.UpdateStatementContext;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.infra.rewrite.sql.token.common.pojo.SQLToken;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collection;
-import java.util.Collections;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 
 class EncryptPredicateValueTokenGeneratorTest {
     
-    private EncryptPredicateValueTokenGenerator generator;
-    
-    @BeforeEach
-    void setup() {
-        generator = new EncryptPredicateValueTokenGenerator(EncryptGeneratorFixtureBuilder.createEncryptRule(),
-                new ShardingSphereDatabase("foo_db", mock(), mock(), mock(), Collections.emptyList()));
-    }
-    
     @Test
     void assertIsGenerateSQLToken() {
-        assertTrue(generator.isGenerateSQLToken(EncryptGeneratorFixtureBuilder.createUpdateStatementContext()));
+        UpdateStatementContext updateStatementContext = EncryptGeneratorFixtureBuilder.createUpdateStatementContext();
+        Collection<EncryptCondition> encryptConditions = getEncryptConditions(updateStatementContext);
+        EncryptPredicateValueTokenGenerator generator = new EncryptPredicateValueTokenGenerator(EncryptGeneratorFixtureBuilder.createEncryptRule(),
+                EncryptGeneratorFixtureBuilder.createDatabase(), encryptConditions);
+        assertTrue(generator.isGenerateSQLToken(updateStatementContext));
     }
     
     @Test
     void assertGenerateSQLTokenFromGenerateNewSQLToken() {
         UpdateStatementContext updateStatementContext = EncryptGeneratorFixtureBuilder.createUpdateStatementContext();
-        generator.setEncryptConditions(getEncryptConditions(updateStatementContext));
+        ShardingSphereDatabase database = spy(EncryptGeneratorFixtureBuilder.createDatabase());
+        EncryptPredicateValueTokenGenerator generator = new EncryptPredicateValueTokenGenerator(EncryptGeneratorFixtureBuilder.createEncryptRule(),
+                database, getEncryptConditions(updateStatementContext));
         Collection<SQLToken> sqlTokens = generator.generateSQLTokens(updateStatementContext);
         assertThat(sqlTokens.size(), is(1));
         assertThat(sqlTokens.iterator().next().toString(), is("'assistedEncryptValue'"));
+        verify(database).getDefaultSchemaName();
     }
     
     private Collection<EncryptCondition> getEncryptConditions(final UpdateStatementContext updateStatementContext) {

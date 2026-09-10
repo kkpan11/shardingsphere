@@ -21,7 +21,7 @@
     <parent>
         <groupId>org.apache.shardingsphere</groupId>
         <artifactId>shardingsphere-mask</artifactId>
-        <version>5.5.3-SNAPSHOT</version>
+        <version>5.5.4-SNAPSHOT</version>
     </parent>
     <artifactId>shardingsphere-mask-core</artifactId>
     <name>${project.artifactId}</name>
@@ -47,10 +47,15 @@
             <artifactId>shardingsphere-infra-algorithm-message-digest-md5</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.shardingsphere</groupId>
+            <artifactId>shardingsphere-infra-algorithm-message-digest-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         
         <dependency>
             <groupId>org.apache.shardingsphere</groupId>
-            <artifactId>shardingsphere-test-util</artifactId>
+            <artifactId>shardingsphere-test-infra-framework</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>

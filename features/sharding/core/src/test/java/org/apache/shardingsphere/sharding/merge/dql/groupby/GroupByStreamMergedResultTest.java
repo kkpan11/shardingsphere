@@ -17,9 +17,10 @@
 
 package org.apache.shardingsphere.sharding.merge.dql.groupby;
 
-import org.apache.shardingsphere.infra.binder.context.statement.dml.SelectStatementContext;
-import org.apache.shardingsphere.infra.database.core.metadata.database.enums.NullsOrderType;
-import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
+import org.apache.shardingsphere.database.connector.core.metadata.database.enums.NullsOrderType;
+import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
+import org.apache.shardingsphere.infra.binder.context.statement.type.dml.SelectStatementContext;
+import org.apache.shardingsphere.infra.config.props.ConfigurationProperties;
 import org.apache.shardingsphere.infra.executor.sql.execute.result.query.QueryResult;
 import org.apache.shardingsphere.infra.merge.result.MergedResult;
 import org.apache.shardingsphere.infra.metadata.ShardingSphereMetaData;
@@ -41,8 +42,8 @@ import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.order.Ord
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.order.item.IndexOrderByItemSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.SimpleTableSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.TableNameSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.type.dml.SelectStatement;
 import org.apache.shardingsphere.sql.parser.statement.core.value.identifier.IdentifierValue;
-import org.apache.shardingsphere.sql.parser.statement.mysql.dml.MySQLSelectStatement;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -51,9 +52,10 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
+import java.util.Properties;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
@@ -72,6 +74,7 @@ class GroupByStreamMergedResultTest {
         assertFalse(actual.next());
     }
     
+    @SuppressWarnings("UseOfObsoleteDateTimeApi")
     @Test
     void assertNextForSomeResultSetsEmpty() throws SQLException {
         QueryResult queryResult1 = mockQueryResult();
@@ -164,18 +167,20 @@ class GroupByStreamMergedResultTest {
     
     private SelectStatementContext createSelectStatementContext() {
         SimpleTableSegment tableSegment = new SimpleTableSegment(new TableNameSegment(10, 13, new IdentifierValue("tbl")));
-        MySQLSelectStatement selectStatement = new MySQLSelectStatement();
-        selectStatement.setFrom(tableSegment);
         ShardingSphereDatabase database = mock(ShardingSphereDatabase.class, RETURNS_DEEP_STUBS);
         when(database.getName()).thenReturn("foo_db");
         ProjectionsSegment projectionsSegment = new ProjectionsSegment(0, 0);
         projectionsSegment.getProjections().add(new AggregationProjectionSegment(0, 0, AggregationType.COUNT, "COUNT(*)"));
         projectionsSegment.getProjections().add(new AggregationProjectionSegment(0, 0, AggregationType.AVG, "AVG(num)"));
-        selectStatement.setProjections(projectionsSegment);
-        selectStatement.setGroupBy(new GroupBySegment(0, 0, Collections.singletonList(new IndexOrderByItemSegment(0, 0, 3, OrderDirection.ASC, NullsOrderType.FIRST))));
-        selectStatement.setOrderBy(new OrderBySegment(0, 0, Collections.singletonList(new IndexOrderByItemSegment(0, 0, 3, OrderDirection.ASC, NullsOrderType.FIRST))));
+        SelectStatement selectStatement = SelectStatement.builder()
+                .databaseType(databaseType)
+                .from(tableSegment)
+                .projections(projectionsSegment)
+                .groupBy(new GroupBySegment(0, 0, Collections.singletonList(new IndexOrderByItemSegment(0, 0, 3, OrderDirection.ASC, NullsOrderType.FIRST))))
+                .orderBy(new OrderBySegment(0, 0, Collections.singletonList(new IndexOrderByItemSegment(0, 0, 3, OrderDirection.ASC, NullsOrderType.FIRST))))
+                .build();
         return new SelectStatementContext(
-                new ShardingSphereMetaData(Collections.singleton(database), mock(), mock(), mock()), Collections.emptyList(), selectStatement, "foo_db", Collections.emptyList());
+                selectStatement, new ShardingSphereMetaData(Collections.singleton(database), mock(), mock(), mock()), "foo_db", Collections.emptyList());
     }
     
     private ShardingSphereDatabase createDatabase() {
@@ -183,8 +188,8 @@ class GroupByStreamMergedResultTest {
         ShardingSphereColumn column2 = new ShardingSphereColumn("col2", 0, false, false, false, true, false, false);
         ShardingSphereColumn column3 = new ShardingSphereColumn("col3", 0, false, false, false, true, false, false);
         ShardingSphereTable table = new ShardingSphereTable("tbl", Arrays.asList(column1, column2, column3), Collections.emptyList(), Collections.emptyList());
-        ShardingSphereSchema schema = new ShardingSphereSchema("foo_db", Collections.singleton(table), Collections.emptyList());
-        return new ShardingSphereDatabase("foo_db", databaseType, mock(ResourceMetaData.class), mock(RuleMetaData.class), Collections.singleton(schema));
+        ShardingSphereSchema schema = new ShardingSphereSchema("foo_db", databaseType, Collections.singleton(table), Collections.emptyList());
+        return new ShardingSphereDatabase("foo_db", databaseType, mock(ResourceMetaData.class), mock(RuleMetaData.class), Collections.singleton(schema), new ConfigurationProperties(new Properties()));
     }
     
     private QueryResult mockQueryResult() throws SQLException {

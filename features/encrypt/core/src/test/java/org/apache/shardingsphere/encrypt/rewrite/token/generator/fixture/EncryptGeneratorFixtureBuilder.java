@@ -19,6 +19,7 @@ package org.apache.shardingsphere.encrypt.rewrite.token.generator.fixture;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
 import org.apache.shardingsphere.encrypt.config.EncryptRuleConfiguration;
 import org.apache.shardingsphere.encrypt.config.rule.EncryptColumnItemRuleConfiguration;
 import org.apache.shardingsphere.encrypt.config.rule.EncryptColumnRuleConfiguration;
@@ -26,16 +27,17 @@ import org.apache.shardingsphere.encrypt.config.rule.EncryptTableRuleConfigurati
 import org.apache.shardingsphere.encrypt.rewrite.token.pojo.EncryptInsertValuesToken;
 import org.apache.shardingsphere.encrypt.rule.EncryptRule;
 import org.apache.shardingsphere.infra.algorithm.core.config.AlgorithmConfiguration;
-import org.apache.shardingsphere.infra.binder.context.statement.dml.InsertStatementContext;
-import org.apache.shardingsphere.infra.binder.context.statement.dml.UpdateStatementContext;
+import org.apache.shardingsphere.infra.binder.context.statement.type.dml.InsertStatementContext;
+import org.apache.shardingsphere.infra.binder.context.statement.type.dml.UpdateStatementContext;
 import org.apache.shardingsphere.infra.config.props.ConfigurationProperties;
 import org.apache.shardingsphere.infra.metadata.ShardingSphereMetaData;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
+import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabaseFactory;
 import org.apache.shardingsphere.infra.metadata.database.resource.ResourceMetaData;
 import org.apache.shardingsphere.infra.metadata.database.rule.RuleMetaData;
-import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereSchema;
 import org.apache.shardingsphere.infra.rewrite.sql.token.common.pojo.SQLToken;
 import org.apache.shardingsphere.infra.rewrite.sql.token.common.pojo.generic.InsertValue;
+import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 import org.apache.shardingsphere.sql.parser.statement.core.enums.TableSourceType;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.assignment.ColumnAssignmentSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.assignment.InsertValuesSegment;
@@ -54,12 +56,10 @@ import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.bound
 import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.bound.TableSegmentBoundInfo;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.SimpleTableSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.TableNameSegment;
-import org.apache.shardingsphere.sql.parser.statement.core.statement.dml.InsertStatement;
-import org.apache.shardingsphere.sql.parser.statement.core.statement.dml.UpdateStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.type.dml.InsertStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.type.dml.SelectStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.type.dml.UpdateStatement;
 import org.apache.shardingsphere.sql.parser.statement.core.value.identifier.IdentifierValue;
-import org.apache.shardingsphere.sql.parser.statement.mysql.dml.MySQLInsertStatement;
-import org.apache.shardingsphere.sql.parser.statement.mysql.dml.MySQLSelectStatement;
-import org.apache.shardingsphere.sql.parser.statement.mysql.dml.MySQLUpdateStatement;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -69,15 +69,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 /**
  * Encrypt generator fixture builder.
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class EncryptGeneratorFixtureBuilder {
+    
+    private static final DatabaseType DATABASE_TYPE = TypedSPILoader.getService(DatabaseType.class, "FIXTURE");
     
     /**
      * Create encrypt rule.
@@ -96,8 +94,14 @@ public final class EncryptGeneratorFixtureBuilder {
         EncryptColumnRuleConfiguration userNameColumnConfig = new EncryptColumnRuleConfiguration("user_name", new EncryptColumnItemRuleConfiguration("user_name_cipher", "standard_encryptor"));
         EncryptColumnRuleConfiguration userIdColumnConfig = new EncryptColumnRuleConfiguration("user_id", new EncryptColumnItemRuleConfiguration("user_id_cipher", "standard_encryptor"));
         userIdColumnConfig.setAssistedQuery(new EncryptColumnItemRuleConfiguration("user_id_assist", "assisted_encryptor"));
+        EncryptColumnRuleConfiguration orderIdColumnConfig = new EncryptColumnRuleConfiguration("order_id", new EncryptColumnItemRuleConfiguration("order_id_cipher", "standard_encryptor"));
         return new EncryptRule("foo_db",
-                new EncryptRuleConfiguration(Collections.singleton(new EncryptTableRuleConfiguration("t_user", Arrays.asList(pwdColumnConfig, userNameColumnConfig, userIdColumnConfig))), encryptors));
+                new EncryptRuleConfiguration(Arrays.asList(
+                        new EncryptTableRuleConfiguration("t_user", Arrays.asList(pwdColumnConfig, userNameColumnConfig, userIdColumnConfig)),
+                        new EncryptTableRuleConfiguration("t_order", Collections.singletonList(orderIdColumnConfig)),
+                        new EncryptTableRuleConfiguration("t_order_item", Collections.singletonList(new EncryptColumnRuleConfiguration("order_id",
+                                new EncryptColumnItemRuleConfiguration("order_id_cipher", "standard_encryptor"))))),
+                        encryptors));
     }
     
     /**
@@ -107,28 +111,24 @@ public final class EncryptGeneratorFixtureBuilder {
      * @return created insert statement context
      */
     public static InsertStatementContext createInsertStatementContext(final List<Object> params) {
-        ShardingSphereDatabase database = mock(ShardingSphereDatabase.class, RETURNS_DEEP_STUBS);
-        when(database.getName()).thenReturn("foo_db");
-        ShardingSphereSchema schema = mock(ShardingSphereSchema.class);
-        when(database.getSchema("foo_db")).thenReturn(schema);
-        ShardingSphereMetaData metaData = new ShardingSphereMetaData(Collections.singleton(database), mock(ResourceMetaData.class), mock(RuleMetaData.class), mock(ConfigurationProperties.class));
-        return new InsertStatementContext(metaData, params, createInsertStatement(), "foo_db");
-    }
-    
-    private static InsertStatement createInsertStatement() {
-        InsertStatement result = new MySQLInsertStatement();
-        result.setTable(new SimpleTableSegment(new TableNameSegment(0, 0, new IdentifierValue("t_user"))));
-        InsertColumnsSegment insertColumnsSegment = new InsertColumnsSegment(0, 0, Arrays.asList(
-                new ColumnSegment(0, 0, new IdentifierValue("id")), new ColumnSegment(0, 0, new IdentifierValue("name")),
-                new ColumnSegment(0, 0, new IdentifierValue("status")), new ColumnSegment(0, 0, new IdentifierValue("pwd"))));
-        result.setInsertColumns(insertColumnsSegment);
-        result.getValues().add(new InsertValuesSegment(0, 0, createValueExpressions()));
+        ShardingSphereDatabase database = createDatabase();
+        ShardingSphereMetaData metaData = new ShardingSphereMetaData(Collections.singleton(database), new ResourceMetaData(Collections.emptyMap(), Collections.emptyMap()),
+                new RuleMetaData(Collections.emptyList()), new ConfigurationProperties(new Properties()), database.getProtocolType());
+        InsertStatementContext result = new InsertStatementContext(createInsertStatement(), metaData, "foo_db");
+        result.bindParameters(params);
         return result;
     }
     
+    private static InsertStatement createInsertStatement() {
+        InsertColumnsSegment insertColumnsSegment = new InsertColumnsSegment(0, 0, Arrays.asList(
+                new ColumnSegment(0, 0, new IdentifierValue("id")), new ColumnSegment(0, 0, new IdentifierValue("name")),
+                new ColumnSegment(0, 0, new IdentifierValue("status")), new ColumnSegment(0, 0, new IdentifierValue("pwd"))));
+        return InsertStatement.builder().databaseType(DATABASE_TYPE).table(new SimpleTableSegment(new TableNameSegment(0, 0, new IdentifierValue("t_user"))))
+                .insertColumns(insertColumnsSegment).values(Collections.singletonList(new InsertValuesSegment(0, 0, createValueExpressions()))).build();
+    }
+    
     private static InsertStatement createInsertSelectStatement(final boolean containsInsertColumns) {
-        InsertStatement result = new MySQLInsertStatement();
-        result.setTable(new SimpleTableSegment(new TableNameSegment(0, 0, new IdentifierValue("t_user"))));
+        InsertColumnsSegment insertColumnsSegment;
         ColumnSegment userIdColumn = new ColumnSegment(0, 0, new IdentifierValue("user_id"));
         userIdColumn.setColumnBoundInfo(new ColumnSegmentBoundInfo(new TableSegmentBoundInfo(new IdentifierValue("foo_db"), new IdentifierValue("foo_db")), new IdentifierValue("t_user"),
                 new IdentifierValue("user_id"), TableSourceType.PHYSICAL_TABLE));
@@ -136,23 +136,26 @@ public final class EncryptGeneratorFixtureBuilder {
         userNameColumn.setColumnBoundInfo(new ColumnSegmentBoundInfo(new TableSegmentBoundInfo(new IdentifierValue("foo_db"), new IdentifierValue("foo_db")),
                 new IdentifierValue("t_user"), new IdentifierValue("user_name"), TableSourceType.PHYSICAL_TABLE));
         List<ColumnSegment> insertColumns = Arrays.asList(userIdColumn, userNameColumn);
+        List<ColumnSegment> derivedInsertColumns = new ArrayList<>();
         if (containsInsertColumns) {
-            result.setInsertColumns(new InsertColumnsSegment(0, 0, insertColumns));
+            insertColumnsSegment = new InsertColumnsSegment(0, 0, insertColumns);
         } else {
-            result.setInsertColumns(new InsertColumnsSegment(0, 0, Collections.emptyList()));
-            result.getDerivedInsertColumns().addAll(insertColumns);
+            insertColumnsSegment = new InsertColumnsSegment(0, 0, Collections.emptyList());
+            derivedInsertColumns.addAll(insertColumns);
         }
-        MySQLSelectStatement selectStatement = new MySQLSelectStatement();
-        selectStatement.setFrom(new SimpleTableSegment(new TableNameSegment(0, 0, new IdentifierValue("t_user"))));
         ProjectionsSegment projections = new ProjectionsSegment(0, 0);
         projections.getProjections().add(new ColumnProjectionSegment(userIdColumn));
         ColumnSegment statusColumn = new ColumnSegment(0, 0, new IdentifierValue("status"));
         statusColumn.setColumnBoundInfo(new ColumnSegmentBoundInfo(new TableSegmentBoundInfo(new IdentifierValue("foo_db"), new IdentifierValue("foo_db")), new IdentifierValue("t_user"),
                 new IdentifierValue("status"), TableSourceType.PHYSICAL_TABLE));
         projections.getProjections().add(new ColumnProjectionSegment(statusColumn));
-        selectStatement.setProjections(projections);
-        result.setInsertSelect(new SubquerySegment(0, 0, selectStatement, ""));
-        return result;
+        SelectStatement selectStatement = SelectStatement.builder()
+                .databaseType(DATABASE_TYPE)
+                .from(new SimpleTableSegment(new TableNameSegment(0, 0, new IdentifierValue("t_user"))))
+                .projections(projections)
+                .build();
+        return InsertStatement.builder().databaseType(DATABASE_TYPE).table(new SimpleTableSegment(new TableNameSegment(0, 0, new IdentifierValue("t_user"))))
+                .insertColumns(insertColumnsSegment).derivedInsertColumns(derivedInsertColumns).insertSelect(new SubquerySegment(0, 0, selectStatement, "")).build();
     }
     
     /**
@@ -161,10 +164,12 @@ public final class EncryptGeneratorFixtureBuilder {
      * @return created update statement context
      */
     public static UpdateStatementContext createUpdateStatementContext() {
-        UpdateStatement updateStatement = new MySQLUpdateStatement();
-        updateStatement.setTable(new SimpleTableSegment(new TableNameSegment(0, 0, new IdentifierValue("t_user"))));
-        updateStatement.setWhere(createWhereSegment());
-        updateStatement.setSetAssignment(createSetAssignmentSegment());
+        UpdateStatement updateStatement = UpdateStatement.builder()
+                .databaseType(DATABASE_TYPE)
+                .table(new SimpleTableSegment(new TableNameSegment(0, 0, new IdentifierValue("t_user"))))
+                .where(createWhereSegment())
+                .setAssignment(createSetAssignmentSegment())
+                .build();
         return new UpdateStatementContext(updateStatement);
     }
     
@@ -182,6 +187,15 @@ public final class EncryptGeneratorFixtureBuilder {
     private static SetAssignmentSegment createSetAssignmentSegment() {
         List<ColumnSegment> columnSegment = Collections.singletonList(new ColumnSegment(0, 0, new IdentifierValue("pwd")));
         return new SetAssignmentSegment(0, 0, Collections.singletonList(new ColumnAssignmentSegment(0, 0, columnSegment, new LiteralExpressionSegment(0, 0, "654321"))));
+    }
+    
+    /**
+     * Create database.
+     *
+     * @return created database
+     */
+    public static ShardingSphereDatabase createDatabase() {
+        return ShardingSphereDatabaseFactory.create("foo_db", DATABASE_TYPE, new ConfigurationProperties(new Properties()));
     }
     
     /**
@@ -207,16 +221,13 @@ public final class EncryptGeneratorFixtureBuilder {
     /**
      * Create insert select statement context.
      *
-     * @param params parameters
      * @param containsInsertColumns contains insert columns
      * @return created insert select statement context
      */
-    public static InsertStatementContext createInsertSelectStatementContext(final List<Object> params, final boolean containsInsertColumns) {
-        ShardingSphereDatabase database = mock(ShardingSphereDatabase.class, RETURNS_DEEP_STUBS);
-        when(database.getName()).thenReturn("foo_db");
-        ShardingSphereSchema schema = mock(ShardingSphereSchema.class);
-        when(database.getSchema("foo_db")).thenReturn(schema);
-        ShardingSphereMetaData metaData = new ShardingSphereMetaData(Collections.singleton(database), mock(ResourceMetaData.class), mock(RuleMetaData.class), mock(ConfigurationProperties.class));
-        return new InsertStatementContext(metaData, params, createInsertSelectStatement(containsInsertColumns), "foo_db");
+    public static InsertStatementContext createInsertSelectStatementContext(final boolean containsInsertColumns) {
+        ShardingSphereDatabase database = createDatabase();
+        ShardingSphereMetaData metaData = new ShardingSphereMetaData(Collections.singleton(database), new ResourceMetaData(Collections.emptyMap(), Collections.emptyMap()),
+                new RuleMetaData(Collections.emptyList()), new ConfigurationProperties(new Properties()), database.getProtocolType());
+        return new InsertStatementContext(createInsertSelectStatement(containsInsertColumns), metaData, "foo_db");
     }
 }
